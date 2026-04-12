@@ -1,0 +1,16 @@
+{
+  "name": "ai-usage-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Integrated dashboard for AI service usage, quota windows, and availability",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "echo \"TODO: wire dev commands\"",
+    "build": "echo \"TODO: wire build commands\"",
+    "lint": "echo \"TODO: wire lint commands\"",
+    "test": "echo \"TODO: wire test commands\""
+  }
+}
