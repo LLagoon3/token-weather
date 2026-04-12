@@ -84,6 +84,22 @@ scripts/
 - `overloaded`
 - `unknown`
 
+## 작업 / 협업 규칙
+
+자세한 규칙은 `CONTRIBUTING.md`를 따른다. 요약은 아래와 같다.
+
+- 브랜치 흐름: `작업 브랜치 -> dev -> main`
+- 커밋 형식: `type(scope): 한글 설명`
+- PR 제목 형식: `[feat] 한글 요약`
+- PR 본문은 기본적으로 한글로 작성
+- 큰 변경은 문서와 예시 payload를 함께 갱신
+
+### 커밋 예시
+
+- `feat(codex): usage endpoint 응답을 공통 snapshot으로 변환`
+- `fix(web): overview 카드 reset 시각 포맷 오류 수정`
+- `docs(repo): 브랜치 전략과 PR 규칙 추가`
+
 ## 보안 원칙
 
 - refresh token / session cookie / sessionKey는 서버에 저장하지 않음
