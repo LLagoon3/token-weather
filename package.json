@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Integrated dashboard for AI service usage, quota windows, and availability",
+  "packageManager": "npm@11.6.2",
   "workspaces": [
     "apps/*",
     "packages/*"

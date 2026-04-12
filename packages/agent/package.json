@@ -1,0 +1,20 @@
+{
+  "name": "@llagoon3/ai-usage-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "로컬 AI 사용량 수집 및 확인용 CLI 에이전트",
+  "type": "module",
+  "bin": {
+    "ai-usage-agent": "./bin/ai-usage-agent.js"
+  },
+  "main": "./src/index.js",
+  "files": [
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "dev": "node ./bin/ai-usage-agent.js status",
+    "status": "node ./bin/ai-usage-agent.js status",
+    "doctor": "node ./bin/ai-usage-agent.js doctor"
+  }
+}

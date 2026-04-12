@@ -55,6 +55,7 @@ apps/
   web/
   api/
 packages/
+  agent/
   shared/
   provider-adapters/
   schemas/
@@ -67,6 +68,7 @@ scripts/
 
 ## 초기 범위(MVP)
 
+- npm 설치형 로컬 에이전트 CLI 골격
 - Codex adapter
 - Claude adapter
 - usage snapshot 수집
