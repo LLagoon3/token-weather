@@ -9,11 +9,16 @@
 - 터미널에서 즉시 확인 가능하게 출력
 - 필요 시 서버로 업로드 가능하게 확장
 
-## 예정 명령
+## 현재 가능한 명령
 
-- `ai-usage-agent status`
-- `ai-usage-agent usage`
-- `ai-usage-agent inspect <provider>`
-- `ai-usage-agent sync`
+- `ai-usage-agent status`  
+  현재 설정과 Codex live usage 결과를 출력
+- `ai-usage-agent usage`  
+  `status`와 동일한 경로로 usage 요약 출력
 - `ai-usage-agent doctor`
 - `ai-usage-agent config init`
+
+## 예정 명령
+
+- `ai-usage-agent inspect <provider>`
+- `ai-usage-agent sync`
