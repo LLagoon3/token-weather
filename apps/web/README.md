@@ -1,3 +1,3 @@
 # web
 
-Dashboard frontend app placeholder.
+웹 대시보드 앱 자리.

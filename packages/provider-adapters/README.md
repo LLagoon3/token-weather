@@ -1,3 +1,3 @@
 # provider-adapters
 
-Provider adapter package placeholder.
+provider adapter 패키지 자리.

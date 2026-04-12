@@ -1,23 +1,23 @@
 # ai-usage-dashboard
 
-AI 서비스별 사용량, quota window, 사용 가능 상태를 통합해서 보여주는 대시보드 프로젝트.
+여러 AI 서비스의 사용량, quota window, 사용 가능 상태를 한곳에서 통합해서 보여주는 대시보드 프로젝트.
 
 ## 목표
 
-여러 AI 서비스의 다음 정보를 한 곳에서 확인한다.
+이 프로젝트는 여러 AI 서비스의 다음 정보를 통합해서 보여주는 것을 목표로 한다.
 
 - 남은 quota / usage window
 - reset 시각
 - 현재 사용 가능 여부
-- 최근 rate limit / usage limit / auth error
-- turn-level usage와 quota usage의 구분된 표시
+- 최근 rate limit / usage limit / 인증 오류
+- turn 단위 usage와 quota usage의 분리 표시
 
 ## 핵심 방향
 
-이 프로젝트는 단일 방식으로 모든 provider를 처리하지 않는다.
+이 프로젝트는 모든 provider를 단일 방식으로 처리하지 않는다.
 
-- 공식 API/OAuth usage endpoint가 안정적인 provider는 서버 직조회
-- 로컬 CLI 로그인, 세션 쿠키, auth store 재사용이 필요한 provider는 로컬 에이전트 사용
+- 공식 API 또는 OAuth usage endpoint가 안정적인 provider는 서버에서 직접 조회
+- 로컬 CLI 로그인 상태, 세션 쿠키, auth store 재사용이 필요한 provider는 로컬 에이전트 사용
 - 최종적으로는 로컬 에이전트 + 서버 poller + 공통 정규화 계층 구조를 사용
 
 ## 확인된 endpoint 예시
@@ -28,24 +28,24 @@ AI 서비스별 사용량, quota window, 사용 가능 상태를 통합해서 �
   - `https://claude.ai/api/organizations`
   - `https://claude.ai/api/organizations/{orgId}/usage`
 
-## 아키텍처
+## 아키텍처 개요
 
 ```text
-[Local Agent]
+[로컬 에이전트]
   ├─ Provider Adapters
   ├─ Credential Broker
   ├─ Event Normalizer
   ├─ Local SQLite
   └─ Uploader
          ↓
-[Backend API]
+[백엔드 API]
   ├─ Ingestion API
   ├─ Direct Usage Pollers
   ├─ Event Store
   ├─ State Aggregator
   └─ Dashboard API
          ↓
-[Web Dashboard]
+[웹 대시보드]
 ```
 
 ## 프로젝트 구조
@@ -92,12 +92,12 @@ scripts/
 
 ## 다음 작업
 
-1. monorepo scaffold 정리
+1. 모노레포 스캐폴드 정리
 2. 공통 schema 설계
 3. Codex usage PoC를 provider adapter로 흡수
 4. Claude 인증 경로별 테스트 추가
-5. dashboard MVP 화면 구성
+5. 대시보드 MVP 화면 구성
 
 ## 라이선스
 
-TBD
+추후 결정

@@ -1,3 +1,3 @@
 # shared
 
-Shared utilities placeholder.
+공통 유틸리티 패키지 자리.
