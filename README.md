@@ -108,6 +108,17 @@ scripts/
 - raw prompt / raw response / 전체 transcript 업로드 금지
 - 서버에는 정규화된 메타데이터만 업로드
 
+## 에이전트 실행 예시
+
+프로젝트 루트에서 바로 실행 가능:
+
+```bash
+npm run agent:status
+npm run agent:usage
+npm run agent:doctor
+npm run agent:config:init
+```
+
 ## 다음 작업
 
 1. 모노레포 스캐폴드 정리
