@@ -158,18 +158,41 @@ OpenClaw auth profile 의존을 제거하기 위한 계획 문서를 추가했�
 현재까지 구현됨:
 - agent 전용 `auth.json` store 골격
 - multi-account account resolver
-- `auth login codex` CLI 골격
-- localhost callback 준비 코드와 포트 fallback 뼈대
-- `auth login codex --manual` 입력 처리와 placeholder/mock store 저장 흐름
+- `auth login codex` CLI 기본 경로
+- localhost callback 준비/수신 경로
+- 기본 callback 포트 `1455`, 경로 `/auth/callback`
+- PKCE `S256` 적용
+- OpenClaw observed authorize URL 기준 정렬
+  - `redirect_uri=http://localhost:1455/auth/callback`
+  - `scope=openid profile email offline_access`
+  - `id_token_add_organizations=true`
+  - `codex_cli_simplified_flow=true`
+  - `originator=pi`
+- `auth login codex --manual` 입력 처리와 mock store 저장 흐름
+- `auth login codex --live-exchange` 실제 token exchange 및 real token 저장 경로
+
+검증 완료:
+- 로그인 페이지 진입 성공
+- localhost callback 수신 성공
+- `--live-exchange` token exchange 성공
+- 관찰된 token 응답 값:
+  - `token_type=bearer`
+  - `expires_in=864000`
+  - `scope=openid profile email offline_access`
+
+주의:
+- `client_id=app_EMoamEEZ73f0CkXaXp7hrann`은 현재 동작이 확인된 observed 값이지, 공식 문서 확정값은 아님
+- 기본 `auth login codex`는 여전히 mock 저장 경로를 유지함
 
 ## 다음 작업
 
-1. localhost callback 서버 골격 구현
-2. callback code/state 수신 처리
-3. placeholder token exchange를 callback 경로와 연결
-4. 이후 실제 provider token exchange로 교체
-5. Claude 인증 경로별 테스트 추가
-6. 대시보드 MVP 화면 구성
+1. placeholder/mock 안내 문구를 현재 동작에 맞게 정리
+2. agent-store 기반 real token으로 usage 조회 연결 점검
+3. account 식별을 임시 email 대신 `id_token`/claims 기반으로 개선
+4. refresh token 재발급 경로 검증
+5. `auth list/logout/doctor` 확장
+6. Claude 인증 경로별 테스트 추가
+7. 대시보드 MVP 화면 구성
 
 ## 라이선스
 
