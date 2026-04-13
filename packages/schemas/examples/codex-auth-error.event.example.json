@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "0.1.0",
+  "eventId": "codex:openai-codex:default:auth-error:2026-04-13T03:10:00.000Z",
+  "occurredAt": "2026-04-13T03:10:00.000Z",
+  "provider": {
+    "id": "openai-codex",
+    "displayName": "Codex"
+  },
+  "account": {
+    "profileId": "openai-codex:default",
+    "accountId": null,
+    "email": null
+  },
+  "source": "provider_usage_endpoint",
+  "authType": "oauth",
+  "confidence": "high",
+  "reason": {
+    "bucket": "auth",
+    "code": "http_401",
+    "message": "Unauthorized from usage endpoint",
+    "httpStatus": 401
+  },
+  "severity": "error",
+  "raw": null
+}

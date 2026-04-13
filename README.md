@@ -119,13 +119,28 @@ npm run agent:doctor
 npm run agent:config:init
 ```
 
+## 공통 스키마 초안
+
+`packages/schemas`에 초기 JSON Schema 초안을 추가했다.
+
+- `usage-snapshot.schema.json`
+- `usage-event.schema.json`
+- `examples/codex-usage-snapshot.example.json`
+- `examples/codex-auth-error.event.example.json`
+
+핵심 필드:
+- `source`
+- `authType`
+- `confidence`
+- `usageWindows`
+- `status.bucket` / `reason.bucket`
+
 ## 다음 작업
 
 1. 모노레포 스캐폴드 정리
-2. 공통 schema 설계
-3. Codex usage PoC를 provider adapter로 흡수
-4. Claude 인증 경로별 테스트 추가
-5. 대시보드 MVP 화면 구성
+2. 공통 schema를 Codex adapter 출력에 실제 적용
+3. Claude 인증 경로별 테스트 추가
+4. 대시보드 MVP 화면 구성
 
 ## 라이선스
 
