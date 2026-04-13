@@ -52,16 +52,18 @@ ai-usage-agent auth login codex --live-exchange
 
 ```bash
 ai-usage-agent auth list
-ai-usage-agent auth list codex
+ai-usage-agent auth list openai-codex
 ```
 
-출력 예시:
+현재 출력 필드:
 - provider
 - accountKey
 - email
+- source
 - authType
 - expiresAt
-- source
+- mock 여부
+- refresh 가능 여부
 
 ### 3. logout
 
@@ -71,14 +73,15 @@ ai-usage-agent auth logout codex --account choonarm3@gmail.com
 ```
 
 동작:
-- 저장소에서 해당 계정 제거
-- 필요 시 revoke endpoint 지원 가능
+- 로컬 auth store에서 해당 계정 제거
+- provider 측 revoke endpoint 호출은 아직 미구현
 
 ### 4. doctor
 
 ```bash
-ai-usage-agent auth doctor
-ai-usage-agent auth doctor codex
+ai-usage-agent doctor
+ai-usage-agent doctor codex
+ai-usage-agent doctor codex --refresh-live
 ```
 
 점검 항목:
@@ -88,6 +91,7 @@ ai-usage-agent auth doctor codex
 - refresh 가능 여부
 - callback 포트/환경 문제 힌트
 - 현재 기본 선택될 계정이 무엇인지
+- `--refresh-live` 시 실제 refresh token 재발급 시도 및 store 갱신
 
 ### 5. import
 
@@ -166,6 +170,8 @@ client_id `app_EMoamEEZ73f0CkXaXp7hrann`은 로컬 JWT에서 관찰된 값이며
 - CLI에서 `--live-exchange` 옵션을 명시하면 `allowLiveExchange: true`로 실제 token endpoint POST가 수행된다.
 - `--live-exchange` 없이 실행하면 기존과 동일한 mock 저장 흐름을 유지한다.
 - live exchange 실패 시 mock fallback 없이 에러를 표시한다 (사용자 혼동 방지).
+- `doctor codex --refresh-live`로 실제 refresh POST를 명시적으로 검증할 수 있다.
+- refresh 성공 시 accessToken, refreshToken, expiresAt를 store에 반영하고, 실패 시 저장값은 유지한다.
 - PKCE S256은 구현 완료됨. 이 guard는 client_id 공식 확정 시점까지 유지한다.
 
 ## 아직 미정인 부분
@@ -175,3 +181,4 @@ client_id `app_EMoamEEZ73f0CkXaXp7hrann`은 로컬 JWT에서 관찰된 값이며
 - revoke endpoint를 각 provider에서 어디까지 지원할지
 - `auth import openclaw`를 기본 노출할지 숨길지
 - device code를 실제로 도입할 provider 범위
+- claims에서 실제 email/sub가 얼마나 안정적으로 오는지 추가 관찰

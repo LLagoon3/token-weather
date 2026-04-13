@@ -91,8 +91,9 @@ node packages/agent/bin/ai-usage-agent.js status
 
 ## 현재 Codex 연동 방식
 
-- OpenClaw auth profile 저장소를 읽음
-- Codex usage endpoint를 bearer auth로 호출
+- 기본 auth source는 agent 전용 `auth.json` store
+- real token이 있으면 agent-store를 우선 사용해 Codex usage endpoint를 bearer auth로 호출
+- agent-store에 usable token이 없을 때만 OpenClaw auth profile reader를 fallback으로 사용
 - 응답을 공통 snapshot 구조로 변환
 - 시간 필드는 ISO datetime string으로 정규화
 - provider 원본값은 snapshot의 `raw`에 보존

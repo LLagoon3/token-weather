@@ -138,8 +138,9 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 - account 식별: id_token/access_token JWT claims 기반 추출 (email → preferred_username → sub 순, fallback: code prefix)
 
 ### 다음 단계
-- refresh token 재발급 경로 검증
-- `auth list/logout/doctor` 및 `auth import openclaw` 확장
+- `auth import openclaw` 경로 정리
+- revoke endpoint 지원 여부 확인
+- Claude 등 다른 provider auth 경로 확장
 
 ### 후순위 단계
 - device code fallback 조사/도입
@@ -171,9 +172,14 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 단, 이것은 OpenClaw 동작 관찰 기반 정렬(observed alignment)이며, OpenAI 공식 문서에
 의한 확정이 아니다. provider 측 변경이 있으면 재정렬이 필요할 수 있다.
 
+### 검증 완료
+- 실제 refresh token 재발급 성공
+- refresh token rotation 발생 시 store 반영 성공
+- refresh 직후 agent-store 기준 usage 조회 `OK (200)` 재확인
+
 ### 여전히 미확정
 - client_secret 필요 여부
-- refresh token rotation 정책
+- refresh token rotation 정책의 일반 규칙 (매번 rotation되는지 여부 등)
 
 ### token exchange 구현 상태 (guarded real fetch)
 
