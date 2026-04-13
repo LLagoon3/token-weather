@@ -62,46 +62,46 @@ describe('formatClaudeImportEntry', () => {
     assert.ok(lines.some((l) => l.includes('usable') && l.includes('false')));
   });
 
-  it('shows accountKey from importedAccount when present', () => {
+  it('shows accountKey from selectedAccount when present', () => {
     const lines = formatClaudeImportEntry({
       authSource: 'claude-cli-import',
       credentialsPath: FAKE_PATH,
       found: true,
       parsed: true,
-      importedAccount: { accountKey: 'claude-cli-import', provider: 'claude' },
+      selectedAccount: { accountKey: 'claude-cli-import', provider: 'claude' },
     });
     assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('claude-cli-import')));
   });
 
-  it('shows (없음) for accountKey when importedAccount is null', () => {
+  it('shows (없음) for accountKey when selectedAccount is null', () => {
     const lines = formatClaudeImportEntry({
       authSource: 'not-found',
       credentialsPath: FAKE_PATH,
       found: false,
       parsed: false,
-      importedAccount: null,
+      selectedAccount: null,
     });
     assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('없음')));
   });
 
-  it('shows authType from importedAccount when present', () => {
+  it('shows authType from selectedAccount when present', () => {
     const lines = formatClaudeImportEntry({
       authSource: 'claude-cli-import',
       credentialsPath: FAKE_PATH,
       found: true,
       parsed: true,
-      importedAccount: { accountKey: 'claude-cli-import', provider: 'claude', authType: 'oauth' },
+      selectedAccount: { accountKey: 'claude-cli-import', provider: 'claude', authType: 'oauth' },
     });
     assert.ok(lines.some((l) => l.includes('authType') && l.includes('oauth')));
   });
 
-  it('shows (알 수 없음) for authType when importedAccount is null', () => {
+  it('shows (알 수 없음) for authType when selectedAccount is null', () => {
     const lines = formatClaudeImportEntry({
       authSource: 'not-found',
       credentialsPath: FAKE_PATH,
       found: false,
       parsed: false,
-      importedAccount: null,
+      selectedAccount: null,
     });
     assert.ok(lines.some((l) => l.includes('authType') && l.includes('알 수 없음')));
   });
