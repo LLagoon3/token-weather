@@ -9,3 +9,4 @@ export * from './mock-auth-exchange.js';
 export * from './resolve-claude-account.js';
 export * from './create-claude-imported-account-payload.js';
 export * from './prepare-claude-imported-account.js';
+export * from './import-claude-account-into-store.js';
