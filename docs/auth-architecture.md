@@ -1,8 +1,8 @@
-# 인증 독립화 아키텍처
+# 인증 아키텍처
 
 ## 목표
 
-`ai-usage-agent`가 OpenClaw의 `auth-profiles.json` 없이도 독립적으로 인증, 토큰 저장, 갱신, 사용을 처리할 수 있게 한다.
+CLI agent가 외부 auth store(OpenClaw 등)에 의존하지 않고 독립적으로 인증, 토큰 저장, 갱신, 사용을 처리한다.
 
 ## 현재 문제
 
@@ -73,13 +73,14 @@ provider가 device code를 안정적으로 지원하는지 확인되면 이후 �
 권장 추상화:
 - `agent-store`
 - `openclaw-import`
-- `env`
 - `manual`
 
-기본 우선순위:
+현재 구현된 우선순위:
 1. `agent-store`
-2. `env`
-3. `openclaw-import` (명시적 import 또는 migration 용도)
+2. `openclaw-import` (명시적 import 또는 migration 용도)
+
+후속 작업 후보:
+- `env` — 환경 변수 기반 credential source (미구현)
 
 즉 런타임 기본 경로는 OpenClaw 의존이 아니어야 한다.
 
@@ -116,7 +117,7 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 - `ai-usage-agent auth login codex`
 - `ai-usage-agent auth list`
 - `ai-usage-agent auth logout codex`
-- `ai-usage-agent auth doctor`
+- `ai-usage-agent doctor` / `doctor codex` / `doctor codex --refresh-live`
 - `ai-usage-agent auth import openclaw`
 
 ## 단계별 구현 제안

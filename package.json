@@ -1,11 +1,10 @@
 {
-  "name": "ai-usage-dashboard",
+  "name": "ai-usage-agent",
   "private": true,
   "version": "0.1.0",
-  "description": "Integrated dashboard for AI service usage, quota windows, and availability",
+  "description": "CLI agent and packages for monitoring AI service usage and auth status",
   "packageManager": "npm@11.6.2",
   "workspaces": [
-    "apps/*",
     "packages/*"
   ],
   "scripts": {

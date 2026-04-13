@@ -19,7 +19,7 @@
 브랜치 이름 예시:
 
 - `feat/codex-adapter`
-- `feat/dashboard-overview`
+- `feat/claude-adapter`
 - `fix/schema-normalizer`
 - `chore/repo-scaffold`
 - `docs/provider-notes-ko`
@@ -51,8 +51,7 @@ scope가 애매하면 생략 가능:
 
 ### scope 예시
 
-- `web`
-- `api`
+- `agent`
 - `schemas`
 - `adapters`
 - `codex`
@@ -63,9 +62,9 @@ scope가 애매하면 생략 가능:
 ### 좋은 예시
 
 - `feat(codex): usage endpoint 응답을 공통 snapshot으로 변환`
-- `fix(web): overview 카드에서 reset 시각 포맷 오류 수정`
+- `fix(agent): status 명령 출력 포맷 오류 수정`
 - `docs(repo): 브랜치 전략과 PR 규칙 추가`
-- `ci(api): schema 검사 잡 추가`
+- `ci(schemas): schema 검사 잡 추가`
 
 ### 피할 것
 
@@ -88,7 +87,7 @@ scope가 애매하면 생략 가능:
 예시:
 
 - `[feat] Codex usage adapter 초안 추가`
-- `[fix] dashboard timeline 정렬 오류 수정`
+- `[fix] usage snapshot 정렬 오류 수정`
 - `[docs] schema 예시 payload 문서화`
 
 ### PR 본문
@@ -108,8 +107,6 @@ PR 본문에는 최소한 아래 내용을 포함한다.
 
 ### 영향 범위 체크 예시
 
-- [ ] `apps/web`
-- [ ] `apps/api`
 - [ ] `packages/schemas`
 - [ ] `packages/provider-adapters`
 - [ ] `repo`
@@ -128,7 +125,7 @@ PR 본문에는 최소한 아래 내용을 포함한다.
 
 - 관련 문서가 필요하면 같이 수정했는가
 - schema 변경이면 sample payload도 같이 반영했는가
-- UI 변경이면 스크린샷 또는 설명이 있는가
+- CLI 출력 변경이면 실행 결과 또는 설명이 있는가
 - endpoint/auth 관련 변경이면 인증/보안 영향이 정리됐는가
 
 ## 6. 이 저장소의 기본 원칙
