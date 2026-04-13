@@ -1,119 +1,34 @@
-# ai-usage-dashboard
+# ai-usage-agent
 
-여러 AI 서비스의 사용량, quota window, 사용 가능 상태를 한곳에서 통합해서 보여주는 대시보드 프로젝트.
+여러 AI 서비스의 사용량과 인증 상태를 로컬에서 관리하는 CLI agent + provider adapter + schema 패키지 모음.
 
-## 목표
+## 현재 구현 범위
 
-이 프로젝트는 여러 AI 서비스의 다음 정보를 통합해서 보여주는 것을 목표로 한다.
+이 repo의 핵심은 로컬에서 동작하는 CLI agent와 그 구성 패키지이다.
 
-- 남은 quota / usage window
-- reset 시각
-- 현재 사용 가능 여부
-- 최근 rate limit / usage limit / 인증 오류
-- turn 단위 usage와 quota usage의 분리 표시
+- **`packages/agent`** — CLI 에이전트. `status`, `usage`, `doctor`, `config init`, `auth login/list/logout/doctor` 명령 제공
+- **`packages/provider-adapters`** — provider별 인증/endpoint 연결 및 usage 정규화
+- **`packages/schemas`** — 공통 데이터 계약 (usage snapshot, usage event JSON Schema)
 
-## 핵심 방향
+### 현재 동작하는 것
 
-이 프로젝트는 모든 provider를 단일 방식으로 처리하지 않는다.
+- Codex OAuth 독립 인증 (localhost callback + PKCE S256)
+- `--manual` paste fallback
+- `--live-exchange` 실제 token exchange 및 저장
+- refresh token 재발급 및 rotation 반영
+- agent-store 기반 real token으로 usage 조회
+- id_token/access_token JWT claims 기반 계정 식별
+- multi-account resolver (`lastUsedAt` 자동 선택 + `--account` override)
+- `auth list`, `auth logout`, `auth doctor` 명령
 
-- 공식 API 또는 OAuth usage endpoint가 안정적인 provider는 서버에서 직접 조회
-- 로컬 CLI 로그인 상태, 세션 쿠키, auth store 재사용이 필요한 provider는 로컬 에이전트 사용
-- 최종적으로는 로컬 에이전트 + 서버 poller + 공통 정규화 계층 구조를 사용
+### 아직 구현되지 않은 것
 
-## 확인된 endpoint 예시
+- Claude provider 인증 및 usage 조회
+- 백엔드 API / 웹 대시보드 (`apps/` 디렉토리는 placeholder)
+- device code fallback
+- keychain 연동
 
-- Codex: `https://chatgpt.com/backend-api/wham/usage`
-- Claude OAuth: `https://api.anthropic.com/api/oauth/usage`
-- Claude web fallback:
-  - `https://claude.ai/api/organizations`
-  - `https://claude.ai/api/organizations/{orgId}/usage`
-
-## 아키텍처 개요
-
-```text
-[로컬 에이전트]
-  ├─ Provider Adapters
-  ├─ Credential Broker
-  ├─ Event Normalizer
-  ├─ Local SQLite
-  └─ Uploader
-         ↓
-[백엔드 API]
-  ├─ Ingestion API
-  ├─ Direct Usage Pollers
-  ├─ Event Store
-  ├─ State Aggregator
-  └─ Dashboard API
-         ↓
-[웹 대시보드]
-```
-
-## 프로젝트 구조
-
-```text
-apps/
-  web/
-  api/
-packages/
-  agent/
-  shared/
-  provider-adapters/
-  schemas/
-docs/
-  architecture.md
-  auth-architecture.md
-  auth-store-schema.md
-  auth-cli.md
-  provider-notes.md
-scripts/
-  poc/
-```
-
-## 초기 범위(MVP)
-
-- npm 설치형 로컬 에이전트 CLI 골격
-- Codex adapter
-- Claude adapter
-- usage snapshot 수집
-- 이벤트 정규화
-- overview / timeline UI
-- provider별 상태 버킷화
-
-## 상태 버킷 예시
-
-- `ok`
-- `rate_limit`
-- `usage_window`
-- `billing`
-- `auth`
-- `overloaded`
-- `unknown`
-
-## 작업 / 협업 규칙
-
-자세한 규칙은 `CONTRIBUTING.md`를 따른다. 요약은 아래와 같다.
-
-- 브랜치 흐름: `작업 브랜치 -> dev -> main`
-- 커밋 형식: `type(scope): 한글 설명`
-- PR 제목 형식: `[feat] 한글 요약`
-- PR 본문은 기본적으로 한글로 작성
-- 큰 변경은 문서와 예시 payload를 함께 갱신
-
-### 커밋 예시
-
-- `feat(codex): usage endpoint 응답을 공통 snapshot으로 변환`
-- `fix(web): overview 카드 reset 시각 포맷 오류 수정`
-- `docs(repo): 브랜치 전략과 PR 규칙 추가`
-
-## 보안 원칙
-
-- refresh token / session cookie / sessionKey는 서버에 저장하지 않음
-- raw prompt / raw response / 전체 transcript 업로드 금지
-- 서버에는 정규화된 메타데이터만 업로드
-
-## 에이전트 실행 예시
-
-프로젝트 루트에서 바로 실행 가능:
+## 에이전트 실행
 
 ```bash
 npm run agent:status
@@ -122,77 +37,76 @@ npm run agent:doctor
 npm run agent:config:init
 ```
 
-## 공통 스키마 초안
+## 프로젝트 구조
 
-`packages/schemas`에 초기 JSON Schema 초안을 추가했다.
+```text
+packages/
+  agent/             # CLI 에이전트
+  provider-adapters/ # provider별 인증/usage 어댑터
+  schemas/           # 공통 JSON Schema
+  shared/            # 공통 유틸리티 (미구현)
+apps/                # 향후 웹/API consumer (placeholder)
+docs/                # 아키텍처, 인증, provider 문서
+scripts/
+  poc/
+```
+
+## 확인된 endpoint
+
+- Codex: `https://chatgpt.com/backend-api/wham/usage`
+- Claude OAuth: `https://api.anthropic.com/api/oauth/usage`
+- Claude web fallback:
+  - `https://claude.ai/api/organizations`
+  - `https://claude.ai/api/organizations/{orgId}/usage`
+
+## 공통 스키마
+
+`packages/schemas`에 JSON Schema 정의:
 
 - `usage-snapshot.schema.json`
 - `usage-event.schema.json`
-- `examples/codex-usage-snapshot.example.json`
-- `examples/codex-auth-error.event.example.json`
+- 핵심 필드: `source`, `authType`, `confidence`, `usageWindows`, `status.bucket` / `reason.bucket`
 
-핵심 필드:
-- `source`
-- `authType`
-- `confidence`
-- `usageWindows`
-- `status.bucket` / `reason.bucket`
+## 상태 버킷
 
-## 인증 독립화 설계 초안
+- `ok` / `rate_limit` / `usage_window` / `billing` / `auth` / `overloaded` / `unknown`
 
-OpenClaw auth profile 의존을 제거하기 위한 계획 문서를 추가했다.
+## 보안 원칙
 
-- `docs/auth-architecture.md`
-- `docs/auth-store-schema.md`
-- `docs/auth-cli.md`
+- refresh token / session cookie / sessionKey는 서버에 저장하지 않음
+- raw prompt / raw response / 전체 transcript 업로드 금지
+- callback 서버는 `127.0.0.1`에만 bind
+- access token / refresh token 로그 출력 금지
 
-현재 방향:
-- 기본 auth 흐름: localhost callback OAuth
-- fallback 1: manual paste / callback URL handoff
-- device code는 필요 시점에 후순위로 조사
-- 장기적으로는 agent 자체 auth store 사용
-- OpenClaw import는 migration 보조 기능으로만 유지
+## 인증 독립화
 
-## 현재 auth 독립화 진행 상태
+agent는 OpenClaw auth store에 의존하지 않고 자체 auth broker를 갖는다.
 
-현재까지 구현됨:
-- agent 전용 `auth.json` store 골격
-- multi-account account resolver
-- `auth login codex` CLI 기본 경로
-- localhost callback 준비/수신 경로
-- 기본 callback 포트 `1455`, 경로 `/auth/callback`
-- PKCE `S256` 적용
-- OpenClaw observed authorize URL 기준 정렬
-  - `redirect_uri=http://localhost:1455/auth/callback`
-  - `scope=openid profile email offline_access`
-  - `id_token_add_organizations=true`
-  - `codex_cli_simplified_flow=true`
-  - `originator=pi`
-- `auth login codex --manual` 입력 처리와 mock store 저장 흐름
-- `auth login codex --live-exchange` 실제 token exchange 및 real token 저장 경로
+- 기본: localhost callback OAuth
+- fallback: manual paste
+- 후순위: device code (미구현)
+- credential source 우선순위: `agent-store` > `env` > `openclaw-import`
 
-검증 완료:
-- 로그인 페이지 진입 성공
-- localhost callback 수신 성공
-- `--live-exchange` token exchange 성공
-- 관찰된 token 응답 값:
-  - `token_type=bearer`
-  - `expires_in=864000`
-  - `scope=openid profile email offline_access`
+상세는 `docs/auth-architecture.md` 참조.
 
-주의:
-- `client_id=app_EMoamEEZ73f0CkXaXp7hrann`은 현재 동작이 확인된 observed 값이지, 공식 문서 확정값은 아님
-- 기본 `auth login codex`는 여전히 mock 저장 경로를 유지함
+## Codex OAuth 검증 현황
+
+- authorize/token endpoint, callback URL, PKCE S256: 검증 완료
+- token exchange, refresh, usage 조회: 동작 확인
+- `client_id`는 관찰값 — 공식 확정 아님
+- `client_secret` 요구 여부, refresh rotation 정책: 미확정
+
+## 작업 / 협업 규칙
+
+- 브랜치 흐름: `작업 브랜치 -> dev -> main`
+- 커밋 형식: `type(scope): 한글 설명`
+- PR 제목 형식: `[feat] 한글 요약`
 
 ## 다음 작업
 
-1. ~~placeholder/mock 안내 문구를 현재 동작에 맞게 정리~~ (완료)
-2. agent-store 기반 real token으로 usage 조회 연결 점검
-3. account 식별을 임시 email 대신 `id_token`/claims 기반으로 개선
-4. refresh token 재발급 경로 검증
-5. `auth list/logout/doctor` 확장
-6. Claude 인증 경로별 테스트 추가
-7. 대시보드 MVP 화면 구성
+1. agent-store 기반 real token으로 usage 조회 연결 점검
+2. Claude 인증 경로 확장
+3. `auth import openclaw` 경로 정리
 
 ## 라이선스
 

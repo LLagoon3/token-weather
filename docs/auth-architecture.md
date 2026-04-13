@@ -1,8 +1,8 @@
-# 인증 독립화 아키텍처
+# 인증 아키텍처
 
 ## 목표
 
-`ai-usage-agent`가 OpenClaw의 `auth-profiles.json` 없이도 독립적으로 인증, 토큰 저장, 갱신, 사용을 처리할 수 있게 한다.
+CLI agent가 외부 auth store(OpenClaw 등)에 의존하지 않고 독립적으로 인증, 토큰 저장, 갱신, 사용을 처리한다.
 
 ## 현재 문제
 
