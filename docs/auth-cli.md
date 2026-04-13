@@ -144,6 +144,15 @@ ai-usage-agent auth login codex --manual --no-open
 
 client_id `app_EMoamEEZ73f0CkXaXp7hrann`은 로컬 JWT에서 관찰된 값이며, 공식 확정이 아님.
 
+## token exchange guard 정책
+
+`exchangeCodexAuthorizationCode()`와 `refreshCodexToken()`은 실제 fetch 코드가 포함되어 있지만,
+기본 동작은 `allowLiveExchange: false`로 보호되어 외부 호출을 하지 않는다.
+
+- CLI에서 live exchange를 활성화하려면 명시적 옵션 또는 내부 플래그를 통해 `allowLiveExchange: true`를 전달해야 한다.
+- 이 guard는 client_id 공식 확정, PKCE S256 구현 완료 시점까지 유지한다.
+- auth-login-command.js가 이 함수를 호출할 때 guard 해제 시점은 별도 단계에서 결정한다.
+
 ## 아직 미정인 부분
 
 - client_id 공식 확정 (현재는 관찰값만 존재)

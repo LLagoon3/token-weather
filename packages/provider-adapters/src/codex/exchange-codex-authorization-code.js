@@ -1,35 +1,27 @@
 /**
- * Draft / placeholder for Codex (OpenAI) OAuth token exchange.
+ * Codex (OpenAI) OAuth token exchange — guarded real fetch.
  *
- * This function will eventually POST the authorization code to the token
- * endpoint and return tokens. Currently it is a **draft skeleton** —
- * the HTTP call is intentionally NOT executed because:
+ * Both `exchangeCodexAuthorizationCode()` and `refreshCodexToken()` contain
+ * a fully wired fetch path, but it is **guarded by default**: callers must
+ * pass `allowLiveExchange: true` to actually hit the network.  Without that
+ * flag the functions throw a descriptive error — identical to the previous
+ * draft behaviour — so nothing changes for existing call-sites.
  *
- *   1. The token endpoint (https://auth0.openai.com/oauth/token) is a
- *      placeholder and has not been verified against real OpenAI OAuth infra.
- *   2. We do not yet have a confirmed client_id (or know whether a
- *      client_secret is required for this grant type).
- *   3. PKCE S256 derivation is still a placeholder in localhost-callback.js.
+ * ## Why the guard exists
  *
- * ## What this file provides right now
+ *   - client_id (`app_EMoamEEZ73f0CkXaXp7hrann`) is an observed value, not
+ *     officially confirmed by OpenAI.
+ *   - PKCE S256 derivation is still a placeholder in localhost-callback.js.
+ *   - We want the live path exercisable in dev/test without risking
+ *     accidental external calls in production.
  *
- *   - The function signature and expected parameter / return shapes so the
- *     rest of the codebase (auth-login-command, tests) can import and
- *     type-check against a stable contract.
- *   - Inline documentation of every field the real POST body will need.
- *   - A clear list of UNRESOLVED items that must be answered before the
- *     real HTTP call is wired up.
+ * ## Remaining unresolved items
  *
- * ## Unresolved items (must be answered before real implementation)
- *
- *   - [ ] Confirm actual token endpoint URL.
- *   - [ ] Confirm whether client_secret is required (public vs confidential
- *         client). If public client, client_secret is omitted from the POST.
- *   - [ ] Determine if OpenAI's OAuth uses `audience` parameter.
+ *   - [ ] Confirm whether client_secret is required (public vs confidential).
+ *   - [ ] Determine if OpenAI's OAuth uses the `audience` parameter.
  *   - [ ] Confirm response JSON shape — does it include `id_token`?
- *   - [ ] Confirm scopes that the token endpoint honours.
- *   - [ ] Determine refresh token rotation policy — does every refresh
- *         response contain a new refresh_token?
+ *   - [ ] Confirm scopes the token endpoint honours.
+ *   - [ ] Determine refresh token rotation policy.
  *   - [ ] Implement proper S256 PKCE (currently plain placeholder).
  *
  * @module exchange-codex-authorization-code
@@ -40,9 +32,10 @@ import { CODEX_AUTH } from './codex-auth-constants.js';
 /**
  * @typedef {object} ExchangeParams
  * @property {string}  code              - The authorization code received from the callback.
- * @property {string}  callbackUrl       - The redirect_uri that was used in the authorization request (must match exactly).
- * @property {string}  codeVerifier      - The PKCE code_verifier that corresponds to the code_challenge sent earlier.
- * @property {string}  [clientId]        - OAuth client_id. Defaults to placeholder.
+ * @property {string}  callbackUrl       - The redirect_uri used in the authorization request (must match exactly).
+ * @property {string}  codeVerifier      - The PKCE code_verifier corresponding to the code_challenge sent earlier.
+ * @property {boolean} [allowLiveExchange=false] - Set to `true` to perform a real HTTP POST. Without this the function throws.
+ * @property {string}  [clientId]        - OAuth client_id. Defaults to observed candidate.
  * @property {string}  [clientSecret]    - OAuth client_secret, if required (confidential client). Omit for public clients.
  * @property {string}  [tokenEndpoint]   - Override token endpoint URL.
  */
@@ -57,14 +50,11 @@ import { CODEX_AUTH } from './codex-auth-constants.js';
  * @property {string}  [scope]           - Space-separated granted scopes.
  */
 
-const PLACEHOLDER_CLIENT_ID = 'PLACEHOLDER_CLIENT_ID';
-
 /**
  * Exchange an authorization code for tokens at the Codex (OpenAI) token endpoint.
  *
- * **DRAFT** — currently throws instead of making a real HTTP call.
- * Replace the throw with a real fetch() once the unresolved items above are
- * confirmed.
+ * By default this function is **guarded** and will throw without making any
+ * network request.  Pass `allowLiveExchange: true` to perform the real POST.
  *
  * @param {ExchangeParams} params
  * @returns {Promise<TokenResponse>}
@@ -73,11 +63,11 @@ export async function exchangeCodexAuthorizationCode({
   code,
   callbackUrl,
   codeVerifier,
-  clientId = PLACEHOLDER_CLIENT_ID,
+  allowLiveExchange = false,
+  clientId = CODEX_AUTH.observedClientId,
   clientSecret = undefined,
   tokenEndpoint = CODEX_AUTH.tokenEndpoint,
 }) {
-  // ── Build the POST body that will be sent to the token endpoint ──
   const body = {
     grant_type: 'authorization_code',
     code,
@@ -86,63 +76,68 @@ export async function exchangeCodexAuthorizationCode({
     code_verifier: codeVerifier,
   };
 
-  // Include client_secret only when provided (confidential client flow).
   if (clientSecret) {
     body.client_secret = clientSecret;
   }
 
-  // ── DRAFT GATE ────────────────────────────────────────────────────
-  // Remove this block and uncomment the fetch below once:
-  //   1. tokenEndpoint is verified
-  //   2. clientId is a real registered value
-  //   3. PKCE S256 is implemented
-  throw new Error(
-    '[exchangeCodexAuthorizationCode] DRAFT — real HTTP call is not yet enabled. ' +
-    `Would POST to ${tokenEndpoint} with grant_type=authorization_code.`
-  );
+  // ── Guard: block live fetch unless explicitly opted-in ─────────────
+  if (!allowLiveExchange) {
+    throw new Error(
+      '[exchangeCodexAuthorizationCode] Live exchange is disabled. ' +
+      'Pass { allowLiveExchange: true } to perform a real POST to ' +
+      `${tokenEndpoint} (grant_type=authorization_code). ` +
+      'Note: client_id is an observed value and not officially confirmed.',
+    );
+  }
 
-  // ── Real HTTP call (uncomment when ready) ─────────────────────────
-  // const res = await fetch(tokenEndpoint, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  //   body: new URLSearchParams(body).toString(),
-  // });
-  //
-  // if (!res.ok) {
-  //   const text = await res.text();
-  //   throw new Error(
-  //     `Token exchange failed: ${res.status} ${res.statusText} — ${text}`
-  //   );
-  // }
-  //
-  // const json = await res.json();
-  //
-  // return {
-  //   accessToken:  json.access_token,
-  //   refreshToken: json.refresh_token ?? null,
-  //   idToken:      json.id_token ?? null,
-  //   expiresIn:    json.expires_in,
-  //   tokenType:    json.token_type,
-  //   scope:        json.scope ?? null,
-  // };
+  // ── Real HTTP call ────────────────────────────────────────────────
+  const res = await fetch(tokenEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(body).toString(),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(
+      `Token exchange failed: ${res.status} ${res.statusText} — ${text}`,
+    );
+  }
+
+  const json = await res.json();
+
+  return {
+    accessToken:  json.access_token,
+    refreshToken: json.refresh_token ?? null,
+    idToken:      json.id_token ?? null,
+    expiresIn:    json.expires_in,
+    tokenType:    json.token_type,
+    scope:        json.scope ?? null,
+  };
 }
 
 /**
- * Build the POST body for a token refresh request.
+ * @typedef {object} RefreshParams
+ * @property {string}  refreshToken      - The refresh token to exchange.
+ * @property {boolean} [allowLiveExchange=false] - Set to `true` to perform a real HTTP POST.
+ * @property {string}  [clientId]        - OAuth client_id. Defaults to observed candidate.
+ * @property {string}  [clientSecret]    - OAuth client_secret, if required.
+ * @property {string}  [tokenEndpoint]   - Override token endpoint URL.
+ */
+
+/**
+ * Refresh an access token using a refresh token.
  *
- * **DRAFT** — not yet called anywhere; included as a reference for the
- * next implementation step (auto-refresh on expired access tokens).
+ * Guarded identically to {@link exchangeCodexAuthorizationCode} — pass
+ * `allowLiveExchange: true` to perform the real POST.
  *
- * @param {object} params
- * @param {string} params.refreshToken
- * @param {string} [params.clientId]
- * @param {string} [params.clientSecret]
- * @param {string} [params.tokenEndpoint]
+ * @param {RefreshParams} params
  * @returns {Promise<TokenResponse>}
  */
 export async function refreshCodexToken({
   refreshToken,
-  clientId = PLACEHOLDER_CLIENT_ID,
+  allowLiveExchange = false,
+  clientId = CODEX_AUTH.observedClientId,
   clientSecret = undefined,
   tokenEndpoint = CODEX_AUTH.tokenEndpoint,
 }) {
@@ -156,34 +151,38 @@ export async function refreshCodexToken({
     body.client_secret = clientSecret;
   }
 
-  // ── DRAFT GATE ────────────────────────────────────────────────────
-  throw new Error(
-    '[refreshCodexToken] DRAFT — real HTTP call is not yet enabled. ' +
-    `Would POST to ${tokenEndpoint} with grant_type=refresh_token.`
-  );
+  // ── Guard: block live fetch unless explicitly opted-in ─────────────
+  if (!allowLiveExchange) {
+    throw new Error(
+      '[refreshCodexToken] Live exchange is disabled. ' +
+      'Pass { allowLiveExchange: true } to perform a real POST to ' +
+      `${tokenEndpoint} (grant_type=refresh_token). ` +
+      'Note: client_id is an observed value and not officially confirmed.',
+    );
+  }
 
-  // ── Real HTTP call (uncomment when ready) ─────────────────────────
-  // const res = await fetch(tokenEndpoint, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  //   body: new URLSearchParams(body).toString(),
-  // });
-  //
-  // if (!res.ok) {
-  //   const text = await res.text();
-  //   throw new Error(
-  //     `Token refresh failed: ${res.status} ${res.statusText} — ${text}`
-  //   );
-  // }
-  //
-  // const json = await res.json();
-  //
-  // return {
-  //   accessToken:  json.access_token,
-  //   refreshToken: json.refresh_token ?? refreshToken,  // rotation 여부에 따라
-  //   idToken:      json.id_token ?? null,
-  //   expiresIn:    json.expires_in,
-  //   tokenType:    json.token_type,
-  //   scope:        json.scope ?? null,
-  // };
+  // ── Real HTTP call ────────────────────────────────────────────────
+  const res = await fetch(tokenEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(body).toString(),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(
+      `Token refresh failed: ${res.status} ${res.statusText} — ${text}`,
+    );
+  }
+
+  const json = await res.json();
+
+  return {
+    accessToken:  json.access_token,
+    refreshToken: json.refresh_token ?? refreshToken, // rotation 여부에 따라 기존 토큰 유지
+    idToken:      json.id_token ?? null,
+    expiresIn:    json.expires_in,
+    tokenType:    json.token_type,
+    scope:        json.scope ?? null,
+  };
 }

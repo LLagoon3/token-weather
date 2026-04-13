@@ -164,7 +164,22 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 - PKCE S256 적용 여부/방식
 - scopes 정확한 목록
 
-즉 다음 단계 구현은 이 draft 함수의 예외 처리 블록을 실제 fetch로 교체하는 방향이 된다.
+### token exchange 구현 상태 (guarded real fetch)
+
+`exchangeCodexAuthorizationCode()`와 `refreshCodexToken()`은 실제 fetch 경로가 구현되어 있으나
+**기본 동작은 guarded** 상태이다.
+
+- `allowLiveExchange` 옵션이 `false`(기본값)이면 기존처럼 에러를 던진다.
+- `allowLiveExchange: true`를 명시적으로 전달해야 실제 POST가 수행된다.
+- `clientId` 기본값은 관찰된 `app_EMoamEEZ73f0CkXaXp7hrann`을 사용하되,
+  이 값이 공식 확정이 아니라는 점은 에러 메시지와 문서 양쪽에서 명시한다.
+
+이 guard는 다음 조건이 모두 확인될 때까지 유지한다:
+1. client_id 공식 확정
+2. client_secret 요구사항 확인
+3. PKCE S256 구현 완료
+
+guard를 해제할 때는 기본값을 `true`로 바꾸거나 옵션 자체를 제거하면 된다.
 
 ## 현재 확정된 운영 방안
 
