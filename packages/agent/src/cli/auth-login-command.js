@@ -37,7 +37,11 @@ export async function runAuthLoginCommand(provider, args = []) {
   if (!prepared.ready) {
     console.log(prepared.reason);
     if (prepared.fallbackExhausted) {
-      console.log('다음 단계에서 manual paste fallback으로 이어지도록 연결할 예정이야.');
+      console.log('');
+      console.log('모든 포트 후보가 사용 중이어서 localhost callback을 시작할 수 없습니다.');
+      console.log('manual paste 모드로 다시 실행해 주세요:');
+      console.log('');
+      console.log('  ai-usage-agent auth login codex --manual');
     }
     return;
   }
@@ -152,8 +156,11 @@ async function runLiveExchange({ code, callbackUrl, codeVerifier }) {
       ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
       : null;
 
+    // accountKey: accountId(sub claim)를 우선 사용하여 email 변경에도 안정적인 키를 생성.
+    // accountId가 없으면 email fallback.
+    const accountKeySource = identity.accountId ?? identity.email;
     const account = createAccount({
-      accountKey: `openai-codex:${identity.email}`,
+      accountKey: `openai-codex:${accountKeySource}`,
       email: identity.email,
       displayName: identity.displayName,
       accountId: identity.accountId,

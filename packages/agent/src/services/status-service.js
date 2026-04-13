@@ -3,7 +3,7 @@ import { createDefaultConfig } from '../config/default-config.js';
 import { resolveAgentConfigPath } from '../config/config-path.js';
 import { fetchCodexUsage, getDefaultAuthProfilesPath, readCodexAuthProfiles } from '../../../provider-adapters/src/codex/index.js';
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
-import { loadAuthStore } from '../auth/auth-store.js';
+import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveDefaultAccount } from '../auth/account-resolver.js';
 
 const CODEX_PROVIDER_ID = 'openai-codex';
@@ -102,6 +102,16 @@ async function getAgentStoreProfiles() {
   const { account } = resolveDefaultAccount(realAccounts);
   if (!account) {
     return [];
+  }
+
+  // Update lastUsedAt so multi-account selection stays stable
+  try {
+    const freshStore = await loadAuthStore();
+    const updatedAccount = { ...account, lastUsedAt: new Date().toISOString() };
+    const nextStore = upsertProviderAccount(freshStore, CODEX_PROVIDER_ID, updatedAccount);
+    await saveAuthStore(nextStore);
+  } catch {
+    // best-effort — don't block usage fetch if lastUsedAt update fails
   }
 
   // Map agent-store account to the profile format fetchCodexUsage expects

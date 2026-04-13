@@ -141,6 +141,7 @@ async function runDoctorCodex(args) {
       },
       expiresAt,
       updatedAt: now.toISOString(),
+      lastUsedAt: now.toISOString(),
       raw: {
         ...account.raw,
         lastRefreshedAt: now.toISOString(),

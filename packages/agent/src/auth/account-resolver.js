@@ -36,10 +36,12 @@ export function resolveDefaultAccount(accounts) {
     return { account: active[0], reason: 'single-account' };
   }
 
-  // Multiple active accounts → prefer most-recently used
+  // Multiple active accounts → prefer most-recently used.
+  // Fallback chain: lastUsedAt → updatedAt → createdAt
+  // This prevents selection from depending on array insertion order.
   const sorted = [...active].sort((a, b) => {
-    const ta = a.lastUsedAt ?? '';
-    const tb = b.lastUsedAt ?? '';
+    const ta = a.lastUsedAt ?? a.updatedAt ?? a.createdAt ?? '';
+    const tb = b.lastUsedAt ?? b.updatedAt ?? b.createdAt ?? '';
     if (ta === tb) return 0;
     return ta > tb ? -1 : 1;
   });
