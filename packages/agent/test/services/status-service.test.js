@@ -181,4 +181,12 @@ describe('buildClaudeSnapshot', () => {
     const result = buildClaudeSnapshot(FAKE_PATH, () => null);
     assert.equal(result.importedAccount, null);
   });
+
+  it('uses agent-store authSource when agentClaudeAccounts are provided', () => {
+    const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
+    const fakeAgentAccount = { accountKey: 'claude:alice', source: 'agent-store' };
+    const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials, [fakeAgentAccount]);
+    assert.equal(result.authSource, 'agent-store');
+    assert.equal(result.detected, true);
+  });
 });

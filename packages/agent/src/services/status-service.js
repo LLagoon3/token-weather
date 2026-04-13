@@ -3,7 +3,8 @@ import { createDefaultConfig } from '../config/default-config.js';
 import { resolveAgentConfigPath } from '../config/config-path.js';
 import { fetchCodexUsage, getDefaultAuthProfilesPath, readCodexAuthProfiles } from '../../../provider-adapters/src/codex/index.js';
 import { resolveClaudeCredentialsPath, readClaudeCredentials } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
-import { buildImportedClaudeAccount } from '../../../provider-adapters/src/claude/build-imported-account.js';
+import { resolveImportedClaudeAccounts } from '../../../provider-adapters/src/claude/resolve-imported-claude-accounts.js';
+import { selectClaudeAccountsSource } from '../../../provider-adapters/src/claude/select-claude-accounts-source.js';
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveDefaultAccount } from '../auth/account-resolver.js';
@@ -54,8 +55,9 @@ export function selectClaudeAuthSource(agentAccounts, importedCredential) {
 export function buildClaudeSnapshot(credentialsPath, readFn = readClaudeCredentials, agentClaudeAccounts = []) {
   const credentials = readFn(credentialsPath);
   const found = credentials !== null;
-  const authSource = selectClaudeAuthSource(agentClaudeAccounts, credentials);
-  const importedAccount = found ? buildImportedClaudeAccount(credentials) : null;
+  const importedAccounts = resolveImportedClaudeAccounts(credentials);
+  const { authSource } = selectClaudeAccountsSource(agentClaudeAccounts, importedAccounts);
+  const importedAccount = importedAccounts[0] ?? null;
   return {
     detected: found || agentClaudeAccounts.length > 0,
     authSource,
