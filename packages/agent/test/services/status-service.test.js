@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   selectCodexAuthSource,
   filterRealCodexAccounts,
+  buildClaudeSnapshot,
+  selectClaudeAuthSource,
 } from '../../src/services/status-service.js';
 
 // ---------------------------------------------------------------------------
@@ -104,5 +106,65 @@ describe('selectCodexAuthSource', () => {
     const result = selectCodexAuthSource([], []);
     assert.equal(result.authSource, 'openclaw-import');
     assert.equal(result.profiles.length, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// selectClaudeAuthSource — Claude auth source priority
+// ---------------------------------------------------------------------------
+
+describe('selectClaudeAuthSource', () => {
+  const fakeCredential = { accessToken: 'tok', refreshToken: 'ref' };
+  const fakeAgentAccount = { accountKey: 'claude:alice', status: 'active' };
+
+  it('returns agent-store when agent-store accounts exist', () => {
+    assert.equal(selectClaudeAuthSource([fakeAgentAccount], fakeCredential), 'agent-store');
+  });
+
+  it('returns agent-store even when imported credential is null', () => {
+    assert.equal(selectClaudeAuthSource([fakeAgentAccount], null), 'agent-store');
+  });
+
+  it('returns claude-cli-import when no agent accounts but credential is present', () => {
+    assert.equal(selectClaudeAuthSource([], fakeCredential), 'claude-cli-import');
+  });
+
+  it('returns not-found when both agent accounts and credential are absent', () => {
+    assert.equal(selectClaudeAuthSource([], null), 'not-found');
+  });
+
+  it('returns not-found when agentAccounts is null and credential is null', () => {
+    assert.equal(selectClaudeAuthSource(null, null), 'not-found');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildClaudeSnapshot — Claude credential detection
+// ---------------------------------------------------------------------------
+
+describe('buildClaudeSnapshot', () => {
+  const FAKE_PATH = '/home/user/.claude/.credentials.json';
+
+  it('returns detected=true and authSource=claude-cli-import when credentials are found', () => {
+    const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
+    const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials);
+    assert.equal(result.detected, true);
+    assert.equal(result.authSource, 'claude-cli-import');
+    assert.equal(result.found, true);
+    assert.equal(result.parsed, true);
+    assert.equal(result.credentialsPath, FAKE_PATH);
+  });
+
+  it('returns detected=false and authSource=not-found when credentials are not found', () => {
+    const result = buildClaudeSnapshot(FAKE_PATH, () => null);
+    assert.equal(result.detected, false);
+    assert.equal(result.found, false);
+    assert.equal(result.parsed, false);
+    assert.equal(result.authSource, 'not-found');
+  });
+
+  it('always includes credentialsPath in the snapshot', () => {
+    const result = buildClaudeSnapshot(FAKE_PATH, () => null);
+    assert.equal(result.credentialsPath, FAKE_PATH);
   });
 });
