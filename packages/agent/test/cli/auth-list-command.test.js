@@ -140,4 +140,22 @@ describe('runAuthListCommand — Claude import block', () => {
     assert.ok(flat.includes('found'));
     assert.ok(flat.includes('true'));
   });
+
+  it('authSource reflects agent-store when store has Claude accounts', async () => {
+    const storeWithClaude = async () => ({
+      providers: {
+        claude: {
+          accounts: [{ accountKey: 'claude-store', authType: 'apikey', source: 'agent-store' }],
+        },
+      },
+    });
+    const lines = await captureOutput(() =>
+      runAuthListCommand('claude', {
+        claudeReadFn: () => null,
+        loadStore: storeWithClaude,
+      })
+    );
+    const flat = lines.join('\n');
+    assert.ok(flat.includes('agent-store'));
+  });
 });

@@ -67,7 +67,8 @@ export async function runAuthListCommand(provider, options = {}) {
   const showClaude = !provider || provider === 'claude';
   if (showClaude) {
     const claudePath = resolveClaudeCredentialsPath();
-    const snapshot = buildClaudeSnapshot(claudePath, options.claudeReadFn);
+    const agentClaudeAccounts = store.providers?.claude?.accounts ?? [];
+    const snapshot = buildClaudeSnapshot(claudePath, options.claudeReadFn, agentClaudeAccounts);
     console.log('\n── claude (import source) ──');
     console.log(formatClaudeImportEntry(snapshot).join('\n'));
     console.log();
