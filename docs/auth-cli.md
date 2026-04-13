@@ -18,10 +18,10 @@ ai-usage-agent auth <subcommand> [provider] [options]
 ai-usage-agent auth login codex
 ```
 
-기본 동작:
-- localhost callback OAuth 시도
-- 브라우저 자동 열기 시도
-- 성공 시 token 저장
+현재 구현 상태:
+- localhost callback 준비 코드까지 동작
+- 브라우저 자동 열기와 실제 token exchange는 아직 미구현
+- `--manual`에서는 placeholder/mock 저장 흐름이 동작
 
 옵션 예시:
 
@@ -116,10 +116,10 @@ ai-usage-agent auth login codex
 ai-usage-agent auth login codex --manual --no-open
 ```
 
-출력:
-1. 아래 URL을 브라우저에서 열어주세요
-2. 완료 후 callback URL 전체를 붙여넣어 주세요
-3. 저장 완료
+현재 출력/동작:
+1. callback URL 전체 또는 code 입력 요청
+2. placeholder/mock 계정을 auth store에 저장
+3. 실제 OAuth 교환은 아직 수행하지 않음
 
 ## 포트 충돌 정책
 

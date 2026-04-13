@@ -153,13 +153,23 @@ OpenClaw auth profile 의존을 제거하기 위한 계획 문서를 추가했�
 - 장기적으로는 agent 자체 auth store 사용
 - OpenClaw import는 migration 보조 기능으로만 유지
 
+## 현재 auth 독립화 진행 상태
+
+현재까지 구현됨:
+- agent 전용 `auth.json` store 골격
+- multi-account account resolver
+- `auth login codex` CLI 골격
+- localhost callback 준비 코드와 포트 fallback 뼈대
+- `auth login codex --manual` 입력 처리와 placeholder/mock store 저장 흐름
+
 ## 다음 작업
 
-1. auth 독립화용 이슈 단위 분리
-2. agent auth store 구현 시작
-3. `auth login codex` CLI 골격 추가
-4. Claude 인증 경로별 테스트 추가
-5. 대시보드 MVP 화면 구성
+1. localhost callback 서버 골격 구현
+2. callback code/state 수신 처리
+3. placeholder token exchange를 callback 경로와 연결
+4. 이후 실제 provider token exchange로 교체
+5. Claude 인증 경로별 테스트 추가
+6. 대시보드 MVP 화면 구성
 
 ## 라이선스
 

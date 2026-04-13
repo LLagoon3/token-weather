@@ -126,18 +126,21 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 - credential store schema 정의
 - CLI 인터페이스 초안 정의
 
-### Phase 2
-- `auth login codex` localhost callback 구현
-- store 저장/조회 로직 구현
-- status/usage가 새 store 우선 사용하도록 변경
+### 현재까지 반영된 골격
+- auth store 저장/조회 로직 구현
+- multi-account resolver 구현
+- `auth login codex` CLI 골격 구현
+- localhost callback 준비 코드 및 포트 fallback 뼈대 구현
+- manual paste fallback의 placeholder/mock 저장 흐름 구현
 
-### Phase 3
-- refresh token 갱신
-- `auth list/logout/doctor` 구현
-- manual paste fallback 구현
-- `auth import openclaw` migration 경로 추가
+### 다음 단계
+- localhost callback 서버 골격 구현
+- callback code/state 수신 처리
+- placeholder token exchange를 callback 경로와 연결
+- 이후 실제 provider token exchange로 교체
+- `auth list/logout/doctor` 및 `auth import openclaw` 확장
 
-### Phase 4
+### 후순위 단계
 - device code fallback 조사/도입
 - keychain 연동
 
