@@ -18,6 +18,7 @@ export function formatClaudeSection(snapshot) {
   lines.push(`  authSource:      ${snapshot.authSource}`);
   if (snapshot.importedAccount) {
     lines.push(`  accountKey:      ${snapshot.importedAccount.accountKey}`);
+    lines.push(`  authType:        ${snapshot.importedAccount.authType ?? '(알 수 없음)'}`);
   }
   return lines;
 }

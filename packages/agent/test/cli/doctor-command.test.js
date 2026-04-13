@@ -84,4 +84,28 @@ describe('formatClaudeSection', () => {
     const lines = formatClaudeSection(snapshot);
     assert.ok(!lines.some((l) => l.includes('accountKey')));
   });
+
+  it('shows authType from importedAccount when present', () => {
+    const snapshot = {
+      credentialsPath: FAKE_PATH,
+      found: true,
+      parsed: true,
+      authSource: 'claude-cli-import',
+      importedAccount: { accountKey: 'claude-cli-import', authType: 'oauth' },
+    };
+    const lines = formatClaudeSection(snapshot);
+    assert.ok(lines.some((l) => l.includes('authType') && l.includes('oauth')));
+  });
+
+  it('shows fallback for authType when importedAccount has no authType', () => {
+    const snapshot = {
+      credentialsPath: FAKE_PATH,
+      found: true,
+      parsed: true,
+      authSource: 'claude-cli-import',
+      importedAccount: { accountKey: 'claude-cli-import' },
+    };
+    const lines = formatClaudeSection(snapshot);
+    assert.ok(lines.some((l) => l.includes('authType') && l.includes('알 수 없음')));
+  });
 });
