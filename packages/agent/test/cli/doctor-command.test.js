@@ -73,7 +73,7 @@ describe('formatClaudeSection', () => {
     assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('claude-cli-import')));
   });
 
-  it('omits accountKey line when importedAccount is null', () => {
+  it('shows (없음) for accountKey when importedAccount is null', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: false,
@@ -82,7 +82,19 @@ describe('formatClaudeSection', () => {
       importedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
-    assert.ok(!lines.some((l) => l.includes('accountKey')));
+    assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('없음')));
+  });
+
+  it('shows (알 수 없음) for authType when importedAccount is null', () => {
+    const snapshot = {
+      credentialsPath: FAKE_PATH,
+      found: false,
+      parsed: false,
+      authSource: 'claude-cli-import',
+      importedAccount: null,
+    };
+    const lines = formatClaudeSection(snapshot);
+    assert.ok(lines.some((l) => l.includes('authType') && l.includes('알 수 없음')));
   });
 
   it('shows authType from importedAccount when present', () => {

@@ -16,10 +16,8 @@ export function formatClaudeSection(snapshot) {
   lines.push(`  found:           ${snapshot.found}`);
   lines.push(`  parsed:          ${snapshot.parsed}`);
   lines.push(`  authSource:      ${snapshot.authSource}`);
-  if (snapshot.importedAccount) {
-    lines.push(`  accountKey:      ${snapshot.importedAccount.accountKey}`);
-    lines.push(`  authType:        ${snapshot.importedAccount.authType ?? '(알 수 없음)'}`);
-  }
+  lines.push(`  accountKey:      ${snapshot.importedAccount?.accountKey ?? '(없음)'}`);
+  lines.push(`  authType:        ${snapshot.importedAccount?.authType ?? '(알 수 없음)'}`);
   return lines;
 }
 
