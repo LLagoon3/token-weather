@@ -61,6 +61,9 @@ packages/
   schemas/
 docs/
   architecture.md
+  auth-architecture.md
+  auth-store-schema.md
+  auth-cli.md
   provider-notes.md
 scripts/
   poc/
@@ -135,12 +138,28 @@ npm run agent:config:init
 - `usageWindows`
 - `status.bucket` / `reason.bucket`
 
+## 인증 독립화 설계 초안
+
+OpenClaw auth profile 의존을 제거하기 위한 계획 문서를 추가했다.
+
+- `docs/auth-architecture.md`
+- `docs/auth-store-schema.md`
+- `docs/auth-cli.md`
+
+현재 방향:
+- 기본 auth 흐름: localhost callback OAuth
+- fallback 1: device code
+- fallback 2: manual paste / callback URL handoff
+- 장기적으로는 agent 자체 auth store 사용
+- OpenClaw import는 migration 보조 기능으로만 유지
+
 ## 다음 작업
 
-1. 모노레포 스캐폴드 정리
-2. 공통 schema를 Codex adapter 출력에 실제 적용
-3. Claude 인증 경로별 테스트 추가
-4. 대시보드 MVP 화면 구성
+1. auth 독립화용 이슈 단위 분리
+2. agent auth store 구현 시작
+3. `auth login codex` CLI 골격 추가
+4. Claude 인증 경로별 테스트 추가
+5. 대시보드 MVP 화면 구성
 
 ## 라이선스
 
