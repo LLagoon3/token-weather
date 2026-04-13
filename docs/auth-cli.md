@@ -31,6 +31,7 @@ ai-usage-agent auth login codex --no-open
 ai-usage-agent auth login codex --manual
 ai-usage-agent auth login codex --device
 ai-usage-agent auth login codex --port 38123
+ai-usage-agent auth login codex --live-exchange
 ```
 
 옵션 의미:
@@ -38,6 +39,9 @@ ai-usage-agent auth login codex --port 38123
 - `--manual`: callback URL 또는 code 수동 입력 흐름 강제
 - `--device`: 후순위 실험용 옵션, provider 지원 확인 전까지는 기본 경로로 사용하지 않음
 - `--port`: localhost callback 포트 지정
+- `--live-exchange`: **실험적** — callback에서 수신한 code로 실제 token endpoint에 POST를 시도.
+  기본 동작(mock 저장)을 대체하며, 실패 시 mock fallback 없이 에러를 표시.
+  주의: PKCE는 아직 plain placeholder이고, client_id는 관찰값(observed)이므로 성공이 보장되지 않음.
 
 ### 2. list
 
@@ -149,9 +153,10 @@ client_id `app_EMoamEEZ73f0CkXaXp7hrann`은 로컬 JWT에서 관찰된 값이며
 `exchangeCodexAuthorizationCode()`와 `refreshCodexToken()`은 실제 fetch 코드가 포함되어 있지만,
 기본 동작은 `allowLiveExchange: false`로 보호되어 외부 호출을 하지 않는다.
 
-- CLI에서 live exchange를 활성화하려면 명시적 옵션 또는 내부 플래그를 통해 `allowLiveExchange: true`를 전달해야 한다.
+- CLI에서 `--live-exchange` 옵션을 명시하면 `allowLiveExchange: true`로 실제 token endpoint POST가 수행된다.
+- `--live-exchange` 없이 실행하면 기존과 동일한 mock 저장 흐름을 유지한다.
+- live exchange 실패 시 mock fallback 없이 에러를 표시한다 (사용자 혼동 방지).
 - 이 guard는 client_id 공식 확정, PKCE S256 구현 완료 시점까지 유지한다.
-- auth-login-command.js가 이 함수를 호출할 때 guard 해제 시점은 별도 단계에서 결정한다.
 
 ## 아직 미정인 부분
 

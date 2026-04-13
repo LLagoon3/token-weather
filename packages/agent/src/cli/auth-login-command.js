@@ -2,11 +2,12 @@ import { prepareLocalhostCallback, startLocalhostCallbackServer } from '../auth/
 import { readManualPasteInput, extractCodeFromPaste } from '../auth/manual-paste.js';
 import { createMockCodexAccountFromManualInput } from '../auth/mock-auth-exchange.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
-import { buildCodexAuthorizationUrl } from '../../../provider-adapters/src/codex/index.js';
+import { createAccount } from '../auth/auth-store-schema.js';
+import { buildCodexAuthorizationUrl, exchangeCodexAuthorizationCode } from '../../../provider-adapters/src/codex/index.js';
 
 export async function runAuthLoginCommand(provider, args = []) {
   if (!provider) {
-    console.log('사용법: ai-usage-agent auth login <provider> [--manual] [--no-open] [--port <number>]');
+    console.log('사용법: ai-usage-agent auth login <provider> [--manual] [--no-open] [--port <number>] [--live-exchange]');
     return;
   }
 
@@ -70,7 +71,16 @@ export async function runAuthLoginCommand(provider, args = []) {
     });
     console.log('');
     console.log(`code 수신 완료: ${result.code}`);
-    await saveMockAccountFromCallback(result.code);
+
+    if (options.liveExchange) {
+      await runLiveExchange({
+        code: result.code,
+        callbackUrl,
+        codeVerifier: prepared.params.codeVerifier,
+      });
+    } else {
+      await saveMockAccountFromCallback(result.code);
+    }
   } catch (err) {
     console.log('');
     console.log(`콜백 수신 실패: ${err.message}`);
@@ -104,6 +114,77 @@ async function runManualPasteFlow() {
   console.log('이 저장 결과는 실제 OAuth 인증이 아니라 이후 흐름 연결을 위한 임시 구현이야.');
 }
 
+async function runLiveExchange({ code, callbackUrl, codeVerifier }) {
+  console.log('');
+  console.log('⚠ --live-exchange 모드: 실제 token endpoint에 POST를 시도합니다.');
+  console.log('  주의사항:');
+  console.log('  - PKCE code_challenge는 아직 plain placeholder입니다 (S256 미구현).');
+  console.log('  - client_id는 관찰된 값(observed)이며 OpenAI 공식 확정이 아닙니다.');
+  console.log('  - 성공이 보장되지 않습니다.');
+  console.log('');
+
+  try {
+    const tokenResponse = await exchangeCodexAuthorizationCode({
+      code,
+      callbackUrl,
+      codeVerifier,
+      allowLiveExchange: true,
+    });
+
+    console.log('token exchange 성공!');
+    console.log(`  token_type: ${tokenResponse.tokenType}`);
+    console.log(`  expires_in: ${tokenResponse.expiresIn}`);
+    console.log(`  scope: ${tokenResponse.scope ?? '(없음)'}`);
+
+    const suffix = code.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 8) || 'live';
+    const email = `live-${suffix}@codex.openai.com`;
+    const now = new Date();
+    const expiresAt = tokenResponse.expiresIn
+      ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
+      : null;
+
+    const account = createAccount({
+      accountKey: `openai-codex:${email}`,
+      email,
+      authType: 'oauth',
+      source: 'agent-store',
+      tokens: {
+        accessToken: tokenResponse.accessToken,
+        refreshToken: tokenResponse.refreshToken ?? null,
+      },
+      raw: {
+        provider: 'openai-codex',
+        mock: false,
+        liveExchange: true,
+        tokenType: tokenResponse.tokenType,
+        scope: tokenResponse.scope ?? null,
+        idToken: tokenResponse.idToken ?? null,
+        exchangedAt: now.toISOString(),
+        note: 'live token exchange 결과 — observed client_id + plain PKCE 기반',
+      },
+    });
+    account.expiresAt = expiresAt;
+
+    const store = await loadAuthStore();
+    const nextStore = upsertProviderAccount(store, 'openai-codex', account);
+    await saveAuthStore(nextStore);
+
+    console.log('');
+    console.log('실제 토큰을 auth store에 저장했습니다.');
+    console.log(`  accountKey: ${account.accountKey}`);
+    if (expiresAt) console.log(`  expiresAt: ${expiresAt}`);
+    console.log('');
+    console.log('⚠ 이 토큰은 observed client_id + plain PKCE 기반이므로');
+    console.log('  정상 동작이 확인되기 전까지 실험적으로만 사용하세요.');
+  } catch (err) {
+    console.log('');
+    console.log(`❌ live token exchange 실패: ${err.message}`);
+    console.log('');
+    console.log('mock fallback을 수행하지 않습니다.');
+    console.log('기본 mock 저장을 원하면 --live-exchange 없이 다시 실행하세요.');
+  }
+}
+
 async function saveMockAccountFromCallback(code) {
   const account = createMockCodexAccountFromManualInput({
     code,
@@ -124,6 +205,7 @@ function parseLoginOptions(args) {
     noOpen: false,
     manual: false,
     device: false,
+    liveExchange: false,
     port: null,
   };
 
@@ -132,6 +214,7 @@ function parseLoginOptions(args) {
     if (arg === '--no-open') options.noOpen = true;
     if (arg === '--manual') options.manual = true;
     if (arg === '--device') options.device = true;
+    if (arg === '--live-exchange') options.liveExchange = true;
     if (arg === '--port') {
       const value = args[index + 1];
       if (value) {
