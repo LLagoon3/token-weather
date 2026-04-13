@@ -56,14 +56,15 @@ export function buildClaudeSnapshot(credentialsPath, readFn = readClaudeCredenti
   const credentials = readFn(credentialsPath);
   const found = credentials !== null;
   const imported = resolveImportedClaudeSnapshot(credentials);
-  const { account: importedAccount, authSource } = resolveClaudeAccount(agentClaudeAccounts, imported.accounts);
+  const { account: selectedAccount, authSource } = resolveClaudeAccount(agentClaudeAccounts, imported.accounts);
   return {
     detected: found || agentClaudeAccounts.length > 0,
     authSource,
     credentialsPath,
     found,
     parsed: found,
-    importedAccount,
+    selectedAccount,
+    importedAccount: selectedAccount,
   };
 }
 

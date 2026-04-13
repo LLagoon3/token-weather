@@ -177,9 +177,20 @@ describe('buildClaudeSnapshot', () => {
     assert.equal(result.importedAccount.source, 'claude-cli-import');
   });
 
+  it('selectedAccount mirrors importedAccount when credentials are found', () => {
+    const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
+    const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials);
+    assert.equal(result.selectedAccount, result.importedAccount);
+  });
+
   it('sets importedAccount to null when credentials are not found', () => {
     const result = buildClaudeSnapshot(FAKE_PATH, () => null);
     assert.equal(result.importedAccount, null);
+  });
+
+  it('sets selectedAccount to null when credentials are not found', () => {
+    const result = buildClaudeSnapshot(FAKE_PATH, () => null);
+    assert.equal(result.selectedAccount, null);
   });
 
   it('uses agent-store authSource when agentClaudeAccounts are provided', () => {
@@ -196,5 +207,6 @@ describe('buildClaudeSnapshot', () => {
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials, [fakeAgentAccount]);
     assert.equal(result.authSource, 'agent-store');
     assert.equal(result.importedAccount?.accountKey, 'claude:alice');
+    assert.equal(result.selectedAccount?.accountKey, 'claude:alice');
   });
 });
