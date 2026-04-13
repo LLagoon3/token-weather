@@ -16,6 +16,9 @@ export function formatClaudeSection(snapshot) {
   lines.push(`  found:           ${snapshot.found}`);
   lines.push(`  parsed:          ${snapshot.parsed}`);
   lines.push(`  authSource:      ${snapshot.authSource}`);
+  if (snapshot.importedAccount) {
+    lines.push(`  accountKey:      ${snapshot.importedAccount.accountKey}`);
+  }
   return lines;
 }
 

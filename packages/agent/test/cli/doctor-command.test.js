@@ -16,6 +16,7 @@ describe('formatClaudeSection', () => {
       found: true,
       parsed: true,
       authSource: 'claude-cli-import',
+      importedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes(FAKE_PATH)));
@@ -27,6 +28,7 @@ describe('formatClaudeSection', () => {
       found: true,
       parsed: true,
       authSource: 'claude-cli-import',
+      importedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('found') && l.includes('true')));
@@ -40,6 +42,7 @@ describe('formatClaudeSection', () => {
       found: false,
       parsed: false,
       authSource: 'claude-cli-import',
+      importedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('found') && l.includes('false')));
@@ -52,8 +55,33 @@ describe('formatClaudeSection', () => {
       found: false,
       parsed: false,
       authSource: 'claude-cli-import',
+      importedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.length >= 4);
+  });
+
+  it('shows accountKey when importedAccount is present', () => {
+    const snapshot = {
+      credentialsPath: FAKE_PATH,
+      found: true,
+      parsed: true,
+      authSource: 'claude-cli-import',
+      importedAccount: { accountKey: 'claude-cli-import', authType: 'oauth' },
+    };
+    const lines = formatClaudeSection(snapshot);
+    assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('claude-cli-import')));
+  });
+
+  it('omits accountKey line when importedAccount is null', () => {
+    const snapshot = {
+      credentialsPath: FAKE_PATH,
+      found: false,
+      parsed: false,
+      authSource: 'claude-cli-import',
+      importedAccount: null,
+    };
+    const lines = formatClaudeSection(snapshot);
+    assert.ok(!lines.some((l) => l.includes('accountKey')));
   });
 });
