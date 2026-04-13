@@ -29,6 +29,8 @@ export function createEmptyAuthStore() {
   };
 }
 
+export const ACCOUNT_STATUSES = ['active', 'disabled'];
+
 export function createAccount({
   accountKey,
   email,
@@ -36,6 +38,7 @@ export function createAccount({
   accountId = null,
   authType = 'oauth',
   source = 'agent-store',
+  status = 'active',
   scopes = [],
   tokens = {},
   raw = {},
@@ -48,8 +51,10 @@ export function createAccount({
     accountId,
     authType,
     source,
+    status,
     createdAt: now,
     updatedAt: now,
+    lastUsedAt: null,
     expiresAt: null,
     scopes,
     tokens,

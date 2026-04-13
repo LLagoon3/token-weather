@@ -11,6 +11,7 @@
 - 명령 라우팅 구조
 - 기본 설정 파일 생성 및 로딩
 - agent 전용 `auth.json` store 경로 해석 및 load/save 골격
+- account resolver: provider별 기본 계정 자동 선택 및 명시 선택
 - Codex provider live usage 조회 결과 출력
 - 공통 snapshot 스키마 기반 출력 흐름
 
