@@ -102,5 +102,5 @@ node packages/agent/bin/ai-usage-agent.js status
 
 - `ai-usage-agent inspect <provider>`
 - `ai-usage-agent sync`
-- `ai-usage-agent auth doctor` (인증 상태 진단)
+- `ai-usage-agent doctor` / `doctor codex` / `doctor codex --refresh-live` (인증 상태 진단)
 - `ai-usage-agent auth import openclaw` (기존 OpenClaw 마이그레이션)

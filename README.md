@@ -6,7 +6,7 @@
 
 이 repo의 핵심은 로컬에서 동작하는 CLI agent와 그 구성 패키지이다.
 
-- **`packages/agent`** — CLI 에이전트. `status`, `usage`, `doctor`, `config init`, `auth login/list/logout/doctor` 명령 제공
+- **`packages/agent`** — CLI 에이전트. `status`, `usage`, `doctor`, `config init`, `auth login/list/logout` 명령 제공
 - **`packages/provider-adapters`** — provider별 인증/endpoint 연결 및 usage 정규화
 - **`packages/schemas`** — 공통 데이터 계약 (usage snapshot, usage event JSON Schema)
 
@@ -19,7 +19,8 @@
 - agent-store 기반 real token으로 usage 조회
 - id_token/access_token JWT claims 기반 계정 식별
 - multi-account resolver (`lastUsedAt` 자동 선택 + `--account` override)
-- `auth list`, `auth logout`, `auth doctor` 명령
+- `auth list`, `auth logout` 명령
+- `doctor`, `doctor codex`, `doctor codex --refresh-live` 명령
 
 ### 아직 구현되지 않은 것
 
@@ -82,7 +83,7 @@ agent는 OpenClaw auth store에 의존하지 않고 자체 auth broker를 갖는
 - 기본: localhost callback OAuth
 - fallback: manual paste
 - 후순위: device code (미구현)
-- credential source 우선순위: `agent-store` > `env` > `openclaw-import`
+- credential source 우선순위: `agent-store` > `openclaw-import`
 
 상세는 `docs/auth-architecture.md` 참조.
 

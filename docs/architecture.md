@@ -24,7 +24,7 @@
 
 ### CLI Agent (`packages/agent`)
 - `status`, `usage`, `doctor`, `config init` 명령
-- `auth login/list/logout/doctor` 명령
+- `auth login/list/logout` 명령
 - multi-account resolver
 
 ### Provider Adapters (`packages/provider-adapters`)
@@ -42,7 +42,7 @@
 - 기본 흐름: localhost callback OAuth (PKCE S256)
 - fallback: manual callback/code paste
 - 후순위: device code (미구현)
-- credential source: `agent-store` > `env` > `openclaw-import`
+- credential source: `agent-store` > `openclaw-import` (`env`는 후속 작업 후보)
 
 ## 향후 확장 가능성
 

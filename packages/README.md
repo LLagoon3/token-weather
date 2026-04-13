@@ -9,7 +9,8 @@
 
 현재 구현됨:
 - `status`, `usage`, `doctor`, `config init` 명령
-- `auth login`, `auth list`, `auth logout`, `auth doctor` 명령
+- `auth login`, `auth list`, `auth logout` 명령
+- `doctor`, `doctor codex`, `doctor codex --refresh-live` 명령
 - multi-account resolver (lastUsedAt 자동 선택 + --account override)
 - Codex live usage 결과 출력
 - id_token/access_token JWT claims 기반 계정 식별
