@@ -168,29 +168,29 @@ describe('buildClaudeSnapshot', () => {
     assert.equal(result.credentialsPath, FAKE_PATH);
   });
 
-  it('includes importedAccount with accountKey when credentials are found', () => {
+  it('includes selectedAccount with accountKey when credentials are found', () => {
     const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials);
-    assert.ok(result.importedAccount !== null, 'importedAccount should not be null');
-    assert.equal(result.importedAccount.accountKey, 'claude-cli-import');
-    assert.equal(result.importedAccount.provider, 'claude');
-    assert.equal(result.importedAccount.source, 'claude-cli-import');
+    assert.ok(result.selectedAccount !== null, 'selectedAccount should not be null');
+    assert.equal(result.selectedAccount.accountKey, 'claude-cli-import');
+    assert.equal(result.selectedAccount.provider, 'claude');
+    assert.equal(result.selectedAccount.source, 'claude-cli-import');
   });
 
-  it('selectedAccount mirrors importedAccount when credentials are found', () => {
+  it('importedAccount is a backward-compat alias for selectedAccount', () => {
     const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials);
-    assert.equal(result.selectedAccount, result.importedAccount);
-  });
-
-  it('sets importedAccount to null when credentials are not found', () => {
-    const result = buildClaudeSnapshot(FAKE_PATH, () => null);
-    assert.equal(result.importedAccount, null);
+    assert.equal(result.importedAccount, result.selectedAccount);
   });
 
   it('sets selectedAccount to null when credentials are not found', () => {
     const result = buildClaudeSnapshot(FAKE_PATH, () => null);
     assert.equal(result.selectedAccount, null);
+  });
+
+  it('importedAccount alias is also null when credentials are not found', () => {
+    const result = buildClaudeSnapshot(FAKE_PATH, () => null);
+    assert.equal(result.importedAccount, null);
   });
 
   it('uses agent-store authSource when agentClaudeAccounts are provided', () => {
@@ -201,12 +201,12 @@ describe('buildClaudeSnapshot', () => {
     assert.equal(result.detected, true);
   });
 
-  it('resolveClaudeAccount selects the agent-store account as importedAccount when agent accounts provided', () => {
+  it('resolveClaudeAccount selects the agent-store account as selectedAccount when agent accounts provided', () => {
     const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
     const fakeAgentAccount = { accountKey: 'claude:alice', provider: 'claude', source: 'agent-store', status: 'active' };
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials, [fakeAgentAccount]);
     assert.equal(result.authSource, 'agent-store');
-    assert.equal(result.importedAccount?.accountKey, 'claude:alice');
     assert.equal(result.selectedAccount?.accountKey, 'claude:alice');
+    assert.equal(result.importedAccount?.accountKey, 'claude:alice'); // alias check
   });
 });

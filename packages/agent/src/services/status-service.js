@@ -64,7 +64,7 @@ export function buildClaudeSnapshot(credentialsPath, readFn = readClaudeCredenti
     found,
     parsed: found,
     selectedAccount,
-    importedAccount: selectedAccount,
+    importedAccount: selectedAccount, // backward-compat alias — prefer selectedAccount
   };
 }
 

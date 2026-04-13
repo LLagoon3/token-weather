@@ -16,7 +16,7 @@ describe('formatClaudeSection', () => {
       found: true,
       parsed: true,
       authSource: 'claude-cli-import',
-      importedAccount: null,
+      selectedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes(FAKE_PATH)));
@@ -28,7 +28,7 @@ describe('formatClaudeSection', () => {
       found: true,
       parsed: true,
       authSource: 'claude-cli-import',
-      importedAccount: null,
+      selectedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('found') && l.includes('true')));
@@ -42,7 +42,7 @@ describe('formatClaudeSection', () => {
       found: false,
       parsed: false,
       authSource: 'claude-cli-import',
-      importedAccount: null,
+      selectedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('found') && l.includes('false')));
@@ -55,7 +55,7 @@ describe('formatClaudeSection', () => {
       found: false,
       parsed: false,
       authSource: 'claude-cli-import',
-      importedAccount: null,
+      selectedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.length >= 4);
@@ -67,7 +67,7 @@ describe('formatClaudeSection', () => {
       found: true,
       parsed: true,
       authSource: 'claude-cli-import',
-      importedAccount: { accountKey: 'claude-cli-import', authType: 'oauth' },
+      selectedAccount: { accountKey: 'claude-cli-import', authType: 'oauth' },
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('claude-cli-import')));
@@ -79,7 +79,7 @@ describe('formatClaudeSection', () => {
       found: false,
       parsed: false,
       authSource: 'claude-cli-import',
-      importedAccount: null,
+      selectedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('없음')));
@@ -91,7 +91,7 @@ describe('formatClaudeSection', () => {
       found: false,
       parsed: false,
       authSource: 'claude-cli-import',
-      importedAccount: null,
+      selectedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('authType') && l.includes('알 수 없음')));
@@ -103,7 +103,7 @@ describe('formatClaudeSection', () => {
       found: true,
       parsed: true,
       authSource: 'claude-cli-import',
-      importedAccount: { accountKey: 'claude-cli-import', authType: 'oauth' },
+      selectedAccount: { accountKey: 'claude-cli-import', authType: 'oauth' },
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('authType') && l.includes('oauth')));
@@ -115,7 +115,7 @@ describe('formatClaudeSection', () => {
       found: true,
       parsed: true,
       authSource: 'claude-cli-import',
-      importedAccount: { accountKey: 'claude-cli-import' },
+      selectedAccount: { accountKey: 'claude-cli-import' },
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('authType') && l.includes('알 수 없음')));
