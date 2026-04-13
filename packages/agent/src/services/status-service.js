@@ -3,6 +3,10 @@ import { createDefaultConfig } from '../config/default-config.js';
 import { resolveAgentConfigPath } from '../config/config-path.js';
 import { fetchCodexUsage, getDefaultAuthProfilesPath, readCodexAuthProfiles } from '../../../provider-adapters/src/codex/index.js';
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
+import { loadAuthStore } from '../auth/auth-store.js';
+import { resolveDefaultAccount } from '../auth/account-resolver.js';
+
+const CODEX_PROVIDER_ID = 'openai-codex';
 
 export async function getStatusSnapshot() {
   const configPath = resolveAgentConfigPath();
@@ -27,7 +31,8 @@ async function getCodexSnapshot(config) {
     };
   }
 
-  const profiles = readCodexAuthProfiles();
+  // Auth source priority: agent-store (real tokens) > openclaw-import (fallback)
+  const { profiles, authSource } = await resolveCodexProfiles();
   const snapshots = [];
 
   for (const profile of profiles) {
@@ -40,8 +45,80 @@ async function getCodexSnapshot(config) {
 
   return {
     enabled: true,
-    authProfilesPath: getDefaultAuthProfilesPath(),
+    authSource,
+    authProfilesPath: authSource === 'openclaw-import' ? getDefaultAuthProfilesPath() : null,
     snapshots
+  };
+}
+
+/**
+ * Resolve Codex profiles with priority: agent-store > openclaw-import.
+ *
+ * Agent-store accounts with real tokens (non-mock) are preferred.
+ * Falls back to OpenClaw auth-profiles.json if no real agent-store accounts exist.
+ */
+async function resolveCodexProfiles() {
+  // 1. Try agent-store first
+  const agentProfiles = await getAgentStoreProfiles();
+  if (agentProfiles.length > 0) {
+    return { profiles: agentProfiles, authSource: 'agent-store' };
+  }
+
+  // 2. Fallback: OpenClaw auth-profiles.json
+  const openclawProfiles = readCodexAuthProfiles();
+  return { profiles: openclawProfiles, authSource: 'openclaw-import' };
+}
+
+/**
+ * Load real (non-mock) Codex accounts from agent auth store and
+ * convert them to the profile format fetchCodexUsage() expects.
+ */
+async function getAgentStoreProfiles() {
+  let store;
+  try {
+    store = await loadAuthStore();
+  } catch {
+    return [];
+  }
+
+  const providerData = store.providers?.[CODEX_PROVIDER_ID];
+  if (!providerData?.accounts?.length) {
+    return [];
+  }
+
+  // Filter: active accounts with real tokens (exclude mock accounts)
+  const realAccounts = providerData.accounts.filter(
+    (a) => a.status !== 'disabled'
+      && a.tokens?.accessToken
+      && !a.raw?.mock
+      && !a.tokens.accessToken.startsWith('mock-')
+  );
+
+  if (realAccounts.length === 0) {
+    return [];
+  }
+
+  // Use account resolver to pick best account(s)
+  const { account } = resolveDefaultAccount(realAccounts);
+  if (!account) {
+    return [];
+  }
+
+  // Map agent-store account to the profile format fetchCodexUsage expects
+  return [mapAccountToProfile(account)];
+}
+
+/**
+ * Convert an agent-store account object to the profile shape
+ * that fetchCodexUsage() expects: { id, accessToken, accountId, email, expires }
+ */
+function mapAccountToProfile(account) {
+  return {
+    id: account.accountKey,
+    accessToken: account.tokens.accessToken,
+    accountId: account.accountId ?? null,
+    email: account.email ?? null,
+    expires: account.expiresAt ?? null,
   };
 }
 

@@ -25,7 +25,10 @@ function printCodexSection(codex) {
     return;
   }
 
-  console.log(`Auth profiles 경로: ${codex.authProfilesPath}`);
+  console.log(`인증 소스: ${codex.authSource ?? 'unknown'}`);
+  if (codex.authProfilesPath) {
+    console.log(`Auth profiles 경로: ${codex.authProfilesPath}`);
+  }
 
   if (codex.snapshots.length === 0) {
     console.log('발견된 Codex OAuth 프로필이 없습니다.');
