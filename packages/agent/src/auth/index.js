@@ -7,3 +7,4 @@ export * from './port-fallback.js';
 export * from './manual-paste.js';
 export * from './mock-auth-exchange.js';
 export * from './resolve-claude-account.js';
+export * from './create-claude-imported-account-payload.js';
