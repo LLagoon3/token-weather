@@ -27,26 +27,24 @@ function printCodexSection(codex) {
 
   console.log(`Auth profiles 경로: ${codex.authProfilesPath}`);
 
-  if (codex.profiles.length === 0) {
+  if (codex.snapshots.length === 0) {
     console.log('발견된 Codex OAuth 프로필이 없습니다.');
     return;
   }
 
-  for (const profile of codex.profiles) {
-    const label = profile.email ? `${profile.profileId} (${profile.email})` : profile.profileId;
+  for (const snapshot of codex.snapshots) {
+    const label = snapshot.account.email ? `${snapshot.account.profileId} (${snapshot.account.email})` : snapshot.account.profileId;
     console.log(`- ${label}`);
-    console.log(`  상태: ${profile.ok ? `OK (${profile.status})` : `실패 (${profile.status ?? 'network/error'})`}`);
-    if (profile.plan) {
-      console.log(`  플랜: ${profile.plan}`);
+    console.log(`  상태: ${snapshot.status.ok ? `OK (${snapshot.status.httpStatus})` : `실패 (${snapshot.status.httpStatus ?? 'network/error'})`}`);
+    console.log(`  source=${snapshot.source}, authType=${snapshot.authType}, confidence=${snapshot.confidence}`);
+    if (snapshot.account.plan) {
+      console.log(`  플랜: ${snapshot.account.plan}`);
     }
-    if (profile.windows.primary) {
-      console.log(`  primary: ${formatWindow(profile.windows.primary)}`);
+    for (const window of snapshot.usageWindows) {
+      console.log(`  ${window.kind}: ${formatWindow(window)}`);
     }
-    if (profile.windows.secondary) {
-      console.log(`  secondary: ${formatWindow(profile.windows.secondary)}`);
-    }
-    if (profile.rawError) {
-      console.log(`  에러: ${profile.rawError}`);
+    if (snapshot.status.message) {
+      console.log(`  에러: ${snapshot.status.message}`);
     }
   }
 }

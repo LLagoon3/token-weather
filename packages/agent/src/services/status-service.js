@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { createDefaultConfig } from '../config/default-config.js';
 import { resolveAgentConfigPath } from '../config/config-path.js';
 import { fetchCodexUsage, getDefaultAuthProfilesPath, readCodexAuthProfiles } from '../../../provider-adapters/src/codex/index.js';
+import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 
 export async function getStatusSnapshot() {
   const configPath = resolveAgentConfigPath();
@@ -9,6 +10,7 @@ export async function getStatusSnapshot() {
   const codex = await getCodexSnapshot(config);
 
   return {
+    schemaVersion: SCHEMA_VERSION,
     configPath,
     providers: config.providers,
     sync: config.sync,
@@ -21,34 +23,67 @@ async function getCodexSnapshot(config) {
     return {
       enabled: false,
       authProfilesPath: getDefaultAuthProfilesPath(),
-      profiles: []
+      snapshots: []
     };
   }
 
   const profiles = readCodexAuthProfiles();
-  const usageResults = [];
+  const snapshots = [];
 
   for (const profile of profiles) {
     try {
-      usageResults.push(await fetchCodexUsage(profile));
+      snapshots.push(await fetchCodexUsage(profile));
     } catch (error) {
-      usageResults.push({
-        profileId: profile.id,
-        email: profile.email,
-        ok: false,
-        status: null,
-        plan: null,
-        creditsBalance: null,
-        windows: { primary: null, secondary: null },
-        rawError: error instanceof Error ? error.message : String(error)
-      });
+      snapshots.push(createCodexFailureSnapshot(profile, error));
     }
   }
 
   return {
     enabled: true,
     authProfilesPath: getDefaultAuthProfilesPath(),
-    profiles: usageResults
+    snapshots
+  };
+}
+
+function createCodexFailureSnapshot(profile, error) {
+  const capturedAt = new Date().toISOString();
+  const message = error instanceof Error ? error.message : String(error);
+
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    snapshotId: `codex:${profile.id}:${capturedAt}`,
+    capturedAt,
+    provider: {
+      id: 'openai-codex',
+      displayName: 'Codex',
+      region: null
+    },
+    account: {
+      profileId: profile.id,
+      accountId: profile.accountId ?? null,
+      email: profile.email ?? null,
+      plan: null
+    },
+    source: 'provider_usage_endpoint',
+    authType: 'oauth',
+    confidence: 'low',
+    status: {
+      bucket: 'unknown',
+      ok: false,
+      httpStatus: null,
+      message,
+      lastSuccessAt: null,
+      lastFailureAt: capturedAt
+    },
+    usageWindows: [],
+    credits: {
+      balance: null,
+      unit: null
+    },
+    raw: {
+      provider: 'openai-codex',
+      rawError: message
+    }
   };
 }
 
