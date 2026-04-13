@@ -10,7 +10,7 @@ const agentAccount = {
   lastUsedAt: '2024-06-01T00:00:00Z',
 };
 
-const importedAccount = {
+const cliImportAccount = {
   accountKey: 'claude:imported-user',
   email: 'imported@example.com',
   status: 'active',
@@ -19,13 +19,13 @@ const importedAccount = {
 
 describe('resolveClaudeAccount – source priority', () => {
   it('uses agent-store accounts when both are present', () => {
-    const result = resolveClaudeAccount([agentAccount], [importedAccount]);
+    const result = resolveClaudeAccount([agentAccount], [cliImportAccount]);
     assert.equal(result.account.accountKey, 'claude:agent-user');
     assert.equal(result.authSource, 'agent-store');
   });
 
   it('falls back to imported accounts when agent-store is empty', () => {
-    const result = resolveClaudeAccount([], [importedAccount]);
+    const result = resolveClaudeAccount([], [cliImportAccount]);
     assert.equal(result.account.accountKey, 'claude:imported-user');
     assert.equal(result.authSource, 'claude-cli-import');
   });
@@ -68,7 +68,7 @@ describe('resolveClaudeAccount – account resolution', () => {
   it('ignores imported list when accountIdentifier is given and agent-store wins', () => {
     const result = resolveClaudeAccount(
       [agentAccount],
-      [importedAccount],
+      [cliImportAccount],
       { accountIdentifier: 'agent@example.com' },
     );
     assert.equal(result.account.accountKey, 'claude:agent-user');

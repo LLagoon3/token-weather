@@ -61,7 +61,7 @@ describe('formatClaudeSection', () => {
     assert.ok(lines.length >= 4);
   });
 
-  it('shows accountKey when importedAccount is present', () => {
+  it('shows accountKey when selectedAccount is present', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: true,
@@ -73,7 +73,7 @@ describe('formatClaudeSection', () => {
     assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('claude-cli-import')));
   });
 
-  it('shows (없음) for accountKey when importedAccount is null', () => {
+  it('shows (없음) for accountKey when selectedAccount is null', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: false,
@@ -85,7 +85,7 @@ describe('formatClaudeSection', () => {
     assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('없음')));
   });
 
-  it('shows (알 수 없음) for authType when importedAccount is null', () => {
+  it('shows (알 수 없음) for authType when selectedAccount is null', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: false,
@@ -97,7 +97,7 @@ describe('formatClaudeSection', () => {
     assert.ok(lines.some((l) => l.includes('authType') && l.includes('알 수 없음')));
   });
 
-  it('shows authType from importedAccount when present', () => {
+  it('shows authType from selectedAccount when present', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: true,
@@ -109,7 +109,7 @@ describe('formatClaudeSection', () => {
     assert.ok(lines.some((l) => l.includes('authType') && l.includes('oauth')));
   });
 
-  it('shows fallback for authType when importedAccount has no authType', () => {
+  it('shows fallback for authType when selectedAccount has no authType', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: true,
