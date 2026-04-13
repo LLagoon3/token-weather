@@ -2,6 +2,22 @@ import { resolveAgentConfigPath } from '../config/config-path.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveAccount } from '../auth/account-resolver.js';
 import { refreshCodexToken } from '../../../provider-adapters/src/codex/index.js';
+import { buildClaudeSnapshot } from '../services/status-service.js';
+import { resolveClaudeCredentialsPath } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
+
+/**
+ * Pure helper: format Claude credential snapshot as display lines.
+ * Exported for testing.
+ */
+export function formatClaudeSection(snapshot) {
+  const lines = [];
+  lines.push('Claude credential 상태:');
+  lines.push(`  credentialsPath: ${snapshot.credentialsPath}`);
+  lines.push(`  found:           ${snapshot.found}`);
+  lines.push(`  parsed:          ${snapshot.parsed}`);
+  lines.push(`  authSource:      ${snapshot.authSource}`);
+  return lines;
+}
 
 export async function runDoctorCommand(subcommand, args = []) {
   if (subcommand === 'codex') {
@@ -9,18 +25,41 @@ export async function runDoctorCommand(subcommand, args = []) {
     return;
   }
 
+  if (subcommand === 'claude') {
+    runDoctorClaude();
+    return;
+  }
+
+  const claudeSnapshot = buildClaudeSnapshot(resolveClaudeCredentialsPath());
+
   console.log('ai-usage-agent doctor');
   console.log('---------------------');
   console.log(`예상 설정 파일 경로: ${resolveAgentConfigPath()}`);
-  console.log('향후 점검 예정 항목:');
-  console.log('- provider auth 존재 여부');
-  console.log('- config 유효성');
-  console.log('- endpoint 호출 가능 여부');
+  console.log('');
+  for (const line of formatClaudeSection(claudeSnapshot)) {
+    console.log(line);
+  }
   console.log('');
   console.log('서브커맨드:');
   console.log('  ai-usage-agent doctor codex                 codex 계정 상태 점검');
   console.log('  ai-usage-agent doctor codex --refresh-live  실제 refresh token 재발급 시도');
   console.log('  ai-usage-agent doctor codex --account <id>  특정 계정 지정');
+  console.log('  ai-usage-agent doctor claude                claude credential 상태 점검');
+}
+
+function runDoctorClaude() {
+  const snapshot = buildClaudeSnapshot(resolveClaudeCredentialsPath());
+  console.log('ai-usage-agent doctor claude');
+  console.log('----------------------------');
+  for (const line of formatClaudeSection(snapshot)) {
+    console.log(line);
+  }
+  if (!snapshot.found) {
+    console.log('');
+    console.log('⚠ Claude credential을 찾지 못했습니다.');
+    console.log(`  예상 경로: ${snapshot.credentialsPath}`);
+    console.log('  Claude CLI로 먼저 로그인했는지 확인하세요.');
+  }
 }
 
 async function runDoctorCodex(args) {
