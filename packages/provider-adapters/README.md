@@ -12,7 +12,8 @@ provider별 인증 소스, usage endpoint, 응답 정규화 로직을 모아두�
 - 선택적 `ChatGPT-Account-Id` 헤더 지원
 - 공통 `usage snapshot` 형태로 결과 정규화
 - provider 원본 응답을 `raw` 필드에 보존
-- Codex auth metadata/constants 및 authorization URL generation 골격
+- Codex auth metadata/constants (auth.openai.com 기반 endpoint 검증 반영)
+- Codex authorization URL generation 골격
 - Codex authorization code / refresh token exchange draft 함수 시그니처
 
 ## 현재 구조

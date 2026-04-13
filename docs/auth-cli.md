@@ -135,10 +135,19 @@ ai-usage-agent auth login codex --manual --no-open
 - 계정이 여러 개면 `lastUsedAt`이 가장 최근인 active 계정 사용
 - `--account`로 명시 지정 가능
 
+## Codex OAuth endpoint 검증 현황
+
+아래 endpoint는 OpenClaw 로컬 문서/코드로부터 검증됨:
+- authorize: `https://auth.openai.com/oauth/authorize`
+- token: `https://auth.openai.com/oauth/token`
+- callback: `http://127.0.0.1:1455/auth/callback`
+
+client_id `app_EMoamEEZ73f0CkXaXp7hrann`은 로컬 JWT에서 관찰된 값이며, 공식 확정이 아님.
+
 ## 아직 미정인 부분
 
-- 실제 Codex token endpoint 검증
-- 실제 client_id / client_secret 요구사항
+- client_id 공식 확정 (현재는 관찰값만 존재)
+- client_secret 요구사항
 - revoke endpoint를 각 provider에서 어디까지 지원할지
 - `auth import openclaw`를 기본 노출할지 숨길지
 - device code를 실제로 도입할 provider 범위

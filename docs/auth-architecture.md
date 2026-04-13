@@ -145,15 +145,24 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 - device code fallback 조사/도입
 - keychain 연동
 
-## Codex token exchange 관련 현재 판단
+## Codex OAuth endpoint 검증 현황
 
-현재 repo에는 Codex token exchange draft가 추가되었지만, 아래 항목은 아직 미확정이다.
+아래는 OpenClaw 로컬 문서/코드 및 JWT 관찰값으로부터 확인된 사실이다.
 
-- 실제 token endpoint URL 검증
-- 실제 client_id 확인
+### 검증됨 (출처: OpenClaw docs/concepts/oauth.md, provider-openai-codex-oauth-tls-*.js)
+- authorize: `https://auth.openai.com/oauth/authorize`
+- token: `https://auth.openai.com/oauth/token`
+- callback: `http://127.0.0.1:1455/auth/callback`
+- JWT issuer: `https://auth.openai.com` (로컬 ~/.codex/auth.json 관찰)
+
+### 관찰됨 — 미확정
+- client_id `app_EMoamEEZ73f0CkXaXp7hrann` — 로컬 JWT payload에서 관찰. 공식 문서로 확정된 값이 아니므로 변경 가능성 있음.
+
+### 여전히 미확정
 - client_secret 필요 여부
 - refresh token rotation 정책
-- PKCE S256 적용
+- PKCE S256 적용 여부/방식
+- scopes 정확한 목록
 
 즉 다음 단계 구현은 이 draft 함수의 예외 처리 블록을 실제 fetch로 교체하는 방향이 된다.
 
