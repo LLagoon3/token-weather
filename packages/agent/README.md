@@ -24,6 +24,7 @@
 - `sync` 업로드 기능
 - 정식 formatter / table renderer
 - schema validation
+- provider 측 revoke endpoint 호출 (logout은 로컬 제거만 수행)
 
 ## 현재 가능한 명령
 
@@ -47,6 +48,16 @@
 - `ai-usage-agent auth login codex --manual`
   - callback URL/code 입력을 받아 placeholder/mock 계정을 auth store에 저장
   - 아직 실제 OAuth token exchange는 아님
+- `ai-usage-agent auth list`
+  - 저장된 모든 provider의 인증 계정 목록 출력
+  - provider, accountKey, email, source, authType, expiresAt, mock 여부, refresh 가능 여부 표시
+- `ai-usage-agent auth list codex`
+  - 특정 provider 계정만 필터하여 출력
+- `ai-usage-agent auth logout codex`
+  - 기본 선택 계정(single 또는 lastUsedAt 기준)을 로컬 저장소에서 제거
+  - provider 측 revoke endpoint 호출은 아직 미구현
+- `ai-usage-agent auth logout codex --account <email|accountKey>`
+  - 특정 계정을 지정하여 제거
 
 ## 로컬 개발 실행
 
@@ -90,3 +101,5 @@ node packages/agent/bin/ai-usage-agent.js status
 
 - `ai-usage-agent inspect <provider>`
 - `ai-usage-agent sync`
+- `ai-usage-agent auth doctor` (인증 상태 진단)
+- `ai-usage-agent auth import openclaw` (기존 OpenClaw 마이그레이션)

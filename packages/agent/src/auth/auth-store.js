@@ -64,3 +64,18 @@ export function upsertProviderAccount(store, providerId, account) {
 
   return nextStore;
 }
+
+export function removeProviderAccount(store, providerId, accountKey) {
+  const nextStore = structuredClone(store);
+
+  const provider = nextStore.providers?.[providerId];
+  if (!provider || !provider.accounts) {
+    return nextStore;
+  }
+
+  provider.accounts = provider.accounts.filter(
+    (a) => a.accountKey !== accountKey,
+  );
+
+  return nextStore;
+}
