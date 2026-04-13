@@ -61,6 +61,28 @@ describe('formatClaudeImportEntry', () => {
     assert.ok(lines.some((l) => l.includes('found') && l.includes('false')));
     assert.ok(lines.some((l) => l.includes('usable') && l.includes('false')));
   });
+
+  it('shows accountKey from importedAccount when present', () => {
+    const lines = formatClaudeImportEntry({
+      authSource: 'claude-cli-import',
+      credentialsPath: FAKE_PATH,
+      found: true,
+      parsed: true,
+      importedAccount: { accountKey: 'claude-cli-import', provider: 'claude' },
+    });
+    assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('claude-cli-import')));
+  });
+
+  it('shows (없음) for accountKey when importedAccount is null', () => {
+    const lines = formatClaudeImportEntry({
+      authSource: 'not-found',
+      credentialsPath: FAKE_PATH,
+      found: false,
+      parsed: false,
+      importedAccount: null,
+    });
+    assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('없음')));
+  });
 });
 
 describe('runAuthListCommand — Claude import block', () => {
@@ -72,7 +94,8 @@ describe('runAuthListCommand — Claude import block', () => {
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('claude'));
-    assert.ok(flat.includes('claude-cli-import'));
+    assert.ok(flat.includes('accountKey'));
+    assert.ok(flat.includes('credentialsPath'));
   });
 
   it('shows found=false when claudeReadFn returns null', async () => {

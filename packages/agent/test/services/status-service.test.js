@@ -167,4 +167,18 @@ describe('buildClaudeSnapshot', () => {
     const result = buildClaudeSnapshot(FAKE_PATH, () => null);
     assert.equal(result.credentialsPath, FAKE_PATH);
   });
+
+  it('includes importedAccount with accountKey when credentials are found', () => {
+    const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
+    const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials);
+    assert.ok(result.importedAccount !== null, 'importedAccount should not be null');
+    assert.equal(result.importedAccount.accountKey, 'claude-cli-import');
+    assert.equal(result.importedAccount.provider, 'claude');
+    assert.equal(result.importedAccount.source, 'claude-cli-import');
+  });
+
+  it('sets importedAccount to null when credentials are not found', () => {
+    const result = buildClaudeSnapshot(FAKE_PATH, () => null);
+    assert.equal(result.importedAccount, null);
+  });
 });
