@@ -14,8 +14,12 @@
 ~/.config/ai-usage-agent/auth.json
 ```
 
-향후 선택 사항:
-- 민감 토큰은 OS keychain 저장
+현재 기본 방안:
+- 민감 토큰 포함 `auth.json` 파일 저장으로 시작
+- 파일 권한은 `0600`을 기본으로 사용
+
+향후 확장:
+- OS keychain 저장
 - 파일에는 메타데이터와 key reference만 저장
 
 ## 최상위 구조 예시
@@ -94,7 +98,8 @@
 ## 추천
 
 초기 MVP는:
-- 파일 스키마를 먼저 확정
+- `auth.json` 파일 저장으로 먼저 구현
+- 파일 권한은 `0600`
 - 토큰 필드는 추후 keychain 백엔드로 교체 가능하게 추상화
 
 즉 스키마는 유지하고 저장 backend만 바꾸는 방식이 좋다.
@@ -109,3 +114,10 @@
 - `preferred`
 - `disabled`
 - `migration`: OpenClaw import 이력
+
+## multi-account 기본 선택 규칙
+
+- 계정이 1개면 자동 선택
+- 계정이 여러 개면 `lastUsedAt`이 가장 최근인 active 계정 사용
+- `--account user@example.com`으로 명시 지정 가능
+- `auth list`에서 기본 선택 대상 계정은 `*`로 표시

@@ -35,7 +35,7 @@ ai-usage-agent auth login codex --port 38123
 옵션 의미:
 - `--no-open`: 브라우저 자동 실행 안 함
 - `--manual`: callback URL 또는 code 수동 입력 흐름 강제
-- `--device`: device code flow 강제 시도
+- `--device`: 후순위 실험용 옵션, provider 지원 확인 전까지는 기본 경로로 사용하지 않음
 - `--port`: localhost callback 포트 지정
 
 ### 2. list
@@ -77,6 +77,7 @@ ai-usage-agent auth doctor codex
 - expiresAt 만료 여부
 - refresh 가능 여부
 - callback 포트/환경 문제 힌트
+- 현재 기본 선택될 계정이 무엇인지
 
 ### 5. import
 
@@ -94,6 +95,7 @@ ai-usage-agent auth import openclaw
 - 세부 제어는 옵션으로 열기
 - 실패 시 단순한 에러 대신 다음 행동을 안내
 - headless 환경을 위한 fallback 경로를 명확히 제공
+- multi-account는 자동 선택 + 명시 override 방식으로 단순하게 유지
 
 ## 예시 시나리오
 
@@ -119,9 +121,21 @@ ai-usage-agent auth login codex --manual --no-open
 2. 완료 후 callback URL 전체를 붙여넣어 주세요
 3. 저장 완료
 
+## 포트 충돌 정책
+
+- 기본 포트는 예: `19876`
+- 포트 충돌 시 `19877`, `19878` 순으로 최대 3회 자동 재시도
+- 3회 모두 실패하면 manual paste 모드로 자동 전환
+- 사용자가 `--port`를 명시한 경우는 해당 포트만 시도하고 실패 시 에러 반환
+
+## multi-account 정책
+
+- 계정이 1개면 자동 선택
+- 계정이 여러 개면 `lastUsedAt`이 가장 최근인 active 계정 사용
+- `--account`로 명시 지정 가능
+
 ## 아직 미정인 부분
 
-- `login` 성공 후 기본 계정 선택 UX
-- multi-account가 많은 경우 interactive picker 필요 여부
 - revoke endpoint를 각 provider에서 어디까지 지원할지
 - `auth import openclaw`를 기본 노출할지 숨길지
+- device code를 실제로 도입할 provider 범위

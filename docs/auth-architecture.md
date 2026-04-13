@@ -21,8 +21,8 @@
   ├─ Auth Commands
   ├─ Auth Broker
   │   ├─ OAuth localhost callback flow
-  │   ├─ Device code fallback
-  │   └─ Manual callback/paste fallback
+  │   ├─ Manual callback/paste fallback
+  │   └─ Device code fallback (후순위)
   ├─ Credential Store
   ├─ Provider Adapters
   └─ Usage / Event Pipeline
@@ -49,21 +49,22 @@
 - 사용자가 기존 웹 로그인 흐름에 익숙함
 - refresh token 기반 재사용 설계가 쉬움
 
-### 2. 대안: device code flow
+### 2. 우선 fallback: manual paste
 
-provider가 device code를 지원하면 두 번째 우선순위로 사용한다.
+현 시점 우선 fallback은 manual paste 방식이다.
 
-적합한 상황:
-- SSH 원격 환경
-- 브라우저 자동 열기 불가
-- localhost callback이 막힌 환경
-
-### 3. 최후 fallback: manual paste
-
-지원해야 할 fallback:
+지원해야 할 흐름:
 - callback URL 전체를 붙여넣기
 - authorization code를 수동 입력
 - 브라우저는 사용자 쪽에서 직접 열기 (`--no-open`)
+
+이 방식이면 localhost callback이 실패하는 데스크톱/SSH 환경도 우선 커버할 수 있다.
+
+### 3. 후순위 조사: device code flow
+
+provider가 device code를 안정적으로 지원하는지 확인되면 이후 단계에서 추가한다.
+
+현재는 구현 우선순위를 낮춘다.
 
 ## Credential Source 추상화
 
@@ -85,8 +86,8 @@ provider가 device code를 지원하면 두 번째 우선순위로 사용한다.
 ## 저장소 설계 원칙
 
 - normalized auth metadata와 민감 토큰은 논리적으로 분리 가능해야 함
-- 가능한 경우 OS keychain 사용
-- 초기 버전은 파일 저장소를 먼저 정의하고, 이후 keychain으로 확장 가능해야 함
+- 초기 버전은 `auth.json` + `0600` 파일 저장으로 시작
+- 이후 keychain으로 확장 가능해야 함
 - 서버로 refresh token / session cookie / sessionKey 업로드 금지
 
 ## 보안 원칙
@@ -133,16 +134,16 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 ### Phase 3
 - refresh token 갱신
 - `auth list/logout/doctor` 구현
+- manual paste fallback 구현
 - `auth import openclaw` migration 경로 추가
 
 ### Phase 4
-- device code fallback
-- manual paste fallback
+- device code fallback 조사/도입
 - keychain 연동
 
-## 현재 남아 있는 판단 포인트
+## 현재 확정된 운영 방안
 
-- 토큰 저장을 초기부터 keychain 필수로 할지, 파일 저장 후 확장할지
-- provider별 device code 지원 여부
-- multi-account 선택 UX를 어떻게 잡을지
-- 로컬 callback 포트 충돌 시 fallback 정책
+- 토큰 저장은 초기 버전에서 `auth.json` + `0600`으로 시작
+- device code는 후순위 조사 항목으로 둠
+- multi-account는 `lastUsedAt` 자동 선택 + `--account` override 사용
+- callback 포트 충돌 시 기본 포트부터 최대 3회 대체 포트 시도 후 manual paste로 전환

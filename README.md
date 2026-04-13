@@ -148,8 +148,8 @@ OpenClaw auth profile 의존을 제거하기 위한 계획 문서를 추가했�
 
 현재 방향:
 - 기본 auth 흐름: localhost callback OAuth
-- fallback 1: device code
-- fallback 2: manual paste / callback URL handoff
+- fallback 1: manual paste / callback URL handoff
+- device code는 필요 시점에 후순위로 조사
 - 장기적으로는 agent 자체 auth store 사용
 - OpenClaw import는 migration 보조 기능으로만 유지
 
