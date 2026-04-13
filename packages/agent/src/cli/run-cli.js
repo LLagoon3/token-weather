@@ -12,7 +12,8 @@ export async function runCli(argv) {
   }
 
   if (command === 'doctor') {
-    await runDoctorCommand();
+    const [subcommand, ...args] = rest;
+    await runDoctorCommand(subcommand, args);
     return;
   }
 
