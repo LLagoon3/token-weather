@@ -13,6 +13,7 @@ provider별 인증 소스, usage endpoint, 응답 정규화 로직을 모아두�
 - 공통 `usage snapshot` 형태로 결과 정규화
 - provider 원본 응답을 `raw` 필드에 보존
 - Codex auth metadata/constants 및 authorization URL generation 골격
+- Codex authorization code / refresh token exchange draft 함수 시그니처
 
 ## 현재 구조
 
@@ -23,6 +24,7 @@ src/
     build-codex-authorization-url.js
     read-codex-auth-profiles.js
     fetch-codex-usage.js
+    exchange-codex-authorization-code.js
     index.js
   index.js
 ```

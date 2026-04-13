@@ -137,12 +137,25 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 - localhost callback 서버 골격 구현
 - callback code/state 수신 처리
 - placeholder token exchange를 callback 경로와 연결
+- Codex token exchange draft 함수 시그니처와 endpoint/params 정리
 - 이후 실제 provider token exchange로 교체
 - `auth list/logout/doctor` 및 `auth import openclaw` 확장
 
 ### 후순위 단계
 - device code fallback 조사/도입
 - keychain 연동
+
+## Codex token exchange 관련 현재 판단
+
+현재 repo에는 Codex token exchange draft가 추가되었지만, 아래 항목은 아직 미확정이다.
+
+- 실제 token endpoint URL 검증
+- 실제 client_id 확인
+- client_secret 필요 여부
+- refresh token rotation 정책
+- PKCE S256 적용
+
+즉 다음 단계 구현은 이 draft 함수의 예외 처리 블록을 실제 fetch로 교체하는 방향이 된다.
 
 ## 현재 확정된 운영 방안
 

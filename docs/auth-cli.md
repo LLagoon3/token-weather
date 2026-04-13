@@ -19,7 +19,8 @@ ai-usage-agent auth login codex
 ```
 
 현재 구현 상태:
-- localhost callback 준비 코드까지 동작
+- localhost callback 준비 및 callback code/state 수신 골격까지 동작
+- authorization URL generation 골격이 추가됨
 - 브라우저 자동 열기와 실제 token exchange는 아직 미구현
 - `--manual`에서는 placeholder/mock 저장 흐름이 동작
 
@@ -136,6 +137,8 @@ ai-usage-agent auth login codex --manual --no-open
 
 ## 아직 미정인 부분
 
+- 실제 Codex token endpoint 검증
+- 실제 client_id / client_secret 요구사항
 - revoke endpoint를 각 provider에서 어디까지 지원할지
 - `auth import openclaw`를 기본 노출할지 숨길지
 - device code를 실제로 도입할 provider 범위
