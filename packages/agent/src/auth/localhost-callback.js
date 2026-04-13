@@ -3,14 +3,14 @@
  *
  * This module provides the scaffolding for:
  * - Callback URL construction
- * - PKCE code_verifier / code_challenge placeholders
+ * - PKCE S256 code_verifier / code_challenge generation
  * - OAuth state parameter generation
  * - Localhost callback server that receives code/state from browser redirect
  *
  * NOTE: This is still a placeholder/mock flow — no real token exchange occurs.
  */
 
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { resolveCallbackPort } from './port-fallback.js';
 
@@ -22,17 +22,17 @@ export function generateState(bytes = 32) {
 }
 
 /**
- * PKCE placeholder — generates code_verifier and code_challenge.
- *
- * TODO(phase-next): implement proper S256 challenge derivation.
- * Currently returns raw verifier as challenge (plain method placeholder).
+ * PKCE S256 — generates code_verifier and SHA-256 code_challenge.
  */
 export function generatePkce(bytes = 32) {
   const codeVerifier = randomBytes(bytes).toString('base64url');
+  const codeChallenge = createHash('sha256')
+    .update(codeVerifier)
+    .digest('base64url');
   return {
     codeVerifier,
-    codeChallenge: codeVerifier,       // placeholder — replace with S256 hash
-    codeChallengeMethod: 'plain',      // placeholder — should become 'S256'
+    codeChallenge,
+    codeChallengeMethod: 'S256',
   };
 }
 
@@ -40,7 +40,7 @@ export function generatePkce(bytes = 32) {
  * Build the localhost callback URL for a given port.
  */
 export function buildCallbackUrl(port) {
-  return `http://127.0.0.1:${port}/callback`;
+  return `http://127.0.0.1:${port}/auth/callback`;
 }
 
 /**
@@ -80,7 +80,7 @@ export async function prepareLocalhostCallback({ preferredPort = null } = {}) {
  * - missing code query parameter
  * - state mismatch
  *
- * The server closes itself after the first valid or invalid /callback request,
+ * The server closes itself after the first valid or invalid /auth/callback request,
  * or when the timeout fires — whichever comes first.
  *
  * @param {object} options
@@ -97,7 +97,7 @@ export function startLocalhostCallbackServer({ port, expectedState, timeoutMs = 
     const server = createServer((req, res) => {
       const url = new URL(req.url, `http://127.0.0.1:${port}`);
 
-      if (url.pathname !== '/callback') {
+      if (url.pathname !== '/auth/callback') {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('Not found');
         return;

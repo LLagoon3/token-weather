@@ -158,10 +158,14 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 ### 관찰됨 — 미확정
 - client_id `app_EMoamEEZ73f0CkXaXp7hrann` — 로컬 JWT payload에서 관찰. 공식 문서로 확정된 값이 아니므로 변경 가능성 있음.
 
+### 구현 완료
+- PKCE S256 code_challenge 생성 (plain에서 S256으로 교체)
+- redirect_uri 경로를 `/auth/callback`으로 통일
+- 기본 콜백 포트를 1455로 변경 (OpenClaw 문서 기준)
+
 ### 여전히 미확정
 - client_secret 필요 여부
 - refresh token rotation 정책
-- PKCE S256 적용 여부/방식
 - scopes 정확한 목록
 
 ### token exchange 구현 상태 (guarded real fetch)
@@ -177,7 +181,6 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 이 guard는 다음 조건이 모두 확인될 때까지 유지한다:
 1. client_id 공식 확정
 2. client_secret 요구사항 확인
-3. PKCE S256 구현 완료
 
 guard를 해제할 때는 기본값을 `true`로 바꾸거나 옵션 자체를 제거하면 된다.
 
@@ -186,4 +189,4 @@ guard를 해제할 때는 기본값을 `true`로 바꾸거나 옵션 자체를 �
 - 토큰 저장은 초기 버전에서 `auth.json` + `0600`으로 시작
 - device code는 후순위 조사 항목으로 둠
 - multi-account는 `lastUsedAt` 자동 선택 + `--account` override 사용
-- callback 포트 충돌 시 기본 포트부터 최대 3회 대체 포트 시도 후 manual paste로 전환
+- callback 포트 충돌 시 기본 포트(1455)부터 최대 3회 대체 포트 시도 후 manual paste로 전환

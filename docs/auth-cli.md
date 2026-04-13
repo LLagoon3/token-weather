@@ -41,7 +41,7 @@ ai-usage-agent auth login codex --live-exchange
 - `--port`: localhost callback 포트 지정
 - `--live-exchange`: **실험적** — callback에서 수신한 code로 실제 token endpoint에 POST를 시도.
   기본 동작(mock 저장)을 대체하며, 실패 시 mock fallback 없이 에러를 표시.
-  주의: PKCE는 아직 plain placeholder이고, client_id는 관찰값(observed)이므로 성공이 보장되지 않음.
+  주의: PKCE S256이 적용되어 있으나, client_id는 관찰값(observed)이므로 성공이 보장되지 않음.
 
 ### 2. list
 
@@ -128,8 +128,8 @@ ai-usage-agent auth login codex --manual --no-open
 
 ## 포트 충돌 정책
 
-- 기본 포트는 예: `19876`
-- 포트 충돌 시 `19877`, `19878` 순으로 최대 3회 자동 재시도
+- 기본 포트: `1455` (OpenClaw 문서 기준)
+- 포트 충돌 시 `1456`, `1457` 순으로 최대 3회 자동 재시도
 - 3회 모두 실패하면 manual paste 모드로 자동 전환
 - 사용자가 `--port`를 명시한 경우는 해당 포트만 시도하고 실패 시 에러 반환
 
@@ -156,7 +156,7 @@ client_id `app_EMoamEEZ73f0CkXaXp7hrann`은 로컬 JWT에서 관찰된 값이며
 - CLI에서 `--live-exchange` 옵션을 명시하면 `allowLiveExchange: true`로 실제 token endpoint POST가 수행된다.
 - `--live-exchange` 없이 실행하면 기존과 동일한 mock 저장 흐름을 유지한다.
 - live exchange 실패 시 mock fallback 없이 에러를 표시한다 (사용자 혼동 방지).
-- 이 guard는 client_id 공식 확정, PKCE S256 구현 완료 시점까지 유지한다.
+- PKCE S256은 구현 완료됨. 이 guard는 client_id 공식 확정 시점까지 유지한다.
 
 ## 아직 미정인 부분
 

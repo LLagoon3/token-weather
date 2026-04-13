@@ -2,7 +2,7 @@
  * Port fallback helper for localhost callback server.
  *
  * Policy (from docs/auth-cli.md):
- * - Default port: 19876
+ * - Default port: 1455 (OpenClaw 문서 기준)
  * - On conflict: try +1, +2, +3 (max 3 retries)
  * - If all fail: signal caller to switch to manual paste
  * - If user specified --port: try only that port, fail on conflict
@@ -10,7 +10,7 @@
 
 import { createServer } from 'node:net';
 
-export const DEFAULT_CALLBACK_PORT = 19876;
+export const DEFAULT_CALLBACK_PORT = 1455;
 export const MAX_PORT_RETRIES = 3;
 
 /**

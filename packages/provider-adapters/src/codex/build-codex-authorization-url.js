@@ -4,30 +4,28 @@
  * This generates the URL that the user should open in a browser to start the
  * OAuth authorization code flow. It does NOT perform any HTTP calls.
  *
- * NOTE: The generated URL is based on placeholder endpoint/client values.
- * It is not guaranteed to work against real OpenAI OAuth infrastructure
- * without verified endpoint URLs and a registered client ID.
+ * NOTE: The generated URL uses verified auth.openai.com endpoints and an
+ * observed client_id candidate from the local Codex CLI token payload.
+ * The client_id is still not officially confirmed, so success is not guaranteed.
  *
  * @param {object} params
  * @param {string} params.callbackUrl - The localhost redirect_uri
  * @param {string} params.state - OAuth state parameter for CSRF protection
  * @param {string} params.codeChallenge - PKCE code_challenge value
  * @param {string} params.codeChallengeMethod - PKCE method ('plain' or 'S256')
- * @param {string} [params.clientId] - Override client ID (default: placeholder)
+ * @param {string} [params.clientId] - Override client ID (default: observed candidate)
  * @param {string[]} [params.scopes] - Override scopes (default: CODEX_AUTH.defaultScopes)
  * @returns {string} The full authorization URL with query parameters
  */
 
 import { CODEX_AUTH } from './codex-auth-constants.js';
 
-const PLACEHOLDER_CLIENT_ID = 'PLACEHOLDER_CLIENT_ID';
-
 export function buildCodexAuthorizationUrl({
   callbackUrl,
   state,
   codeChallenge,
   codeChallengeMethod,
-  clientId = PLACEHOLDER_CLIENT_ID,
+  clientId = CODEX_AUTH.observedClientId,
   scopes = CODEX_AUTH.defaultScopes,
 }) {
   const url = new URL(CODEX_AUTH.authorizationEndpoint);

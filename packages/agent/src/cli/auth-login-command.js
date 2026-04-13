@@ -118,7 +118,7 @@ async function runLiveExchange({ code, callbackUrl, codeVerifier }) {
   console.log('');
   console.log('⚠ --live-exchange 모드: 실제 token endpoint에 POST를 시도합니다.');
   console.log('  주의사항:');
-  console.log('  - PKCE code_challenge는 아직 plain placeholder입니다 (S256 미구현).');
+  console.log('  - PKCE code_challenge는 S256으로 생성됩니다.');
   console.log('  - client_id는 관찰된 값(observed)이며 OpenAI 공식 확정이 아닙니다.');
   console.log('  - 성공이 보장되지 않습니다.');
   console.log('');
@@ -160,7 +160,7 @@ async function runLiveExchange({ code, callbackUrl, codeVerifier }) {
         scope: tokenResponse.scope ?? null,
         idToken: tokenResponse.idToken ?? null,
         exchangedAt: now.toISOString(),
-        note: 'live token exchange 결과 — observed client_id + plain PKCE 기반',
+        note: 'live token exchange 결과 — observed client_id + S256 PKCE 기반',
       },
     });
     account.expiresAt = expiresAt;
@@ -174,7 +174,7 @@ async function runLiveExchange({ code, callbackUrl, codeVerifier }) {
     console.log(`  accountKey: ${account.accountKey}`);
     if (expiresAt) console.log(`  expiresAt: ${expiresAt}`);
     console.log('');
-    console.log('⚠ 이 토큰은 observed client_id + plain PKCE 기반이므로');
+    console.log('⚠ 이 토큰은 observed client_id 기반이므로');
     console.log('  정상 동작이 확인되기 전까지 실험적으로만 사용하세요.');
   } catch (err) {
     console.log('');

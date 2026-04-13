@@ -40,7 +40,7 @@
 - `ai-usage-agent auth login codex --live-exchange`
   - callback code 수신 후 실제 token endpoint에 POST를 시도 (실험적)
   - 성공 시 real token을 auth store에 저장, 실패 시 에러 표시 (mock fallback 없음)
-  - PKCE는 plain placeholder, client_id는 observed 값이므로 성공 보장 안 됨
+  - PKCE S256 적용됨, client_id는 observed 값이므로 성공 보장 안 됨
 - `ai-usage-agent auth login codex --manual`
   - callback URL/code 입력을 받아 placeholder/mock 계정을 auth store에 저장
   - 아직 실제 OAuth token exchange는 아님
