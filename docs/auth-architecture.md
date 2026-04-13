@@ -152,7 +152,7 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 ### 검증됨 (출처: OpenClaw docs/concepts/oauth.md, provider-openai-codex-oauth-tls-*.js)
 - authorize: `https://auth.openai.com/oauth/authorize`
 - token: `https://auth.openai.com/oauth/token`
-- callback: `http://127.0.0.1:1455/auth/callback`
+- callback: `http://localhost:1455/auth/callback` (host는 `localhost` — OpenClaw 관찰 기준)
 - JWT issuer: `https://auth.openai.com` (로컬 ~/.codex/auth.json 관찰)
 
 ### 관찰됨 — 미확정
@@ -162,11 +162,18 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 - PKCE S256 code_challenge 생성 (plain에서 S256으로 교체)
 - redirect_uri 경로를 `/auth/callback`으로 통일
 - 기본 콜백 포트를 1455로 변경 (OpenClaw 문서 기준)
+- redirect_uri host를 `localhost`로 변경 (OpenClaw 관찰 기준)
+- scopes를 `openid profile email offline_access`로 정렬 (OpenClaw 관찰 기준)
+- extra authorize params 반영: `id_token_add_organizations`, `codex_cli_simplified_flow`, `originator`
+
+### observed alignment 참고
+현재는 OpenClaw가 실제로 생성하는 authorize URL과 최대한 동일하게 정렬했다.
+단, 이것은 OpenClaw 동작 관찰 기반 정렬(observed alignment)이며, OpenAI 공식 문서에
+의한 확정이 아니다. provider 측 변경이 있으면 재정렬이 필요할 수 있다.
 
 ### 여전히 미확정
 - client_secret 필요 여부
 - refresh token rotation 정책
-- scopes 정확한 목록
 
 ### token exchange 구현 상태 (guarded real fetch)
 

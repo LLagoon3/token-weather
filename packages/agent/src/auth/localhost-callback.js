@@ -40,7 +40,7 @@ export function generatePkce(bytes = 32) {
  * Build the localhost callback URL for a given port.
  */
 export function buildCallbackUrl(port) {
-  return `http://127.0.0.1:${port}/auth/callback`;
+  return `http://localhost:${port}/auth/callback`;
 }
 
 /**

@@ -38,5 +38,11 @@ export function buildCodexAuthorizationUrl({
   url.searchParams.set('code_challenge', codeChallenge);
   url.searchParams.set('code_challenge_method', codeChallengeMethod);
 
+  // Extra params observed in OpenClaw's authorize URL (not OAuth spec)
+  const extra = CODEX_AUTH.extraAuthorizeParams ?? {};
+  for (const [key, value] of Object.entries(extra)) {
+    url.searchParams.set(key, value);
+  }
+
   return url.toString();
 }

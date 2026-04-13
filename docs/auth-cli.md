@@ -144,9 +144,15 @@ ai-usage-agent auth login codex --manual --no-open
 아래 endpoint는 OpenClaw 로컬 문서/코드로부터 검증됨:
 - authorize: `https://auth.openai.com/oauth/authorize`
 - token: `https://auth.openai.com/oauth/token`
-- callback: `http://127.0.0.1:1455/auth/callback`
+- callback: `http://localhost:1455/auth/callback` (host는 `localhost` — OpenClaw 관찰 기준)
 
 client_id `app_EMoamEEZ73f0CkXaXp7hrann`은 로컬 JWT에서 관찰된 값이며, 공식 확정이 아님.
+
+현재 authorize URL은 OpenClaw가 실제로 생성하는 URL과 최대한 동일하게 정렬했다 (observed alignment).
+- scopes: `openid profile email offline_access`
+- extra params: `id_token_add_organizations=true`, `codex_cli_simplified_flow=true`, `originator=pi`
+
+이 정렬은 관찰 기반이며 공식 문서 확정이 아니므로, provider 변경 시 재정렬이 필요할 수 있다.
 
 ## token exchange guard 정책
 
