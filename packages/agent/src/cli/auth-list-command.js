@@ -79,10 +79,13 @@ export async function runAuthListCommand(provider, options = {}) {
  * 순수 함수 — 테스트 가능.
  */
 export function formatClaudeImportEntry(snapshot) {
-  const accountKey = snapshot.importedAccount?.accountKey ?? '(없음)';
+  const acct = snapshot.importedAccount;
+  const accountKey = acct?.accountKey ?? '(없음)';
+  const authType = acct?.authType ?? '(알 수 없음)';
   return [
     `  provider        : claude`,
     `  accountKey      : ${accountKey}`,
+    `  authType        : ${authType}`,
     `  source          : ${snapshot.authSource}`,
     `  credentialsPath : ${snapshot.credentialsPath}`,
     `  found           : ${snapshot.found}`,

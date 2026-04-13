@@ -83,6 +83,28 @@ describe('formatClaudeImportEntry', () => {
     });
     assert.ok(lines.some((l) => l.includes('accountKey') && l.includes('없음')));
   });
+
+  it('shows authType from importedAccount when present', () => {
+    const lines = formatClaudeImportEntry({
+      authSource: 'claude-cli-import',
+      credentialsPath: FAKE_PATH,
+      found: true,
+      parsed: true,
+      importedAccount: { accountKey: 'claude-cli-import', provider: 'claude', authType: 'oauth' },
+    });
+    assert.ok(lines.some((l) => l.includes('authType') && l.includes('oauth')));
+  });
+
+  it('shows (알 수 없음) for authType when importedAccount is null', () => {
+    const lines = formatClaudeImportEntry({
+      authSource: 'not-found',
+      credentialsPath: FAKE_PATH,
+      found: false,
+      parsed: false,
+      importedAccount: null,
+    });
+    assert.ok(lines.some((l) => l.includes('authType') && l.includes('알 수 없음')));
+  });
 });
 
 describe('runAuthListCommand — Claude import block', () => {
