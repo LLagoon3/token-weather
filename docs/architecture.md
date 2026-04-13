@@ -8,8 +8,6 @@
 - provider adapter가 각 서비스의 인증/endpoint/정규화를 담당
 - 공통 schema가 데이터 계약을 정의
 
-백엔드 API와 웹 대시보드는 향후 consumer로 계획되어 있으나 현재 구현되지 않았다.
-
 ## 현재 구조
 
 ```text
@@ -46,11 +44,7 @@
 - 후순위: device code (미구현)
 - credential source: `agent-store` > `env` > `openclaw-import`
 
-## 향후 확장 가능 구조
-
-현재 구현되지 않았으나, 계획상 가능한 확장:
+## 향후 확장 가능성
 
 - 백엔드 API: 정규화 이벤트 수집, provider 직접 poll, 상태 집계
 - 웹 대시보드: overview, provider/account 상세, timeline
-
-이들은 `apps/` 디렉토리에 placeholder만 존재한다.

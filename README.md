@@ -24,7 +24,6 @@
 ### 아직 구현되지 않은 것
 
 - Claude provider 인증 및 usage 조회
-- 백엔드 API / 웹 대시보드 (`apps/` 디렉토리는 placeholder)
 - device code fallback
 - keychain 연동
 
@@ -44,8 +43,6 @@ packages/
   agent/             # CLI 에이전트
   provider-adapters/ # provider별 인증/usage 어댑터
   schemas/           # 공통 JSON Schema
-  shared/            # 공통 유틸리티 (미구현)
-apps/                # 향후 웹/API consumer (placeholder)
 docs/                # 아키텍처, 인증, provider 문서
 scripts/
   poc/

@@ -20,8 +20,7 @@
 
 해당되는 영역에 표시해주세요.
 
-- [ ] `apps/web`
-- [ ] `apps/api`
+- [ ] `packages/agent`
 - [ ] `packages/schemas`
 - [ ] `packages/provider-adapters`
 - [ ] `repo`
@@ -29,14 +28,14 @@
 
 ## 스크린샷 / 데모
 
-- UI 변경이 있으면 스크린샷, GIF, 또는 간단한 설명을 첨부해주세요.
+- CLI 출력 변경이 있으면 실행 결과 또는 간단한 설명을 첨부해주세요.
 - 없으면 `없음`이라고 적어주세요.
 
 ## 테스트 / 확인
 
 - [ ] 관련 스크립트 또는 기능을 로컬에서 확인
 - [ ] 필요한 문서 업데이트 반영
-- [ ] schema / provider / UI 영향 범위를 직접 점검
+- [ ] schema / provider / CLI 영향 범위를 직접 점검
 
 ## 리뷰 포인트
 

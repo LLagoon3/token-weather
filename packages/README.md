@@ -32,5 +32,3 @@ provider별 인증/endpoint 연결 및 usage 정규화.
 - Codex 기준 example payload
 - ISO datetime string 기반 시간 필드 정의
 
-### `shared`
-공통 유틸리티 자리. 아직 본격 구현 전.
