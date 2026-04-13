@@ -3,6 +3,7 @@ import { readManualPasteInput, extractCodeFromPaste } from '../auth/manual-paste
 import { createMockCodexAccountFromManualInput } from '../auth/mock-auth-exchange.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { createAccount } from '../auth/auth-store-schema.js';
+import { extractAccountIdentity } from '../auth/token-claims.js';
 import { buildCodexAuthorizationUrl, exchangeCodexAuthorizationCode } from '../../../provider-adapters/src/codex/index.js';
 
 export async function runAuthLoginCommand(provider, args = []) {
@@ -137,16 +138,25 @@ async function runLiveExchange({ code, callbackUrl, codeVerifier }) {
     console.log(`  expires_in: ${tokenResponse.expiresIn}`);
     console.log(`  scope: ${tokenResponse.scope ?? '(없음)'}`);
 
-    const suffix = code.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 8) || 'live';
-    const email = `live-${suffix}@codex.openai.com`;
+    // --- account identity: claims 기반 추출 (fallback: code prefix) ---
+    const identity = extractAccountIdentity({
+      idToken: tokenResponse.idToken,
+      accessToken: tokenResponse.accessToken,
+      fallbackCode: code,
+    });
+
+    console.log(`  identity source: ${identity.claimSource}`);
+
     const now = new Date();
     const expiresAt = tokenResponse.expiresIn
       ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
       : null;
 
     const account = createAccount({
-      accountKey: `openai-codex:${email}`,
-      email,
+      accountKey: `openai-codex:${identity.email}`,
+      email: identity.email,
+      displayName: identity.displayName,
+      accountId: identity.accountId,
       authType: 'oauth',
       source: 'agent-store',
       tokens: {
@@ -161,6 +171,7 @@ async function runLiveExchange({ code, callbackUrl, codeVerifier }) {
         scope: tokenResponse.scope ?? null,
         idToken: tokenResponse.idToken ?? null,
         exchangedAt: now.toISOString(),
+        identityClaimSource: identity.claimSource,
         note: 'live token exchange 결과 — observed client_id + S256 PKCE 기반',
       },
     });

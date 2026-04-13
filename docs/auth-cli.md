@@ -44,6 +44,9 @@ ai-usage-agent auth login codex --live-exchange
 - `--live-exchange`: **실험적** — callback에서 수신한 code로 실제 token endpoint에 POST를 시도.
   기본 동작(mock 저장)을 대체하며, 실패 시 mock fallback 없이 에러를 표시.
   주의: PKCE S256이 적용되어 있으나, client_id는 관찰값(observed)이므로 성공이 보장되지 않음.
+  성공 시 account 식별은 id_token → access_token JWT claims에서 추출을 시도하며,
+  claims를 얻을 수 없으면 code prefix 기반 임시값으로 fallback한다.
+  어떤 claim source가 사용되었는지는 저장된 raw의 `identityClaimSource`에 기록된다.
 
 ### 2. list
 

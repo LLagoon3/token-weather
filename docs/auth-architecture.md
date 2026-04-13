@@ -135,9 +135,9 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 - Codex token exchange 함수 구현 (guarded real fetch)
 - `--live-exchange` 경로: 실제 token exchange 및 real token 저장 동작 검증됨 (실험적)
 - agent-store real token 우선으로 usage 조회 연결
+- account 식별: id_token/access_token JWT claims 기반 추출 (email → preferred_username → sub 순, fallback: code prefix)
 
 ### 다음 단계
-- account 식별을 임시 email 대신 `id_token`/claims 기반으로 개선
 - refresh token 재발급 경로 검증
 - `auth list/logout/doctor` 및 `auth import openclaw` 확장
 
