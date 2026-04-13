@@ -53,7 +53,13 @@ ai-usage-agent auth login codex --live-exchange
 ```bash
 ai-usage-agent auth list
 ai-usage-agent auth list openai-codex
+ai-usage-agent auth list claude
 ```
+
+Claude 구현 상태:
+- `auth list claude`는 `~/.claude/.credentials.json` 기준으로 account 표시
+- 수동 CLI 검증 완료 (live network 호출 없음)
+- write/import 경로는 미구현 (다음 단계)
 
 현재 출력 필드:
 - provider
@@ -82,7 +88,12 @@ ai-usage-agent auth logout codex --account choonarm3@gmail.com
 ai-usage-agent doctor
 ai-usage-agent doctor codex
 ai-usage-agent doctor codex --refresh-live
+ai-usage-agent doctor claude
 ```
+
+Claude 구현 상태:
+- `doctor claude`는 `~/.claude/.credentials.json` 기준으로 selectedAccount 표시
+- 수동 CLI 검증 완료 (live network 호출 없음)
 
 점검 항목:
 - auth store 존재 여부
