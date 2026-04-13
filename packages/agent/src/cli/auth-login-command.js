@@ -1,4 +1,4 @@
-import { prepareLocalhostCallback } from '../auth/localhost-callback.js';
+import { prepareLocalhostCallback, startLocalhostCallbackServer } from '../auth/localhost-callback.js';
 import { readManualPasteInput, extractCodeFromPaste } from '../auth/manual-paste.js';
 import { createMockCodexAccountFromManualInput } from '../auth/mock-auth-exchange.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
@@ -39,14 +39,31 @@ export async function runAuthLoginCommand(provider, args = []) {
     return;
   }
 
-  console.log(`콜백 URL 준비됨: ${prepared.params.callbackUrl}`);
-  console.log(`선택된 포트: ${prepared.params.port}`);
+  const { port, callbackUrl, state } = prepared.params;
+
+  console.log(`콜백 URL 준비됨: ${callbackUrl}`);
+  console.log(`선택된 포트: ${port}`);
   console.log('OAuth state/PKCE placeholder 생성 완료');
-  console.log('주의: 실제 브라우저 로그인과 token exchange는 아직 구현되지 않았어.');
-  if (options.noOpen) {
-    console.log('--no-open 옵션이 지정되어 브라우저 자동 실행은 건너뜀');
-  } else {
-    console.log('다음 단계에서 브라우저 자동 실행을 연결할 예정이야.');
+  console.log('');
+  console.log('주의: 이 흐름은 placeholder/mock입니다. 실제 OAuth token exchange는 수행하지 않습니다.');
+  console.log('브라우저 자동 실행은 하지 않습니다. 아래 URL을 직접 열어주세요:');
+  console.log('');
+  console.log(`  ${callbackUrl}?code=PASTE_YOUR_CODE&state=${state}`);
+  console.log('');
+  console.log('콜백 서버가 code/state 수신을 대기 중입니다...');
+
+  try {
+    const result = await startLocalhostCallbackServer({
+      port,
+      expectedState: state,
+      timeoutMs: 120_000,
+    });
+    console.log('');
+    console.log(`code 수신 완료: ${result.code}`);
+    await saveMockAccountFromCallback(result.code);
+  } catch (err) {
+    console.log('');
+    console.log(`콜백 수신 실패: ${err.message}`);
   }
 }
 
@@ -75,6 +92,21 @@ async function runManualPasteFlow() {
   console.log('placeholder/mock 계정을 auth store에 저장했어.');
   console.log(`저장 accountKey: ${account.accountKey}`);
   console.log('이 저장 결과는 실제 OAuth 인증이 아니라 이후 흐름 연결을 위한 임시 구현이야.');
+}
+
+async function saveMockAccountFromCallback(code) {
+  const account = createMockCodexAccountFromManualInput({
+    code,
+    rawInput: `localhost-callback:${code}`,
+  });
+
+  const store = await loadAuthStore();
+  const nextStore = upsertProviderAccount(store, 'openai-codex', account);
+  await saveAuthStore(nextStore);
+
+  console.log('placeholder/mock 계정을 auth store에 저장했어.');
+  console.log(`저장 accountKey: ${account.accountKey}`);
+  console.log('이 저장 결과는 실제 OAuth 인증이 아니라 placeholder/mock 저장이야.');
 }
 
 function parseLoginOptions(args) {

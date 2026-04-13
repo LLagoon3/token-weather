@@ -36,7 +36,7 @@
 - `ai-usage-agent config init`
   - 기본 설정 파일 생성
 - `ai-usage-agent auth login codex`
-  - localhost callback 준비 단계까지 동작
+  - localhost callback 서버가 code/state 수신까지 동작 (placeholder/mock 저장)
 - `ai-usage-agent auth login codex --manual`
   - callback URL/code 입력을 받아 placeholder/mock 계정을 auth store에 저장
   - 아직 실제 OAuth token exchange는 아님

@@ -5,10 +5,13 @@
  * - Callback URL construction
  * - PKCE code_verifier / code_challenge placeholders
  * - OAuth state parameter generation
- * - Callback server lifecycle (not yet wired to real token exchange)
+ * - Localhost callback server that receives code/state from browser redirect
+ *
+ * NOTE: This is still a placeholder/mock flow — no real token exchange occurs.
  */
 
 import { randomBytes } from 'node:crypto';
+import { createServer } from 'node:http';
 import { resolveCallbackPort } from './port-fallback.js';
 
 /**
@@ -67,4 +70,76 @@ export async function prepareLocalhostCallback({ preferredPort = null } = {}) {
     reason: null,
     fallbackExhausted: false,
   };
+}
+
+/**
+ * Start a one-shot HTTP server on 127.0.0.1 that waits for an OAuth callback.
+ *
+ * Resolves with { code, state } on success. Rejects on:
+ * - timeout (default 120 000 ms)
+ * - missing code query parameter
+ * - state mismatch
+ *
+ * The server closes itself after the first valid or invalid /callback request,
+ * or when the timeout fires — whichever comes first.
+ *
+ * @param {object} options
+ * @param {number} options.port
+ * @param {string} options.expectedState
+ * @param {number} [options.timeoutMs=120000]
+ * @returns {Promise<{ code: string, state: string }>}
+ */
+export function startLocalhostCallbackServer({ port, expectedState, timeoutMs = 120_000 }) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let timer;
+
+    const server = createServer((req, res) => {
+      const url = new URL(req.url, `http://127.0.0.1:${port}`);
+
+      if (url.pathname !== '/callback') {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Not found');
+        return;
+      }
+
+      const code = url.searchParams.get('code');
+      const state = url.searchParams.get('state');
+
+      if (!code) {
+        respond(res, 400, '[placeholder/mock] 오류: code 파라미터가 없습니다.');
+        finish(new Error('callback에 code 파라미터가 없습니다.'));
+        return;
+      }
+
+      if (state !== expectedState) {
+        respond(res, 400, '[placeholder/mock] 오류: state 값이 일치하지 않습니다.');
+        finish(new Error('state mismatch — CSRF 검증 실패'));
+        return;
+      }
+
+      respond(res, 200, '[placeholder/mock] code/state 수신 완료. 이 창을 닫아도 됩니다.');
+      finish(null, { code, state });
+    });
+
+    function respond(res, status, body) {
+      res.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(body);
+    }
+
+    function finish(err, result) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      server.close();
+      if (err) reject(err);
+      else resolve(result);
+    }
+
+    timer = setTimeout(() => {
+      finish(new Error(`localhost callback 서버가 ${timeoutMs}ms 내에 응답을 받지 못해 타임아웃되었습니다.`));
+    }, timeoutMs);
+
+    server.listen(port, '127.0.0.1');
+  });
 }
