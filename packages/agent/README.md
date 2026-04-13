@@ -14,6 +14,7 @@
 - account resolver: provider별 기본 계정 자동 선택 및 명시 선택
 - `auth login codex` CLI 골격
 - localhost callback 준비 코드 및 포트 fallback 뼈대
+- manual paste 입력 처리 및 placeholder/mock auth store 저장 흐름
 - Codex provider live usage 조회 결과 출력
 - 공통 snapshot 스키마 기반 출력 흐름
 
@@ -35,7 +36,10 @@
 - `ai-usage-agent config init`
   - 기본 설정 파일 생성
 - `ai-usage-agent auth login codex`
-  - 현재는 localhost callback 준비 단계까지만 동작
+  - localhost callback 준비 단계까지 동작
+- `ai-usage-agent auth login codex --manual`
+  - callback URL/code 입력을 받아 placeholder/mock 계정을 auth store에 저장
+  - 아직 실제 OAuth token exchange는 아님
 
 ## 로컬 개발 실행
 

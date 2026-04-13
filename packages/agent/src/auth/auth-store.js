@@ -41,3 +41,26 @@ export async function saveAuthStore(store) {
 
   await fs.writeFile(filePath, data + '\n', { mode: FILE_MODE });
 }
+
+export function upsertProviderAccount(store, providerId, account) {
+  const nextStore = structuredClone(store);
+
+  if (!nextStore.providers[providerId]) {
+    nextStore.providers[providerId] = { accounts: [] };
+  }
+
+  const accounts = nextStore.providers[providerId].accounts;
+  const index = accounts.findIndex((item) => item.accountKey === account.accountKey);
+
+  if (index >= 0) {
+    accounts[index] = {
+      ...accounts[index],
+      ...account,
+      updatedAt: new Date().toISOString(),
+    };
+  } else {
+    accounts.push(account);
+  }
+
+  return nextStore;
+}

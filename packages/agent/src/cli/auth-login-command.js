@@ -1,4 +1,7 @@
 import { prepareLocalhostCallback } from '../auth/localhost-callback.js';
+import { readManualPasteInput, extractCodeFromPaste } from '../auth/manual-paste.js';
+import { createMockCodexAccountFromManualInput } from '../auth/mock-auth-exchange.js';
+import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 
 export async function runAuthLoginCommand(provider, args = []) {
   if (!provider) {
@@ -19,7 +22,7 @@ export async function runAuthLoginCommand(provider, args = []) {
   }
 
   if (options.manual) {
-    console.log('manual paste 흐름은 아직 골격 단계야. 다음 단계에서 구현될 예정이야.');
+    await runManualPasteFlow();
     return;
   }
 
@@ -45,6 +48,33 @@ export async function runAuthLoginCommand(provider, args = []) {
   } else {
     console.log('다음 단계에서 브라우저 자동 실행을 연결할 예정이야.');
   }
+}
+
+async function runManualPasteFlow() {
+  console.log('ai-usage-agent auth login codex --manual');
+  console.log('-----------------------------------------');
+  console.log('주의: 이 흐름은 아직 실제 OAuth token exchange가 아니라 placeholder/mock 저장이야.');
+
+  const pasteResult = await readManualPasteInput();
+  const extracted = extractCodeFromPaste(pasteResult);
+
+  if (extracted.error || !extracted.code) {
+    console.log(`입력 처리 실패: ${extracted.error ?? 'unknown-error'}`);
+    return;
+  }
+
+  const account = createMockCodexAccountFromManualInput({
+    code: extracted.code,
+    rawInput: pasteResult.value,
+  });
+
+  const store = await loadAuthStore();
+  const nextStore = upsertProviderAccount(store, 'openai-codex', account);
+  await saveAuthStore(nextStore);
+
+  console.log('placeholder/mock 계정을 auth store에 저장했어.');
+  console.log(`저장 accountKey: ${account.accountKey}`);
+  console.log('이 저장 결과는 실제 OAuth 인증이 아니라 이후 흐름 연결을 위한 임시 구현이야.');
 }
 
 function parseLoginOptions(args) {
