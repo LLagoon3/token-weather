@@ -12,12 +12,15 @@ provider별 인증 소스, usage endpoint, 응답 정규화 로직을 모아두�
 - 선택적 `ChatGPT-Account-Id` 헤더 지원
 - 공통 `usage snapshot` 형태로 결과 정규화
 - provider 원본 응답을 `raw` 필드에 보존
+- Codex auth metadata/constants 및 authorization URL generation 골격
 
 ## 현재 구조
 
 ```text
 src/
   codex/
+    codex-auth-constants.js
+    build-codex-authorization-url.js
     read-codex-auth-profiles.js
     fetch-codex-usage.js
     index.js

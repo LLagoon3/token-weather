@@ -2,6 +2,7 @@ import { prepareLocalhostCallback, startLocalhostCallbackServer } from '../auth/
 import { readManualPasteInput, extractCodeFromPaste } from '../auth/manual-paste.js';
 import { createMockCodexAccountFromManualInput } from '../auth/mock-auth-exchange.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
+import { buildCodexAuthorizationUrl } from '../../../provider-adapters/src/codex/index.js';
 
 export async function runAuthLoginCommand(provider, args = []) {
   if (!provider) {
@@ -39,18 +40,27 @@ export async function runAuthLoginCommand(provider, args = []) {
     return;
   }
 
-  const { port, callbackUrl, state } = prepared.params;
+  const { port, callbackUrl, state, codeChallenge, codeChallengeMethod } = prepared.params;
+  const authorizationUrl = buildCodexAuthorizationUrl({
+    callbackUrl,
+    state,
+    codeChallenge,
+    codeChallengeMethod,
+  });
 
   console.log(`콜백 URL 준비됨: ${callbackUrl}`);
   console.log(`선택된 포트: ${port}`);
   console.log('OAuth state/PKCE placeholder 생성 완료');
   console.log('');
-  console.log('주의: 이 흐름은 placeholder/mock입니다. 실제 OAuth token exchange는 수행하지 않습니다.');
-  console.log('브라우저 자동 실행은 하지 않습니다. 아래 URL을 직접 열어주세요:');
+  console.log('주의: 이 흐름은 placeholder/mock입니다.');
+  console.log('- 실제 OAuth token exchange는 수행하지 않습니다.');
+  console.log('- 아래 authorization URL은 placeholder client/endpoints 기반 생성 결과일 수 있습니다.');
+  console.log('- 브라우저 자동 실행은 하지 않습니다.');
   console.log('');
-  console.log(`  ${callbackUrl}?code=PASTE_YOUR_CODE&state=${state}`);
+  console.log('브라우저에서 열 URL:');
+  console.log(`  ${authorizationUrl}`);
   console.log('');
-  console.log('콜백 서버가 code/state 수신을 대기 중입니다...');
+  console.log('로그인 완료 후 localhost callback 서버가 code/state 수신을 대기 중입니다...');
 
   try {
     const result = await startLocalhostCallbackServer({
