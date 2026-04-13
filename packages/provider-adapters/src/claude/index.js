@@ -10,3 +10,7 @@ export { buildImportedClaudeAccount } from './build-imported-account.js';
 export { resolveImportedClaudeAccounts } from './resolve-imported-claude-accounts.js';
 export { selectClaudeAccountsSource } from './select-claude-accounts-source.js';
 export { resolveImportedClaudeSnapshot } from './resolve-imported-claude-snapshot.js';
+export {
+  resolveClaudeUsageSourcePath,
+  resolveClaudeUsageSource,
+} from './resolve-claude-usage-source.js';
