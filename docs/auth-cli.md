@@ -19,10 +19,12 @@ ai-usage-agent auth login codex
 ```
 
 현재 구현 상태:
-- localhost callback 준비 및 callback code/state 수신 골격까지 동작
-- authorization URL generation 골격이 추가됨
-- 브라우저 자동 열기와 실제 token exchange는 아직 미구현
-- `--manual`에서는 placeholder/mock 저장 흐름이 동작
+- authorize → localhost callback → code/state 수신까지 동작 검증됨
+- authorization URL은 OpenClaw observed alignment 기준으로 생성됨
+- 기본 경로는 token exchange 없이 mock 저장으로 끝남
+- `--live-exchange` 옵션으로 실제 token exchange 수행 가능 (동작 검증됨, 실험적)
+- 브라우저 자동 열기는 아직 미구현
+- `--manual`에서는 mock 저장 흐름이 동작
 
 옵션 예시:
 
@@ -123,8 +125,7 @@ ai-usage-agent auth login codex --manual --no-open
 
 현재 출력/동작:
 1. callback URL 전체 또는 code 입력 요청
-2. placeholder/mock 계정을 auth store에 저장
-3. 실제 OAuth 교환은 아직 수행하지 않음
+2. mock 계정을 auth store에 저장 (manual 경로는 token exchange 미수행)
 
 ## 포트 충돌 정책
 

@@ -186,7 +186,7 @@ OpenClaw auth profile 의존을 제거하기 위한 계획 문서를 추가했�
 
 ## 다음 작업
 
-1. placeholder/mock 안내 문구를 현재 동작에 맞게 정리
+1. ~~placeholder/mock 안내 문구를 현재 동작에 맞게 정리~~ (완료)
 2. agent-store 기반 real token으로 usage 조회 연결 점검
 3. account 식별을 임시 email 대신 `id_token`/claims 기반으로 개선
 4. refresh token 재발급 경로 검증

@@ -126,19 +126,19 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 - credential store schema 정의
 - CLI 인터페이스 초안 정의
 
-### 현재까지 반영된 골격
+### 현재까지 구현/검증 완료
 - auth store 저장/조회 로직 구현
 - multi-account resolver 구현
-- `auth login codex` CLI 골격 구현
-- localhost callback 준비 코드 및 포트 fallback 뼈대 구현
-- manual paste fallback의 placeholder/mock 저장 흐름 구현
+- `auth login codex` CLI 기본 경로 (authorize → callback → mock 저장)
+- localhost callback 서버 구현 및 code/state 수신 동작 검증
+- manual paste fallback의 mock 저장 흐름 구현
+- Codex token exchange 함수 구현 (guarded real fetch)
+- `--live-exchange` 경로: 실제 token exchange 및 real token 저장 동작 검증됨 (실험적)
+- agent-store real token 우선으로 usage 조회 연결
 
 ### 다음 단계
-- localhost callback 서버 골격 구현
-- callback code/state 수신 처리
-- placeholder token exchange를 callback 경로와 연결
-- Codex token exchange draft 함수 시그니처와 endpoint/params 정리
-- 이후 실제 provider token exchange로 교체
+- account 식별을 임시 email 대신 `id_token`/claims 기반으로 개선
+- refresh token 재발급 경로 검증
 - `auth list/logout/doctor` 및 `auth import openclaw` 확장
 
 ### 후순위 단계

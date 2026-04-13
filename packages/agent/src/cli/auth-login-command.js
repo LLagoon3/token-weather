@@ -51,11 +51,12 @@ export async function runAuthLoginCommand(provider, args = []) {
 
   console.log(`콜백 URL 준비됨: ${callbackUrl}`);
   console.log(`선택된 포트: ${port}`);
-  console.log('OAuth state/PKCE placeholder 생성 완료');
+  console.log('OAuth state/PKCE 생성 완료 (S256)');
   console.log('');
-  console.log('주의: 이 흐름은 placeholder/mock입니다.');
-  console.log('- 실제 OAuth token exchange는 수행하지 않습니다.');
-  console.log('- 아래 authorization URL은 placeholder client/endpoints 기반 생성 결과일 수 있습니다.');
+  console.log('참고:');
+  console.log('- authorize → callback 경로는 동작 검증됨.');
+  console.log('- 기본 경로는 token exchange를 수행하지 않고 mock 저장으로 끝남.');
+  console.log('- 실제 token exchange가 필요하면 --live-exchange 옵션을 사용.');
   console.log('- 브라우저 자동 실행은 하지 않습니다.');
   console.log('');
   console.log('브라우저에서 열 URL:');
@@ -90,7 +91,7 @@ export async function runAuthLoginCommand(provider, args = []) {
 async function runManualPasteFlow() {
   console.log('ai-usage-agent auth login codex --manual');
   console.log('-----------------------------------------');
-  console.log('주의: 이 흐름은 아직 실제 OAuth token exchange가 아니라 placeholder/mock 저장이야.');
+  console.log('주의: manual 경로는 token exchange 없이 mock 저장만 수행해.');
 
   const pasteResult = await readManualPasteInput();
   const extracted = extractCodeFromPaste(pasteResult);
@@ -197,7 +198,7 @@ async function saveMockAccountFromCallback(code) {
 
   console.log('placeholder/mock 계정을 auth store에 저장했어.');
   console.log(`저장 accountKey: ${account.accountKey}`);
-  console.log('이 저장 결과는 실제 OAuth 인증이 아니라 placeholder/mock 저장이야.');
+  console.log('기본 경로는 token exchange 없이 mock 저장만 수행. 실제 exchange는 --live-exchange 사용.');
 }
 
 function parseLoginOptions(args) {

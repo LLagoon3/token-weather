@@ -14,7 +14,7 @@
 - account resolver: provider별 기본 계정 자동 선택 및 명시 선택
 - `auth login codex` CLI 골격
 - localhost callback 준비 코드 및 포트 fallback 뼈대
-- manual paste 입력 처리 및 placeholder/mock auth store 저장 흐름
+- manual paste 입력 처리 및 mock auth store 저장 흐름 (manual 경로만 mock)
 - Codex provider live usage 조회 결과 출력
 - 공통 snapshot 스키마 기반 출력 흐름
 
@@ -36,12 +36,13 @@
 - `ai-usage-agent config init`
   - 기본 설정 파일 생성
 - `ai-usage-agent auth login codex`
-  - localhost callback 서버가 code/state 수신까지 동작 (placeholder/mock 저장)
+  - authorize → localhost callback → code/state 수신까지 동작 검증됨
+  - 기본 경로는 token exchange 없이 mock 저장으로 끝남
   - authorize URL은 OpenClaw 관찰 기준으로 정렬됨 (observed alignment, 공식 확정 아님)
 - `ai-usage-agent auth login codex --live-exchange`
-  - callback code 수신 후 실제 token endpoint에 POST를 시도 (실험적)
+  - callback code 수신 후 실제 token endpoint에 POST를 수행 (실험적, 동작 검증됨)
   - 성공 시 real token을 auth store에 저장, 실패 시 에러 표시 (mock fallback 없음)
-  - PKCE S256 적용됨, client_id는 observed 값이므로 성공 보장 안 됨
+  - PKCE S256 적용됨, client_id는 observed 값 (공식 확정 아님)
 - `ai-usage-agent auth login codex --manual`
   - callback URL/code 입력을 받아 placeholder/mock 계정을 auth store에 저장
   - 아직 실제 OAuth token exchange는 아님
