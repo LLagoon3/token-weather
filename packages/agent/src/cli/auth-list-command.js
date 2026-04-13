@@ -83,11 +83,12 @@ export function formatClaudeImportEntry(snapshot) {
   const acct = snapshot.selectedAccount;
   const accountKey = acct?.accountKey ?? '(없음)';
   const authType = acct?.authType ?? '(알 수 없음)';
+  const importSource = snapshot.found ? 'claude-cli-import' : 'not-found';
   return [
     `  provider        : claude`,
     `  accountKey      : ${accountKey}`,
     `  authType        : ${authType}`,
-    `  source          : ${snapshot.authSource}`,
+    `  source          : ${importSource}`,
     `  credentialsPath : ${snapshot.credentialsPath}`,
     `  found           : ${snapshot.found}`,
     `  usable          : ${snapshot.parsed}`,
