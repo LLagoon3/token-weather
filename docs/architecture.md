@@ -12,9 +12,17 @@
 
 ### 로컬 에이전트
 - provider별 인증 해석
+- 자체 auth broker
 - 로컬 usage endpoint 호출
 - 이벤트 관측
 - 버퍼링 및 업로드
+
+#### 인증 계층
+- 기본 흐름: localhost callback OAuth
+- fallback: device code
+- fallback: manual callback/code paste
+- 장기적으로 OpenClaw 비의존 auth store 사용
+- migration 용도로만 OpenClaw import 지원 가능
 
 ### 백엔드 API
 - 정규화 이벤트 수집

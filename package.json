@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Integrated dashboard for AI service usage, quota windows, and availability",
+  "packageManager": "npm@11.6.2",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -11,6 +12,10 @@
     "dev": "echo \"TODO: wire dev commands\"",
     "build": "echo \"TODO: wire build commands\"",
     "lint": "echo \"TODO: wire lint commands\"",
-    "test": "echo \"TODO: wire test commands\""
+    "test": "echo \"TODO: wire test commands\"",
+    "agent:status": "node ./packages/agent/bin/ai-usage-agent.js status",
+    "agent:usage": "node ./packages/agent/bin/ai-usage-agent.js usage",
+    "agent:doctor": "node ./packages/agent/bin/ai-usage-agent.js doctor",
+    "agent:config:init": "node ./packages/agent/bin/ai-usage-agent.js config init"
   }
 }

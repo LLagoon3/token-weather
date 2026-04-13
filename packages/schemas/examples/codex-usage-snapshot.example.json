@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "0.1.0",
+  "snapshotId": "codex:openai-codex:choonarm3@gmail.com:2026-04-13T03:00:00.000Z",
+  "capturedAt": "2026-04-13T03:00:00.000Z",
+  "provider": {
+    "id": "openai-codex",
+    "displayName": "Codex"
+  },
+  "account": {
+    "profileId": "openai-codex:choonarm3@gmail.com",
+    "accountId": null,
+    "email": "choonarm3@gmail.com",
+    "plan": "plus"
+  },
+  "source": "provider_usage_endpoint",
+  "authType": "oauth",
+  "confidence": "high",
+  "status": {
+    "bucket": "ok",
+    "ok": true,
+    "httpStatus": 200,
+    "message": null,
+    "lastSuccessAt": "2026-04-13T03:00:00.000Z",
+    "lastFailureAt": null
+  },
+  "usageWindows": [
+    {
+      "kind": "primary",
+      "label": "primary window",
+      "usedPercent": 8,
+      "usedAmount": null,
+      "limitAmount": null,
+      "remainingAmount": null,
+      "windowSeconds": 10800,
+      "resetAt": "2026-04-13T04:08:51.000Z"
+    },
+    {
+      "kind": "secondary",
+      "label": "secondary window",
+      "usedPercent": 46,
+      "usedAmount": null,
+      "limitAmount": null,
+      "remainingAmount": null,
+      "windowSeconds": 604800,
+      "resetAt": "2026-04-17T18:21:03.000Z"
+    }
+  ],
+  "credits": {
+    "balance": null,
+    "unit": null
+  },
+  "raw": null
+}
