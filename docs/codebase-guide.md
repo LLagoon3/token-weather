@@ -223,15 +223,19 @@ Provider spec shape(`LoginProviderSpec`):
 ```js
 {
   id, displayName, storeKey, accountKeyPrefix,
-  callbackPath,           // Codex '/auth/callback', Claude '/callback'
-  providerLabel,          // 브라우저 안내 prefix
-  buildAuthorizationUrl,  // adapter의 build-* 함수 그대로
-  exchangeCode,           // adapter의 exchange-* 함수를 { allowLiveExchange: true }로 감싼 것
-  supportsMockCallback,   // true면 --live-exchange 없을 때 mock 저장
-  saveMockAccount,        // supportsMockCallback=true일 때 필요
+  callbackPath,            // Codex '/auth/callback', Claude '/callback'
+  providerLabel,           // 브라우저 안내 prefix
+  fallbackEmailDomain,     // id_token이 없거나 email/preferred_username이 빠졌을 때 fallback 도메인
+                           //   Codex: 'codex.openai.com', Claude: 'claude.com'
+  buildAuthorizationUrl,   // adapter의 build-* 함수 그대로
+  exchangeCode,            // adapter의 exchange-* 함수를 { allowLiveExchange: true }로 감싼 것
+  supportsMockCallback,    // true면 --live-exchange 없을 때 mock 저장
+  saveMockAccount,         // supportsMockCallback=true일 때 필요
   note, endpointDescription, liveExchangeWarning,  // UX 문구
 }
 ```
+
+`fallbackEmailDomain`을 설정하지 않으면 `extractAccountIdentity`의 기본값(`agent-store.local`)이 쓰인다. provider 도메인이 분명하면 spec에 명시하라 — accountKey suffix(`{accountKeyPrefix}:{sub|email}`)에 그대로 반영된다.
 
 ### 5.2 Option 파싱
 

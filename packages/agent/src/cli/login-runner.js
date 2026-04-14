@@ -17,6 +17,7 @@ import { extractAccountIdentity } from '../auth/token-claims.js';
  * @property {string} callbackPath         - localhost callback 경로 (e.g. '/auth/callback', '/callback')
  * @property {string} providerLabel        - 브라우저 콜백 응답에 표시할 라벨
  * @property {string} [endpointDescription] - live-exchange 안내 문구용 (e.g. 'Claude token endpoint')
+ * @property {string} [fallbackEmailDomain]  - id_token이 없거나 email/preferred_username이 빠졌을 때 fallback에 사용할 도메인
  * @property {(p: { callbackUrl: string, state: string, codeChallenge: string, codeChallengeMethod: string }) => string} buildAuthorizationUrl
  * @property {(p: { code: string, callbackUrl: string, codeVerifier: string, state?: string }) => Promise<object>} exchangeCode
  * @property {boolean} supportsMockCallback - true면 --live-exchange 없이 callback 수신 시 mock 계정 저장
@@ -131,6 +132,7 @@ async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, stat
       idToken: tokenResponse.idToken,
       accessToken: tokenResponse.accessToken,
       fallbackCode: code,
+      fallbackEmailDomain: spec.fallbackEmailDomain,
     });
     console.log(`  identity source: ${identity.claimSource}`);
 

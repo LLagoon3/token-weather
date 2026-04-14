@@ -71,7 +71,12 @@ describe('extractAccountIdentity — id_token email priority', () => {
 
   it('falls back to sub-based email from id_token when no email/preferred_username', () => {
     const idToken = makeJwt({ sub: 'subonly' });
-    const result = extractAccountIdentity({ idToken, accessToken: null, fallbackCode: 'code123' });
+    const result = extractAccountIdentity({
+      idToken,
+      accessToken: null,
+      fallbackCode: 'code123',
+      fallbackEmailDomain: 'codex.openai.com',
+    });
     assert.equal(result.email, 'subonly@codex.openai.com');
     assert.equal(result.claimSource, 'id_token:sub');
   });
@@ -96,7 +101,12 @@ describe('extractAccountIdentity — access_token fallback', () => {
 
 describe('extractAccountIdentity — code-prefix fallback', () => {
   it('uses code-prefix fallback when both tokens are null', () => {
-    const result = extractAccountIdentity({ idToken: null, accessToken: null, fallbackCode: 'abc123XY' });
+    const result = extractAccountIdentity({
+      idToken: null,
+      accessToken: null,
+      fallbackCode: 'abc123XY',
+      fallbackEmailDomain: 'codex.openai.com',
+    });
     assert.equal(result.email, 'live-abc123XY@codex.openai.com');
     assert.equal(result.accountId, null);
     assert.equal(result.displayName, null);
@@ -104,13 +114,57 @@ describe('extractAccountIdentity — code-prefix fallback', () => {
   });
 
   it('uses "live" suffix when fallbackCode is empty string', () => {
-    const result = extractAccountIdentity({ idToken: null, accessToken: null, fallbackCode: '' });
+    const result = extractAccountIdentity({
+      idToken: null,
+      accessToken: null,
+      fallbackCode: '',
+      fallbackEmailDomain: 'codex.openai.com',
+    });
     assert.equal(result.email, 'live-live@codex.openai.com');
     assert.equal(result.claimSource, 'fallback:code-prefix');
   });
 
   it('strips special chars from fallbackCode', () => {
-    const result = extractAccountIdentity({ idToken: null, accessToken: null, fallbackCode: '!!abc@#$' });
+    const result = extractAccountIdentity({
+      idToken: null,
+      accessToken: null,
+      fallbackCode: '!!abc@#$',
+      fallbackEmailDomain: 'codex.openai.com',
+    });
     assert.equal(result.email, 'live-abc@codex.openai.com');
+  });
+
+  it('defaults fallbackEmailDomain to agent-store.local when not provided', () => {
+    const result = extractAccountIdentity({
+      idToken: null,
+      accessToken: null,
+      fallbackCode: 'xyz12345',
+    });
+    assert.equal(result.email, 'live-xyz12345@agent-store.local');
+  });
+
+  it('honors a custom fallbackEmailDomain (Claude case)', () => {
+    const result = extractAccountIdentity({
+      idToken: null,
+      accessToken: null,
+      fallbackCode: 'cabc1234',
+      fallbackEmailDomain: 'claude.com',
+    });
+    assert.equal(result.email, 'live-cabc1234@claude.com');
+  });
+});
+
+describe('extractAccountIdentity — sub-only synthesis honors fallbackEmailDomain', () => {
+  it('builds {sub}@<domain> when only sub is present', () => {
+    // claims with only sub: { sub: 's-only' }
+    // payload: eyJzdWIiOiJzLW9ubHkifQ
+    const idToken = 'header.eyJzdWIiOiJzLW9ubHkifQ.sig';
+    const result = extractAccountIdentity({
+      idToken,
+      accessToken: null,
+      fallbackCode: '',
+      fallbackEmailDomain: 'claude.com',
+    });
+    assert.equal(result.email, 's-only@claude.com');
   });
 });
