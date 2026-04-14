@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { formatClaudeSection } from '../../src/cli/doctor-command.js';
+import { formatClaudeSection, parseDoctorClaudeOptions } from '../../src/cli/doctor-command.js';
 
 // ---------------------------------------------------------------------------
 // formatClaudeSection — pure display helper
@@ -210,5 +210,28 @@ describe('formatClaudeSection', () => {
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('호출 안 함')));
+  });
+});
+
+describe('parseDoctorClaudeOptions', () => {
+  it('returns refreshLive=false by default', () => {
+    assert.deepEqual(parseDoctorClaudeOptions([]), { refreshLive: false });
+  });
+
+  it('sets refreshLive=true when --refresh-live is present', () => {
+    assert.deepEqual(parseDoctorClaudeOptions(['--refresh-live']), {
+      refreshLive: true,
+    });
+  });
+
+  it('handles mixed / unknown args gracefully', () => {
+    assert.deepEqual(parseDoctorClaudeOptions(['--foo', '--refresh-live', 'bar']), {
+      refreshLive: true,
+    });
+  });
+
+  it('handles null/undefined args', () => {
+    assert.deepEqual(parseDoctorClaudeOptions(undefined), { refreshLive: false });
+    assert.deepEqual(parseDoctorClaudeOptions(null), { refreshLive: false });
   });
 });

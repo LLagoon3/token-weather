@@ -4,6 +4,7 @@ import { resolveAccount } from '../auth/account-resolver.js';
 import { refreshCodexToken } from '../../../provider-adapters/src/codex/index.js';
 import { buildClaudeSnapshot } from '../services/status-service.js';
 import { resolveClaudeCredentialsPath } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
+import { refreshClaudeToken } from '../../../provider-adapters/src/claude/refresh-claude-token.js';
 
 /**
  * Pure helper: format Claude credential snapshot as display lines.
@@ -62,7 +63,7 @@ export async function runDoctorCommand(subcommand, args = []) {
   }
 
   if (subcommand === 'claude') {
-    runDoctorClaude();
+    await runDoctorClaude(args);
     return;
   }
 
@@ -80,10 +81,12 @@ export async function runDoctorCommand(subcommand, args = []) {
   console.log('  ai-usage-agent doctor codex                 codex 계정 상태 점검');
   console.log('  ai-usage-agent doctor codex --refresh-live  실제 refresh token 재발급 시도');
   console.log('  ai-usage-agent doctor codex --account <id>  특정 계정 지정');
-  console.log('  ai-usage-agent doctor claude                claude credential 상태 점검');
+  console.log('  ai-usage-agent doctor claude                  claude credential 상태 점검');
+  console.log('  ai-usage-agent doctor claude --refresh-live   Claude OAuth refresh token으로 실제 재발급 시도');
 }
 
-function runDoctorClaude() {
+async function runDoctorClaude(args = []) {
+  const options = parseDoctorClaudeOptions(args);
   const snapshot = buildClaudeSnapshot(resolveClaudeCredentialsPath());
   console.log('ai-usage-agent doctor claude');
   console.log('----------------------------');
@@ -95,7 +98,61 @@ function runDoctorClaude() {
     console.log('⚠ Claude credential을 찾지 못했습니다.');
     console.log(`  예상 경로: ${snapshot.credentialsPath}`);
     console.log('  Claude CLI로 먼저 로그인했는지 확인하세요.');
+    return;
   }
+
+  if (!options.refreshLive) return;
+  await runDoctorClaudeRefreshLive(snapshot);
+}
+
+/**
+ * 관찰값 기반 Claude OAuth token endpoint로 refresh POST를 시도한다.
+ * agent-store 연결은 Phase 3에서 claude login이 붙은 뒤 붙인다 — 이번 라운드는
+ * claude-cli-import credential의 refreshToken으로 호출 결과만 확인한다.
+ * Exported for testing via named import of refreshClaudeToken.
+ */
+async function runDoctorClaudeRefreshLive(snapshot) {
+  const account = snapshot.selectedAccount;
+  const refreshToken = account?.refreshToken ?? account?.tokens?.refreshToken ?? null;
+
+  console.log('');
+  console.log('⚠ --refresh-live: 실제 token endpoint에 refresh POST를 시도합니다.');
+  console.log('  주의: client_id는 Claude Code 바이너리 관찰값 기반이며 성공이 보장되지 않습니다.');
+
+  if (!refreshToken) {
+    console.log('');
+    console.log('selectedAccount에서 refreshToken을 찾을 수 없습니다.');
+    console.log('Claude CLI에서 최신 로그인 상태인지 확인하세요.');
+    return;
+  }
+
+  try {
+    const tokenResponse = await refreshClaudeToken({
+      refreshToken,
+      allowLiveExchange: true,
+    });
+    console.log('');
+    console.log('✓ refresh 성공');
+    console.log(`  token_type: ${tokenResponse.tokenType}`);
+    console.log(`  expires_in: ${tokenResponse.expiresIn}`);
+    console.log(`  scope: ${tokenResponse.scope ?? '(없음)'}`);
+    console.log(
+      `  refreshToken 변경: ${tokenResponse.refreshToken !== refreshToken ? '예 (rotation)' : '아니오 (기존 유지)'}`,
+    );
+    console.log('');
+    console.log('ℹ 현재는 결과만 표시합니다. Claude agent-store 연결은 Phase 3에서 붙입니다.');
+  } catch (err) {
+    console.log('');
+    console.log(`❌ refresh 실패: ${err.message}`);
+  }
+}
+
+export function parseDoctorClaudeOptions(args) {
+  const options = { refreshLive: false };
+  for (const arg of args ?? []) {
+    if (arg === '--refresh-live') options.refreshLive = true;
+  }
+  return options;
 }
 
 async function runDoctorCodex(args) {
