@@ -88,6 +88,7 @@ async function runCodexLogin(args) {
       port,
       expectedState: state,
       timeoutMs: options.timeoutMs,
+      providerLabel: 'Codex',
     });
     console.log('');
     console.log(`code 수신 완료: ${result.code}`);
@@ -328,6 +329,7 @@ async function runClaudeLogin(args) {
       expectedState: state,
       timeoutMs: options.timeoutMs,
       callbackPath: CLAUDE_CALLBACK_PATH,
+      providerLabel: 'Claude',
     });
     console.log('');
     console.log(`code 수신 완료: ${result.code}`);
