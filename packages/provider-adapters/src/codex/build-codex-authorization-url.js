@@ -1,25 +1,23 @@
+import { CODEX_AUTH } from './codex-auth-constants.js';
+import { buildOAuthAuthorizationUrl } from '../shared/oauth-authorization-url.js';
+
 /**
  * Build the Codex (OpenAI) OAuth authorization URL.
  *
- * This generates the URL that the user should open in a browser to start the
- * OAuth authorization code flow. It does NOT perform any HTTP calls.
+ * 브라우저에서 열 URL만 조립한다 — HTTP 호출 없음.
  *
- * NOTE: The generated URL uses verified auth.openai.com endpoints and an
- * observed client_id candidate from the local Codex CLI token payload.
- * The client_id is still not officially confirmed, so success is not guaranteed.
+ * client_id는 로컬 Codex CLI JWT payload에서 관찰한 값이 기본이며, 공식 확정된
+ * 값이 아니라는 점에 유의.
  *
  * @param {object} params
- * @param {string} params.callbackUrl - The localhost redirect_uri
- * @param {string} params.state - OAuth state parameter for CSRF protection
- * @param {string} params.codeChallenge - PKCE code_challenge value
- * @param {string} params.codeChallengeMethod - PKCE method ('plain' or 'S256')
- * @param {string} [params.clientId] - Override client ID (default: observed candidate)
- * @param {string[]} [params.scopes] - Override scopes (default: CODEX_AUTH.defaultScopes)
- * @returns {string} The full authorization URL with query parameters
+ * @param {string} params.callbackUrl
+ * @param {string} params.state
+ * @param {string} params.codeChallenge
+ * @param {string} params.codeChallengeMethod  - 'S256' 권장
+ * @param {string} [params.clientId]           - 기본: CODEX_AUTH.observedClientId
+ * @param {string[]} [params.scopes]           - 기본: CODEX_AUTH.defaultScopes
+ * @returns {string}
  */
-
-import { CODEX_AUTH } from './codex-auth-constants.js';
-
 export function buildCodexAuthorizationUrl({
   callbackUrl,
   state,
@@ -28,21 +26,18 @@ export function buildCodexAuthorizationUrl({
   clientId = CODEX_AUTH.observedClientId,
   scopes = CODEX_AUTH.defaultScopes,
 }) {
-  const url = new URL(CODEX_AUTH.authorizationEndpoint);
-
-  url.searchParams.set('response_type', CODEX_AUTH.responseType);
-  url.searchParams.set('client_id', clientId);
-  url.searchParams.set('redirect_uri', callbackUrl);
-  url.searchParams.set('state', state);
-  url.searchParams.set('scope', scopes.join(' '));
-  url.searchParams.set('code_challenge', codeChallenge);
-  url.searchParams.set('code_challenge_method', codeChallengeMethod);
-
-  // Extra params observed in OpenClaw's authorize URL (not OAuth spec)
-  const extra = CODEX_AUTH.extraAuthorizeParams ?? {};
-  for (const [key, value] of Object.entries(extra)) {
-    url.searchParams.set(key, value);
-  }
-
-  return url.toString();
+  return buildOAuthAuthorizationUrl({
+    endpoint: CODEX_AUTH.authorizationEndpoint,
+    params: {
+      response_type: CODEX_AUTH.responseType,
+      client_id: clientId,
+      redirect_uri: callbackUrl,
+      state,
+      scope: scopes.join(' '),
+      code_challenge: codeChallenge,
+      code_challenge_method: codeChallengeMethod,
+      // OpenClaw observed extras (OAuth spec 외)
+      ...(CODEX_AUTH.extraAuthorizeParams ?? {}),
+    },
+  });
 }
