@@ -129,7 +129,7 @@ async function runManualPasteFlow() {
   const nextStore = upsertProviderAccount(store, 'openai-codex', account);
   await saveAuthStore(nextStore);
 
-  console.log('placeholder/mock 계정을 auth store에 저장했어.');
+  console.log('mock 계정을 auth store에 저장했어.');
   console.log(`저장 accountKey: ${account.accountKey}`);
   console.log('이 저장 결과는 실제 OAuth 인증이 아니라 이후 흐름 연결을 위한 임시 구현이야.');
 }
@@ -228,7 +228,7 @@ async function saveMockAccountFromCallback(code) {
   const nextStore = upsertProviderAccount(store, 'openai-codex', account);
   await saveAuthStore(nextStore);
 
-  console.log('placeholder/mock 계정을 auth store에 저장했어.');
+  console.log('mock 계정을 auth store에 저장했어.');
   console.log(`저장 accountKey: ${account.accountKey}`);
   console.log('기본 경로는 token exchange 없이 mock 저장만 수행. 실제 exchange는 --live-exchange 사용.');
 }

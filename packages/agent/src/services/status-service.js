@@ -31,7 +31,7 @@ export async function getStatusSnapshot() {
   };
 }
 
-async function getClaudeSnapshot(config) {
+export async function getClaudeSnapshot(config = { providers: { claude: { enabled: true } } }) {
   const agentClaudeAccounts = await loadAgentStoreClaudeAccounts();
   const base = buildClaudeSnapshot(
     resolveClaudeCredentialsPath(),

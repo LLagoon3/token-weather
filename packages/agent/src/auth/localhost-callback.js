@@ -1,13 +1,14 @@
 /**
- * Localhost callback preparation for OAuth login flow.
+ * Localhost callback support for OAuth login flow.
  *
- * This module provides the scaffolding for:
- * - Callback URL construction
- * - PKCE S256 code_verifier / code_challenge generation
- * - OAuth state parameter generation
- * - Localhost callback server that receives code/state from browser redirect
+ * Codex / Claude 양쪽 auth login 플로우에서 공유하는 헬퍼 모음:
+ *   - PKCE S256 code_verifier / code_challenge 생성
+ *   - OAuth state 파라미터 생성
+ *   - 콜백 URL 조립 (provider별 path 차이를 callbackPath 인자로 흡수)
+ *   - 일회용 localhost 콜백 서버 (code/state 수신 + state 검증 + timeout)
  *
- * NOTE: This is still a placeholder/mock flow — no real token exchange occurs.
+ * 실제 token 교환은 호출자가 별도로 수행한다. 본 모듈은 transport 계층만
+ * 책임진다.
  */
 
 import { randomBytes, createHash } from 'node:crypto';
@@ -118,18 +119,18 @@ export function startLocalhostCallbackServer({
       const state = url.searchParams.get('state');
 
       if (!code) {
-        respond(res, 400, '[placeholder/mock] 오류: code 파라미터가 없습니다.');
+        respond(res, 400, '오류: code 파라미터가 없습니다.');
         finish(new Error('callback에 code 파라미터가 없습니다.'));
         return;
       }
 
       if (state !== expectedState) {
-        respond(res, 400, '[placeholder/mock] 오류: state 값이 일치하지 않습니다.');
+        respond(res, 400, '오류: state 값이 일치하지 않습니다.');
         finish(new Error('state mismatch — CSRF 검증 실패'));
         return;
       }
 
-      respond(res, 200, '[placeholder/mock] code/state 수신 완료. 이 창을 닫아도 됩니다.');
+      respond(res, 200, 'code/state 수신 완료. 이 창을 닫아도 됩니다.');
       finish(null, { code, state });
     });
 

@@ -2,7 +2,7 @@ import { resolveAgentConfigPath } from '../config/config-path.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveAccount } from '../auth/account-resolver.js';
 import { refreshCodexToken } from '../../../provider-adapters/src/codex/index.js';
-import { buildClaudeSnapshot } from '../services/status-service.js';
+import { buildClaudeSnapshot, getClaudeSnapshot } from '../services/status-service.js';
 import { resolveClaudeCredentialsPath } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
 import { refreshClaudeToken } from '../../../provider-adapters/src/claude/refresh-claude-token.js';
 
@@ -67,7 +67,7 @@ export async function runDoctorCommand(subcommand, args = []) {
     return;
   }
 
-  const claudeSnapshot = buildClaudeSnapshot(resolveClaudeCredentialsPath());
+  const claudeSnapshot = await getClaudeSnapshot();
 
   console.log('ai-usage-agent doctor');
   console.log('---------------------');
@@ -87,7 +87,7 @@ export async function runDoctorCommand(subcommand, args = []) {
 
 async function runDoctorClaude(args = []) {
   const options = parseDoctorClaudeOptions(args);
-  const snapshot = buildClaudeSnapshot(resolveClaudeCredentialsPath());
+  const snapshot = await getClaudeSnapshot();
   console.log('ai-usage-agent doctor claude');
   console.log('----------------------------');
   for (const line of formatClaudeSection(snapshot)) {
