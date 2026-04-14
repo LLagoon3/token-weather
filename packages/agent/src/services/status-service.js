@@ -8,6 +8,7 @@ import { resolveClaudeAccount } from '../auth/resolve-claude-account.js';
 import { resolveClaudeUsageSourcePath } from '../../../provider-adapters/src/claude/resolve-claude-usage-source.js';
 import { readClaudeStatsCache } from '../../../provider-adapters/src/claude/read-claude-stats-cache.js';
 import { fetchClaudeUsage } from '../../../provider-adapters/src/claude/fetch-claude-usage.js';
+import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveDefaultAccount } from '../auth/account-resolver.js';
@@ -31,10 +32,11 @@ export async function getStatusSnapshot() {
 }
 
 async function getClaudeSnapshot(config) {
+  const agentClaudeAccounts = await loadAgentStoreClaudeAccounts();
   const base = buildClaudeSnapshot(
     resolveClaudeCredentialsPath(),
     readClaudeCredentials,
-    [],
+    agentClaudeAccounts,
     resolveClaudeUsageSourcePath(),
   );
 
@@ -77,6 +79,38 @@ export function resolveClaudeProfileFromSnapshot(snapshot) {
     accountId: account.accountId ?? null,
     email: account.email ?? null,
   };
+}
+
+/**
+ * agent-store(`auth.json`)에 저장된 Claude 계정 중 live token을 가진 것만
+ * resolveClaudeAccount가 받을 수 있는 모양으로 변환한다.
+ */
+async function loadAgentStoreClaudeAccounts() {
+  let store;
+  try {
+    store = await loadAuthStore();
+  } catch {
+    return [];
+  }
+
+  const provider = store.providers?.[CLAUDE_AUTH.storeProvider];
+  if (!provider?.accounts?.length) return [];
+
+  return provider.accounts
+    .filter((a) => {
+      if (a.status === 'disabled') return false;
+      if (a.raw?.mock === true) return false;
+      const accessToken = a.tokens?.accessToken ?? a.accessToken ?? null;
+      if (!accessToken) return false;
+      // 기존 import 계정(`claude-cli-import`)은 base snapshot이 별도로 처리하므로 제외
+      if (a.source === 'claude-cli-import') return false;
+      return true;
+    })
+    .map((a) => ({
+      ...a,
+      provider: a.provider ?? 'claude',
+      source: a.source ?? 'agent-store',
+    }));
 }
 
 function createClaudeNetworkFailureSnapshot(profile, error) {

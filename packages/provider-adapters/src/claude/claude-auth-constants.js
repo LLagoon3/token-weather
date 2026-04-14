@@ -32,8 +32,15 @@ export const CLAUDE_AUTH = {
   /** Success page URL observed after localhost callback */
   successUrl: 'https://platform.claude.com/oauth/code/success?app=claude-code',
 
-  /** Provider identifier used in agent auth store */
+  /** snapshot.provider.id 와 fetchClaudeUsage가 표시하는 provider id */
   provider: 'anthropic-claude',
+
+  /**
+   * agent-store(`auth.json`)의 providers 키.
+   * 기존 import 경로(`auth import claude`)가 'claude' 키에 저장하므로
+   * live 로그인도 같은 키에 저장해 한 곳에서 관리한다.
+   */
+  storeProvider: 'claude',
 
   /**
    * Observed claude-code production client_id.

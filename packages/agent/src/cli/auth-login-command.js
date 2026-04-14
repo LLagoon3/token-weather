@@ -410,7 +410,7 @@ async function runClaudeLiveExchange({ code, callbackUrl, codeVerifier, state })
     account.expiresAt = expiresAt;
 
     const store = await loadAuthStore();
-    const nextStore = upsertProviderAccount(store, CLAUDE_AUTH.provider, account);
+    const nextStore = upsertProviderAccount(store, CLAUDE_AUTH.storeProvider, account);
     await saveAuthStore(nextStore);
 
     console.log('');
