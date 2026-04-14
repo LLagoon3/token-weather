@@ -5,6 +5,8 @@ import { fetchCodexUsage, getDefaultAuthProfilesPath, readCodexAuthProfiles } fr
 import { resolveClaudeCredentialsPath, readClaudeCredentials } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
 import { resolveImportedClaudeSnapshot } from '../../../provider-adapters/src/claude/resolve-imported-claude-snapshot.js';
 import { resolveClaudeAccount } from '../auth/resolve-claude-account.js';
+import { resolveClaudeUsageSourcePath } from '../../../provider-adapters/src/claude/resolve-claude-usage-source.js';
+import { readClaudeStatsCache } from '../../../provider-adapters/src/claude/read-claude-stats-cache.js';
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveDefaultAccount } from '../auth/account-resolver.js';
@@ -15,7 +17,7 @@ export async function getStatusSnapshot() {
   const configPath = resolveAgentConfigPath();
   const config = loadConfig(configPath);
   const codex = await getCodexSnapshot(config);
-  const claude = buildClaudeSnapshot(resolveClaudeCredentialsPath());
+  const claude = buildClaudeSnapshot(resolveClaudeCredentialsPath(), readClaudeCredentials, [], resolveClaudeUsageSourcePath());
 
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -51,12 +53,20 @@ export function selectClaudeAuthSource(agentAccounts, importedCredential) {
  * readFn is injectable so tests don't touch the filesystem.
  * agentClaudeAccounts is the list of Claude accounts from the agent-store
  * (currently always empty until Claude login is implemented).
+ * usageSourcePath is the path to stats-cache.json (injectable for tests).
  */
-export function buildClaudeSnapshot(credentialsPath, readFn = readClaudeCredentials, agentClaudeAccounts = []) {
+export function buildClaudeSnapshot(
+  credentialsPath,
+  readFn = readClaudeCredentials,
+  agentClaudeAccounts = [],
+  usageSourcePath = resolveClaudeUsageSourcePath(),
+  readStatsCacheFn = readClaudeStatsCache,
+) {
   const credentials = readFn(credentialsPath);
   const found = credentials !== null;
   const imported = resolveImportedClaudeSnapshot(credentials);
   const { account: selectedAccount, authSource } = resolveClaudeAccount(agentClaudeAccounts, imported.accounts);
+  const statsCache = readStatsCacheFn(usageSourcePath);
   return {
     detected: found || agentClaudeAccounts.length > 0,
     authSource,
@@ -65,6 +75,15 @@ export function buildClaudeSnapshot(credentialsPath, readFn = readClaudeCredenti
     parsed: found,
     selectedAccount,
     importedAccount: selectedAccount, // backward-compat alias — prefer selectedAccount
+    usage: statsCache
+      ? {
+          source: 'stats-cache-json',
+          totalSessions: statsCache.totalSessions,
+          totalMessages: statsCache.totalMessages,
+          hasModelUsage: statsCache.hasModelUsage,
+          hasDailyModelTokens: statsCache.hasDailyModelTokens,
+        }
+      : { source: 'not-found' },
   };
 }
 

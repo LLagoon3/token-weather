@@ -209,4 +209,26 @@ describe('buildClaudeSnapshot', () => {
     assert.equal(result.selectedAccount?.accountKey, 'claude:alice');
     assert.equal(result.importedAccount?.accountKey, 'claude:alice'); // alias check
   });
+
+  it('includes usage from stats-cache when available', () => {
+    const fakeStatsCache = {
+      version: 3,
+      totalSessions: 10,
+      totalMessages: 200,
+      hasModelUsage: true,
+      hasDailyModelTokens: false,
+      raw: {},
+    };
+    const result = buildClaudeSnapshot(FAKE_PATH, () => null, [], '/fake/stats-cache.json', () => fakeStatsCache);
+    assert.equal(result.usage.source, 'stats-cache-json');
+    assert.equal(result.usage.totalSessions, 10);
+    assert.equal(result.usage.totalMessages, 200);
+    assert.equal(result.usage.hasModelUsage, true);
+    assert.equal(result.usage.hasDailyModelTokens, false);
+  });
+
+  it('includes usage.source=not-found when stats-cache is unavailable', () => {
+    const result = buildClaudeSnapshot(FAKE_PATH, () => null, [], '/fake/stats-cache.json', () => null);
+    assert.equal(result.usage.source, 'not-found');
+  });
 });
