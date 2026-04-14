@@ -15,3 +15,4 @@ export {
   resolveClaudeUsageSource,
 } from './resolve-claude-usage-source.js';
 export { parseClaudeStatsCache } from './parse-claude-stats-cache.js';
+export { readClaudeStatsCache } from './read-claude-stats-cache.js';
