@@ -60,13 +60,34 @@ async function getCodexSnapshot(config) {
 async function resolveCodexProfiles() {
   // 1. Try agent-store first
   const agentProfiles = await getAgentStoreProfiles();
+
+  // 2. Fallback: OpenClaw auth-profiles.json
+  const openclawProfiles = agentProfiles.length === 0 ? readCodexAuthProfiles() : [];
+  return selectCodexAuthSource(agentProfiles, openclawProfiles);
+}
+
+/**
+ * Exported for testing: given pre-resolved profile lists, return the active
+ * source and its profiles. No I/O — pure selection logic.
+ */
+export function selectCodexAuthSource(agentProfiles, openclawProfiles) {
   if (agentProfiles.length > 0) {
     return { profiles: agentProfiles, authSource: 'agent-store' };
   }
-
-  // 2. Fallback: OpenClaw auth-profiles.json
-  const openclawProfiles = readCodexAuthProfiles();
   return { profiles: openclawProfiles, authSource: 'openclaw-import' };
+}
+
+/**
+ * Exported for testing: filter an accounts array down to real (non-mock) active
+ * accounts. No I/O — pure predicate logic.
+ */
+export function filterRealCodexAccounts(accounts) {
+  return (accounts ?? []).filter(
+    (a) => a.status !== 'disabled'
+      && a.tokens?.accessToken
+      && !a.raw?.mock
+      && !a.tokens.accessToken.startsWith('mock-')
+  );
 }
 
 /**
@@ -87,12 +108,7 @@ async function getAgentStoreProfiles() {
   }
 
   // Filter: active accounts with real tokens (exclude mock accounts)
-  const realAccounts = providerData.accounts.filter(
-    (a) => a.status !== 'disabled'
-      && a.tokens?.accessToken
-      && !a.raw?.mock
-      && !a.tokens.accessToken.startsWith('mock-')
-  );
+  const realAccounts = filterRealCodexAccounts(providerData.accounts);
 
   if (realAccounts.length === 0) {
     return [];
