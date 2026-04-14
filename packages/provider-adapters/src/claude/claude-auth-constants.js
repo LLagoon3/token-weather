@@ -9,8 +9,19 @@
  */
 
 export const CLAUDE_AUTH = {
-  /** OAuth authorization endpoint — observed (production claude-code client) */
-  authorizationEndpoint: 'https://platform.claude.com/oauth/authorize',
+  /**
+   * OAuth authorization endpoint — Claude.ai login flow (observed).
+   *
+   * Claude Code 바이너리에는 두 종류의 authorize URL이 있다:
+   *   - CONSOLE_AUTHORIZE_URL = https://platform.claude.com/oauth/authorize
+   *     → API key 발급용 (org:create_api_key 동의 화면)
+   *   - CLAUDE_AI_AUTHORIZE_URL = https://claude.com/cai/oauth/authorize
+   *     → claude.ai 사용자 OAuth (~/.claude/.credentials.json에 들어가는 토큰 발급)
+   *
+   * usage endpoint (api.anthropic.com/api/oauth/usage)는 후자의 토큰을 받으므로
+   * 우리는 claude.ai 경로를 사용한다.
+   */
+  authorizationEndpoint: 'https://claude.com/cai/oauth/authorize',
 
   /** OAuth token endpoint — observed, used for both code exchange and refresh */
   tokenEndpoint: 'https://platform.claude.com/v1/oauth/token',
