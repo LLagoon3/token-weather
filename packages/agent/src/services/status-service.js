@@ -7,6 +7,7 @@ import { resolveImportedClaudeSnapshot } from '../../../provider-adapters/src/cl
 import { resolveClaudeAccount } from '../auth/resolve-claude-account.js';
 import { resolveClaudeUsageSourcePath } from '../../../provider-adapters/src/claude/resolve-claude-usage-source.js';
 import { readClaudeStatsCache } from '../../../provider-adapters/src/claude/read-claude-stats-cache.js';
+import { fetchClaudeUsage } from '../../../provider-adapters/src/claude/fetch-claude-usage.js';
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveDefaultAccount } from '../auth/account-resolver.js';
@@ -17,7 +18,7 @@ export async function getStatusSnapshot() {
   const configPath = resolveAgentConfigPath();
   const config = loadConfig(configPath);
   const codex = await getCodexSnapshot(config);
-  const claude = buildClaudeSnapshot(resolveClaudeCredentialsPath(), readClaudeCredentials, [], resolveClaudeUsageSourcePath());
+  const claude = await getClaudeSnapshot(config);
 
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -26,6 +27,90 @@ export async function getStatusSnapshot() {
     sync: config.sync,
     codex,
     claude,
+  };
+}
+
+async function getClaudeSnapshot(config) {
+  const base = buildClaudeSnapshot(
+    resolveClaudeCredentialsPath(),
+    readClaudeCredentials,
+    [],
+    resolveClaudeUsageSourcePath(),
+  );
+
+  if (!config.providers?.claude?.enabled) {
+    return { ...base, networkUsage: null };
+  }
+
+  const profile = resolveClaudeProfileFromSnapshot(base);
+  if (!profile) {
+    return { ...base, networkUsage: null };
+  }
+
+  try {
+    const networkUsage = await fetchClaudeUsage(profile);
+    return { ...base, networkUsage };
+  } catch (error) {
+    return {
+      ...base,
+      networkUsage: createClaudeNetworkFailureSnapshot(profile, error),
+    };
+  }
+}
+
+/**
+ * Extract fetchClaudeUsage-compatible profile from a Claude snapshot's
+ * selectedAccount. Handles both claude-cli-import (top-level accessToken) and
+ * agent-store (tokens.accessToken) shapes.
+ * Exported for testing.
+ */
+export function resolveClaudeProfileFromSnapshot(snapshot) {
+  const account = snapshot?.selectedAccount;
+  if (!account) return null;
+
+  const accessToken = account.accessToken ?? account.tokens?.accessToken ?? null;
+  if (!accessToken) return null;
+
+  return {
+    id: account.accountKey ?? 'claude',
+    accessToken,
+    accountId: account.accountId ?? null,
+    email: account.email ?? null,
+  };
+}
+
+function createClaudeNetworkFailureSnapshot(profile, error) {
+  const capturedAt = new Date().toISOString();
+  const message = error instanceof Error ? error.message : String(error);
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    snapshotId: `claude:${profile.id}:${capturedAt}`,
+    capturedAt,
+    provider: {
+      id: 'anthropic-claude',
+      displayName: 'Claude',
+      region: null,
+    },
+    account: {
+      profileId: profile.id,
+      accountId: profile.accountId ?? null,
+      email: profile.email ?? null,
+      plan: null,
+    },
+    source: 'provider_usage_endpoint',
+    authType: 'oauth',
+    confidence: 'low',
+    status: {
+      bucket: 'unknown',
+      ok: false,
+      httpStatus: null,
+      message,
+      lastSuccessAt: null,
+      lastFailureAt: capturedAt,
+    },
+    usageWindows: [],
+    credits: { balance: null, unit: null },
+    raw: { provider: 'anthropic-claude', rawError: message },
   };
 }
 
