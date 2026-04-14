@@ -32,7 +32,23 @@
 - 구조: `{ claudeAiOauth: { accessToken, refreshToken, expiresAt, scopes, subscriptionType, rateLimitTier } }`
 - 상태: **local credential reuse 검증 완료**
 - `auth import claude`로 agent-store에 저장 가능
-- 독립 OAuth 재구현은 미완료 (후순위)
+
+### OAuth endpoints (observed)
+
+Claude Code 바이너리(`~/.local/share/claude/versions/<v>`) strings에서 관찰한 값.
+공식 문서 기재 없음 — observed 레벨.
+
+- authorize: `https://platform.claude.com/oauth/authorize`
+- token:     `https://platform.claude.com/v1/oauth/token`
+- manual redirect: `https://platform.claude.com/oauth/code/callback`
+- success page: `https://platform.claude.com/oauth/code/success?app=claude-code`
+- client_id: `9d1c250a-e61b-44d9-88ed-5944d1962f5e` (production claude-code)
+
+### refresh token
+
+- `refreshClaudeToken` 구현 (Codex와 동일한 guard 패턴)
+- `doctor claude --refresh-live`로 수동 검증 가능
+- store 반영은 Phase 3 claude login 이후 연결
 
 ### usage (로컬 stats-cache)
 

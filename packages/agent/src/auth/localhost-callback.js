@@ -1,13 +1,14 @@
 /**
- * Localhost callback preparation for OAuth login flow.
+ * Localhost callback support for OAuth login flow.
  *
- * This module provides the scaffolding for:
- * - Callback URL construction
- * - PKCE S256 code_verifier / code_challenge generation
- * - OAuth state parameter generation
- * - Localhost callback server that receives code/state from browser redirect
+ * Codex / Claude 양쪽 auth login 플로우에서 공유하는 헬퍼 모음:
+ *   - PKCE S256 code_verifier / code_challenge 생성
+ *   - OAuth state 파라미터 생성
+ *   - 콜백 URL 조립 (provider별 path 차이를 callbackPath 인자로 흡수)
+ *   - 일회용 localhost 콜백 서버 (code/state 수신 + state 검증 + timeout)
  *
- * NOTE: This is still a placeholder/mock flow — no real token exchange occurs.
+ * 실제 token 교환은 호출자가 별도로 수행한다. 본 모듈은 transport 계층만
+ * 책임진다.
  */
 
 import { randomBytes, createHash } from 'node:crypto';
@@ -38,9 +39,12 @@ export function generatePkce(bytes = 32) {
 
 /**
  * Build the localhost callback URL for a given port.
+ * @param {number} port
+ * @param {string} [path='/auth/callback'] - Callback path (provider-specific).
+ *   Codex는 `/auth/callback`, Claude는 `/callback`을 기본으로 사용한다.
  */
-export function buildCallbackUrl(port) {
-  return `http://localhost:${port}/auth/callback`;
+export function buildCallbackUrl(port, path = '/auth/callback') {
+  return `http://localhost:${port}${path}`;
 }
 
 /**
@@ -50,7 +54,10 @@ export function buildCallbackUrl(port) {
  * @param {number|null} options.preferredPort - --port flag value (null = auto)
  * @returns {Promise<{ ready: boolean, params: object|null, reason: string|null }>}
  */
-export async function prepareLocalhostCallback({ preferredPort = null } = {}) {
+export async function prepareLocalhostCallback({
+  preferredPort = null,
+  callbackPath = '/auth/callback',
+} = {}) {
   const { port, fallbackExhausted } = await resolveCallbackPort({ preferredPort });
 
   if (port == null) {
@@ -62,11 +69,11 @@ export async function prepareLocalhostCallback({ preferredPort = null } = {}) {
 
   const state = generateState();
   const pkce = generatePkce();
-  const callbackUrl = buildCallbackUrl(port);
+  const callbackUrl = buildCallbackUrl(port, callbackPath);
 
   return {
     ready: true,
-    params: { port, callbackUrl, state, ...pkce },
+    params: { port, callbackUrl, callbackPath, state, ...pkce },
     reason: null,
     fallbackExhausted: false,
   };
@@ -89,7 +96,12 @@ export async function prepareLocalhostCallback({ preferredPort = null } = {}) {
  * @param {number} [options.timeoutMs=120000]
  * @returns {Promise<{ code: string, state: string }>}
  */
-export function startLocalhostCallbackServer({ port, expectedState, timeoutMs = 120_000 }) {
+export function startLocalhostCallbackServer({
+  port,
+  expectedState,
+  timeoutMs = 120_000,
+  callbackPath = '/auth/callback',
+}) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let timer;
@@ -97,7 +109,7 @@ export function startLocalhostCallbackServer({ port, expectedState, timeoutMs = 
     const server = createServer((req, res) => {
       const url = new URL(req.url, `http://127.0.0.1:${port}`);
 
-      if (url.pathname !== '/auth/callback') {
+      if (url.pathname !== callbackPath) {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('Not found');
         return;
@@ -107,18 +119,18 @@ export function startLocalhostCallbackServer({ port, expectedState, timeoutMs = 
       const state = url.searchParams.get('state');
 
       if (!code) {
-        respond(res, 400, '[placeholder/mock] 오류: code 파라미터가 없습니다.');
+        respond(res, 400, '오류: code 파라미터가 없습니다.');
         finish(new Error('callback에 code 파라미터가 없습니다.'));
         return;
       }
 
       if (state !== expectedState) {
-        respond(res, 400, '[placeholder/mock] 오류: state 값이 일치하지 않습니다.');
+        respond(res, 400, '오류: state 값이 일치하지 않습니다.');
         finish(new Error('state mismatch — CSRF 검증 실패'));
         return;
       }
 
-      respond(res, 200, '[placeholder/mock] code/state 수신 완료. 이 창을 닫아도 됩니다.');
+      respond(res, 200, 'code/state 수신 완료. 이 창을 닫아도 됩니다.');
       finish(null, { code, state });
     });
 

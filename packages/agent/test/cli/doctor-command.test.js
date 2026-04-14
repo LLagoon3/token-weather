@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { formatClaudeSection } from '../../src/cli/doctor-command.js';
+import { formatClaudeSection, parseDoctorClaudeOptions } from '../../src/cli/doctor-command.js';
 
 // ---------------------------------------------------------------------------
 // formatClaudeSection — pure display helper
@@ -153,5 +153,85 @@ describe('formatClaudeSection', () => {
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('데이터 없음')));
+  });
+
+  it('shows live usage OK with usageWindows when networkUsage succeeded', () => {
+    const snapshot = {
+      credentialsPath: FAKE_PATH,
+      found: true,
+      parsed: true,
+      authSource: 'claude-cli-import',
+      selectedAccount: null,
+      networkUsage: {
+        status: { ok: true, httpStatus: 200 },
+        usageWindows: [
+          { kind: 'five_hour', usedPercent: 25, resetAt: '2026-04-14T14:00:00.000Z' },
+          { kind: 'seven_day', usedPercent: 80, resetAt: null },
+        ],
+      },
+    };
+    const lines = formatClaudeSection(snapshot);
+    assert.ok(lines.some((l) => l.includes('Claude live usage')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+    assert.ok(lines.some((l) => l.includes('five_hour') && l.includes('25%')));
+    assert.ok(lines.some((l) => l.includes('seven_day') && l.includes('80%')));
+  });
+
+  it('shows live usage failure bucket and message when networkUsage failed', () => {
+    const snapshot = {
+      credentialsPath: FAKE_PATH,
+      found: true,
+      parsed: true,
+      authSource: 'claude-cli-import',
+      selectedAccount: null,
+      networkUsage: {
+        status: {
+          ok: false,
+          httpStatus: 403,
+          bucket: 'auth_scope',
+          message: 'missing scope requirement user:profile',
+        },
+        usageWindows: [],
+      },
+    };
+    const lines = formatClaudeSection(snapshot);
+    assert.ok(lines.some((l) => l.includes('실패') && l.includes('403') && l.includes('auth_scope')));
+    assert.ok(lines.some((l) => l.includes('user:profile')));
+  });
+
+  it('shows "호출 안 함" when networkUsage is null', () => {
+    const snapshot = {
+      credentialsPath: FAKE_PATH,
+      found: false,
+      parsed: false,
+      authSource: 'not-found',
+      selectedAccount: null,
+      networkUsage: null,
+    };
+    const lines = formatClaudeSection(snapshot);
+    assert.ok(lines.some((l) => l.includes('호출 안 함')));
+  });
+});
+
+describe('parseDoctorClaudeOptions', () => {
+  it('returns refreshLive=false by default', () => {
+    assert.deepEqual(parseDoctorClaudeOptions([]), { refreshLive: false });
+  });
+
+  it('sets refreshLive=true when --refresh-live is present', () => {
+    assert.deepEqual(parseDoctorClaudeOptions(['--refresh-live']), {
+      refreshLive: true,
+    });
+  });
+
+  it('handles mixed / unknown args gracefully', () => {
+    assert.deepEqual(parseDoctorClaudeOptions(['--foo', '--refresh-live', 'bar']), {
+      refreshLive: true,
+    });
+  });
+
+  it('handles null/undefined args', () => {
+    assert.deepEqual(parseDoctorClaudeOptions(undefined), { refreshLive: false });
+    assert.deepEqual(parseDoctorClaudeOptions(null), { refreshLive: false });
   });
 });
