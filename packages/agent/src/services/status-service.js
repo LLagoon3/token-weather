@@ -3,7 +3,7 @@ import { createDefaultConfig } from '../config/default-config.js';
 import { resolveAgentConfigPath } from '../config/config-path.js';
 import { fetchCodexUsage, getDefaultAuthProfilesPath, readCodexAuthProfiles } from '../../../provider-adapters/src/codex/index.js';
 import { resolveClaudeCredentialsPath, readClaudeCredentials } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
-import { resolveImportedClaudeSnapshot } from '../../../provider-adapters/src/claude/resolve-imported-claude-snapshot.js';
+import { resolveImportedClaudeSnapshot } from '../../../provider-adapters/src/claude/claude-imported-account.js';
 import { resolveClaudeAccount } from '../auth/resolve-claude-account.js';
 import { resolveClaudeUsageSourcePath } from '../../../provider-adapters/src/claude/resolve-claude-usage-source.js';
 import { readClaudeStatsCache } from '../../../provider-adapters/src/claude/read-claude-stats-cache.js';
