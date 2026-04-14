@@ -38,9 +38,12 @@ export function generatePkce(bytes = 32) {
 
 /**
  * Build the localhost callback URL for a given port.
+ * @param {number} port
+ * @param {string} [path='/auth/callback'] - Callback path (provider-specific).
+ *   Codex는 `/auth/callback`, Claude는 `/callback`을 기본으로 사용한다.
  */
-export function buildCallbackUrl(port) {
-  return `http://localhost:${port}/auth/callback`;
+export function buildCallbackUrl(port, path = '/auth/callback') {
+  return `http://localhost:${port}${path}`;
 }
 
 /**
@@ -50,7 +53,10 @@ export function buildCallbackUrl(port) {
  * @param {number|null} options.preferredPort - --port flag value (null = auto)
  * @returns {Promise<{ ready: boolean, params: object|null, reason: string|null }>}
  */
-export async function prepareLocalhostCallback({ preferredPort = null } = {}) {
+export async function prepareLocalhostCallback({
+  preferredPort = null,
+  callbackPath = '/auth/callback',
+} = {}) {
   const { port, fallbackExhausted } = await resolveCallbackPort({ preferredPort });
 
   if (port == null) {
@@ -62,11 +68,11 @@ export async function prepareLocalhostCallback({ preferredPort = null } = {}) {
 
   const state = generateState();
   const pkce = generatePkce();
-  const callbackUrl = buildCallbackUrl(port);
+  const callbackUrl = buildCallbackUrl(port, callbackPath);
 
   return {
     ready: true,
-    params: { port, callbackUrl, state, ...pkce },
+    params: { port, callbackUrl, callbackPath, state, ...pkce },
     reason: null,
     fallbackExhausted: false,
   };
@@ -89,7 +95,12 @@ export async function prepareLocalhostCallback({ preferredPort = null } = {}) {
  * @param {number} [options.timeoutMs=120000]
  * @returns {Promise<{ code: string, state: string }>}
  */
-export function startLocalhostCallbackServer({ port, expectedState, timeoutMs = 120_000 }) {
+export function startLocalhostCallbackServer({
+  port,
+  expectedState,
+  timeoutMs = 120_000,
+  callbackPath = '/auth/callback',
+}) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let timer;
@@ -97,7 +108,7 @@ export function startLocalhostCallbackServer({ port, expectedState, timeoutMs = 
     const server = createServer((req, res) => {
       const url = new URL(req.url, `http://127.0.0.1:${port}`);
 
-      if (url.pathname !== '/auth/callback') {
+      if (url.pathname !== callbackPath) {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('Not found');
         return;
