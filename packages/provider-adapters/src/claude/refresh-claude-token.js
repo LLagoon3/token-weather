@@ -53,8 +53,11 @@ export async function refreshClaudeToken({
 
   const res = await fetchImpl(tokenEndpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(body).toString(),
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {

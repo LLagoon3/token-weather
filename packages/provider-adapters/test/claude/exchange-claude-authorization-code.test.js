@@ -86,13 +86,13 @@ describe('exchangeClaudeAuthorizationCode — live exchange', () => {
     });
 
     assert.equal(captured.url, CLAUDE_AUTH.tokenEndpoint);
-    assert.equal(captured.init.headers['Content-Type'], 'application/x-www-form-urlencoded');
-    const params = new URLSearchParams(captured.init.body);
-    assert.equal(params.get('grant_type'), 'authorization_code');
-    assert.equal(params.get('code'), 'code-123');
-    assert.equal(params.get('redirect_uri'), 'http://localhost:1455/callback');
-    assert.equal(params.get('code_verifier'), 'verifier-abc');
-    assert.equal(params.get('client_id'), CLAUDE_AUTH.observedClientId);
+    assert.equal(captured.init.headers['Content-Type'], 'application/json');
+    const payload = JSON.parse(captured.init.body);
+    assert.equal(payload.grant_type, 'authorization_code');
+    assert.equal(payload.code, 'code-123');
+    assert.equal(payload.redirect_uri, 'http://localhost:1455/callback');
+    assert.equal(payload.code_verifier, 'verifier-abc');
+    assert.equal(payload.client_id, CLAUDE_AUTH.observedClientId);
   });
 
   it('returns normalized token fields on 200', async () => {

@@ -87,7 +87,7 @@ async function runCodexLogin(args) {
     const result = await startLocalhostCallbackServer({
       port,
       expectedState: state,
-      timeoutMs: 120_000,
+      timeoutMs: options.timeoutMs,
     });
     console.log('');
     console.log(`code 수신 완료: ${result.code}`);
@@ -240,6 +240,7 @@ function parseLoginOptions(args) {
     device: false,
     liveExchange: false,
     port: null,
+    timeoutMs: 120_000,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -252,6 +253,13 @@ function parseLoginOptions(args) {
       const value = args[index + 1];
       if (value) {
         options.port = Number(value);
+        index += 1;
+      }
+    }
+    if (arg === '--timeout') {
+      const value = args[index + 1];
+      if (value) {
+        options.timeoutMs = Number(value) * 1000;
         index += 1;
       }
     }
@@ -318,7 +326,7 @@ async function runClaudeLogin(args) {
     const result = await startLocalhostCallbackServer({
       port,
       expectedState: state,
-      timeoutMs: 120_000,
+      timeoutMs: options.timeoutMs,
       callbackPath: CLAUDE_CALLBACK_PATH,
     });
     console.log('');

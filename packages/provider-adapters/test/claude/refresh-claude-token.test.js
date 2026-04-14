@@ -60,13 +60,13 @@ describe('refreshClaudeToken — live exchange', () => {
 
     assert.equal(capturedUrl, CLAUDE_AUTH.tokenEndpoint);
     assert.equal(capturedInit.method, 'POST');
-    assert.equal(capturedInit.headers['Content-Type'], 'application/x-www-form-urlencoded');
+    assert.equal(capturedInit.headers['Content-Type'], 'application/json');
 
-    const params = new URLSearchParams(capturedInit.body);
-    assert.equal(params.get('grant_type'), 'refresh_token');
-    assert.equal(params.get('refresh_token'), 'old-rt');
-    assert.equal(params.get('client_id'), CLAUDE_AUTH.observedClientId);
-    assert.equal(params.has('client_secret'), false);
+    const payload = JSON.parse(capturedInit.body);
+    assert.equal(payload.grant_type, 'refresh_token');
+    assert.equal(payload.refresh_token, 'old-rt');
+    assert.equal(payload.client_id, CLAUDE_AUTH.observedClientId);
+    assert.equal(payload.client_secret, undefined);
   });
 
   it('includes client_secret when provided', async () => {
@@ -85,7 +85,7 @@ describe('refreshClaudeToken — live exchange', () => {
       fetchImpl,
     });
 
-    assert.equal(new URLSearchParams(captured.body).get('client_secret'), 'secret!');
+    assert.equal(JSON.parse(captured.body).client_secret, 'secret!');
   });
 
   it('returns normalized token fields on 200', async () => {
