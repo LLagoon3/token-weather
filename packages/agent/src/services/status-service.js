@@ -2,6 +2,9 @@ import fs from 'node:fs';
 import { createDefaultConfig } from '../config/default-config.js';
 import { resolveAgentConfigPath } from '../config/config-path.js';
 import { fetchCodexUsage, getDefaultAuthProfilesPath, readCodexAuthProfiles } from '../../../provider-adapters/src/codex/index.js';
+import { resolveClaudeCredentialsPath, readClaudeCredentials } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
+import { resolveImportedClaudeSnapshot } from '../../../provider-adapters/src/claude/resolve-imported-claude-snapshot.js';
+import { resolveClaudeAccount } from '../auth/resolve-claude-account.js';
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveDefaultAccount } from '../auth/account-resolver.js';
@@ -12,13 +15,56 @@ export async function getStatusSnapshot() {
   const configPath = resolveAgentConfigPath();
   const config = loadConfig(configPath);
   const codex = await getCodexSnapshot(config);
+  const claude = buildClaudeSnapshot(resolveClaudeCredentialsPath());
 
   return {
     schemaVersion: SCHEMA_VERSION,
     configPath,
     providers: config.providers,
     sync: config.sync,
-    codex
+    codex,
+    claude,
+  };
+}
+
+/**
+ * Exported for testing: select the effective Claude auth source.
+ *
+ * Priority: agent-store > claude-cli-import > not-found
+ *
+ * @param {Array} agentAccounts - Claude accounts from agent-store (may be empty)
+ * @param {object|null} importedCredential - parsed credential from Claude CLI, or null
+ * @returns {'agent-store' | 'claude-cli-import' | 'not-found'}
+ */
+export function selectClaudeAuthSource(agentAccounts, importedCredential) {
+  if (agentAccounts && agentAccounts.length > 0) {
+    return 'agent-store';
+  }
+  if (importedCredential !== null && importedCredential !== undefined) {
+    return 'claude-cli-import';
+  }
+  return 'not-found';
+}
+
+/**
+ * Exported for testing: build a Claude credential status snapshot.
+ * readFn is injectable so tests don't touch the filesystem.
+ * agentClaudeAccounts is the list of Claude accounts from the agent-store
+ * (currently always empty until Claude login is implemented).
+ */
+export function buildClaudeSnapshot(credentialsPath, readFn = readClaudeCredentials, agentClaudeAccounts = []) {
+  const credentials = readFn(credentialsPath);
+  const found = credentials !== null;
+  const imported = resolveImportedClaudeSnapshot(credentials);
+  const { account: selectedAccount, authSource } = resolveClaudeAccount(agentClaudeAccounts, imported.accounts);
+  return {
+    detected: found || agentClaudeAccounts.length > 0,
+    authSource,
+    credentialsPath,
+    found,
+    parsed: found,
+    selectedAccount,
+    importedAccount: selectedAccount, // backward-compat alias — prefer selectedAccount
   };
 }
 

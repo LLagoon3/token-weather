@@ -138,10 +138,18 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다.
 - agent-store real token 우선으로 usage 조회 연결
 - account 식별: id_token/access_token JWT claims 기반 추출 (email → preferred_username → sub 순, fallback: code prefix)
 
+### Claude CLI credential reuse — read/display 단계 (완료)
+- `~/.claude/.credentials.json` reader 추가
+- OAuth credential → internal account 매핑 구현
+- Claude account resolver 추가 (agent-store → claude-cli-import 우선순위)
+- `status`, `doctor claude`, `auth list claude`에서 selectedAccount 흐름 정리
+- 수동 CLI 검증 완료: `doctor claude`, `auth list claude` 정상 출력 확인
+- 아직 live network 호출 없음, write/import 미구현
+
 ### 다음 단계
+- Claude auth-store import/write 경로 설계 및 구현
 - `auth import openclaw` 경로 정리
 - revoke endpoint 지원 여부 확인
-- Claude 등 다른 provider auth 경로 확장
 
 ### 후순위 단계
 - device code fallback 조사/도입
