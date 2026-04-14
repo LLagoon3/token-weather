@@ -6,6 +6,7 @@ import {
   filterRealCodexAccounts,
   buildClaudeSnapshot,
   selectClaudeAuthSource,
+  resolveClaudeProfileFromSnapshot,
 } from '../../src/services/status-service.js';
 
 // ---------------------------------------------------------------------------
@@ -208,5 +209,72 @@ describe('buildClaudeSnapshot', () => {
     assert.equal(result.authSource, 'agent-store');
     assert.equal(result.selectedAccount?.accountKey, 'claude:alice');
     assert.equal(result.importedAccount?.accountKey, 'claude:alice'); // alias check
+  });
+
+  it('includes usage from stats-cache when available', () => {
+    const fakeStatsCache = {
+      version: 3,
+      totalSessions: 10,
+      totalMessages: 200,
+      hasModelUsage: true,
+      hasDailyModelTokens: false,
+      raw: {},
+    };
+    const result = buildClaudeSnapshot(FAKE_PATH, () => null, [], '/fake/stats-cache.json', () => fakeStatsCache);
+    assert.equal(result.usage.source, 'stats-cache-json');
+    assert.equal(result.usage.totalSessions, 10);
+    assert.equal(result.usage.totalMessages, 200);
+    assert.equal(result.usage.hasModelUsage, true);
+    assert.equal(result.usage.hasDailyModelTokens, false);
+  });
+
+  it('includes usage.source=not-found when stats-cache is unavailable', () => {
+    const result = buildClaudeSnapshot(FAKE_PATH, () => null, [], '/fake/stats-cache.json', () => null);
+    assert.equal(result.usage.source, 'not-found');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveClaudeProfileFromSnapshot — extract usage profile from Claude snapshot
+// ---------------------------------------------------------------------------
+
+describe('resolveClaudeProfileFromSnapshot', () => {
+  it('returns null when selectedAccount is absent', () => {
+    assert.equal(resolveClaudeProfileFromSnapshot({ selectedAccount: null }), null);
+    assert.equal(resolveClaudeProfileFromSnapshot({}), null);
+    assert.equal(resolveClaudeProfileFromSnapshot(null), null);
+  });
+
+  it('returns null when selectedAccount has no accessToken anywhere', () => {
+    const snapshot = { selectedAccount: { accountKey: 'claude-cli-import' } };
+    assert.equal(resolveClaudeProfileFromSnapshot(snapshot), null);
+  });
+
+  it('extracts accessToken from top-level (claude-cli-import shape)', () => {
+    const snapshot = {
+      selectedAccount: {
+        accountKey: 'claude-cli-import',
+        accessToken: 'sk-ant-import-token',
+        email: 'user@example.com',
+      },
+    };
+    const profile = resolveClaudeProfileFromSnapshot(snapshot);
+    assert.equal(profile.id, 'claude-cli-import');
+    assert.equal(profile.accessToken, 'sk-ant-import-token');
+    assert.equal(profile.email, 'user@example.com');
+  });
+
+  it('extracts accessToken from tokens.accessToken (agent-store shape)', () => {
+    const snapshot = {
+      selectedAccount: {
+        accountKey: 'claude:alice',
+        tokens: { accessToken: 'sk-ant-store-token' },
+        accountId: 'acc-42',
+      },
+    };
+    const profile = resolveClaudeProfileFromSnapshot(snapshot);
+    assert.equal(profile.id, 'claude:alice');
+    assert.equal(profile.accessToken, 'sk-ant-store-token');
+    assert.equal(profile.accountId, 'acc-42');
   });
 });

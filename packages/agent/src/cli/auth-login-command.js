@@ -5,6 +5,11 @@ import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/aut
 import { createAccount } from '../auth/auth-store-schema.js';
 import { extractAccountIdentity } from '../auth/token-claims.js';
 import { buildCodexAuthorizationUrl, exchangeCodexAuthorizationCode } from '../../../provider-adapters/src/codex/index.js';
+import {
+  buildClaudeAuthorizationUrl,
+  exchangeClaudeAuthorizationCode,
+  CLAUDE_AUTH,
+} from '../../../provider-adapters/src/claude/index.js';
 
 export async function runAuthLoginCommand(provider, args = []) {
   if (!provider) {
@@ -12,11 +17,20 @@ export async function runAuthLoginCommand(provider, args = []) {
     return;
   }
 
-  if (provider !== 'codex') {
-    console.log(`아직 login은 codex만 골격이 준비되어 있어. 입력된 provider: ${provider}`);
+  if (provider === 'codex') {
+    await runCodexLogin(args);
     return;
   }
 
+  if (provider === 'claude') {
+    await runClaudeLogin(args);
+    return;
+  }
+
+  console.log(`지원되지 않는 provider: ${provider} (사용 가능: codex, claude)`);
+}
+
+async function runCodexLogin(args) {
   const options = parseLoginOptions(args);
 
   if (options.device) {
@@ -73,7 +87,7 @@ export async function runAuthLoginCommand(provider, args = []) {
     const result = await startLocalhostCallbackServer({
       port,
       expectedState: state,
-      timeoutMs: 120_000,
+      timeoutMs: options.timeoutMs,
     });
     console.log('');
     console.log(`code 수신 완료: ${result.code}`);
@@ -115,7 +129,7 @@ async function runManualPasteFlow() {
   const nextStore = upsertProviderAccount(store, 'openai-codex', account);
   await saveAuthStore(nextStore);
 
-  console.log('placeholder/mock 계정을 auth store에 저장했어.');
+  console.log('mock 계정을 auth store에 저장했어.');
   console.log(`저장 accountKey: ${account.accountKey}`);
   console.log('이 저장 결과는 실제 OAuth 인증이 아니라 이후 흐름 연결을 위한 임시 구현이야.');
 }
@@ -214,7 +228,7 @@ async function saveMockAccountFromCallback(code) {
   const nextStore = upsertProviderAccount(store, 'openai-codex', account);
   await saveAuthStore(nextStore);
 
-  console.log('placeholder/mock 계정을 auth store에 저장했어.');
+  console.log('mock 계정을 auth store에 저장했어.');
   console.log(`저장 accountKey: ${account.accountKey}`);
   console.log('기본 경로는 token exchange 없이 mock 저장만 수행. 실제 exchange는 --live-exchange 사용.');
 }
@@ -226,6 +240,7 @@ function parseLoginOptions(args) {
     device: false,
     liveExchange: false,
     port: null,
+    timeoutMs: 120_000,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -241,7 +256,172 @@ function parseLoginOptions(args) {
         index += 1;
       }
     }
+    if (arg === '--timeout') {
+      const value = args[index + 1];
+      if (value) {
+        options.timeoutMs = Number(value) * 1000;
+        index += 1;
+      }
+    }
   }
 
   return options;
+}
+
+// ─── Claude login flow ───────────────────────────────────────────────────────
+
+const CLAUDE_CALLBACK_PATH = '/callback';
+
+async function runClaudeLogin(args) {
+  const options = parseLoginOptions(args);
+
+  if (options.device) {
+    console.log('device code flow는 후순위 항목이라 아직 구현되지 않았어.');
+    return;
+  }
+
+  if (options.manual) {
+    console.log('claude manual paste 경로는 아직 제공하지 않습니다.');
+    console.log('대신 로컬 callback 경로를 사용하세요: ai-usage-agent auth login claude');
+    return;
+  }
+
+  const prepared = await prepareLocalhostCallback({
+    preferredPort: options.port,
+    callbackPath: CLAUDE_CALLBACK_PATH,
+  });
+
+  console.log('ai-usage-agent auth login claude');
+  console.log('---------------------------------');
+
+  if (!prepared.ready) {
+    console.log(prepared.reason);
+    return;
+  }
+
+  const { port, callbackUrl, state, codeChallenge, codeChallengeMethod, codeVerifier } =
+    prepared.params;
+  const authorizationUrl = buildClaudeAuthorizationUrl({
+    callbackUrl,
+    state,
+    codeChallenge,
+    codeChallengeMethod,
+  });
+
+  console.log(`콜백 URL 준비됨: ${callbackUrl}`);
+  console.log(`선택된 포트: ${port}`);
+  console.log('OAuth state/PKCE 생성 완료 (S256)');
+  console.log('');
+  console.log('참고:');
+  console.log('- client_id는 Claude Code 바이너리 관찰값입니다 (공식 확정 아님).');
+  console.log('- 기본 경로는 --live-exchange 없이 실제 token 저장을 수행하지 않습니다.');
+  console.log('- 브라우저 자동 실행은 하지 않습니다.');
+  console.log('');
+  console.log('브라우저에서 열 URL:');
+  console.log(`  ${authorizationUrl}`);
+  console.log('');
+  console.log('로그인 완료 후 localhost callback 서버가 code/state 수신을 대기 중입니다...');
+
+  try {
+    const result = await startLocalhostCallbackServer({
+      port,
+      expectedState: state,
+      timeoutMs: options.timeoutMs,
+      callbackPath: CLAUDE_CALLBACK_PATH,
+    });
+    console.log('');
+    console.log(`code 수신 완료: ${result.code}`);
+
+    if (options.liveExchange) {
+      await runClaudeLiveExchange({
+        code: result.code,
+        callbackUrl,
+        codeVerifier,
+        state,
+      });
+    } else {
+      console.log('');
+      console.log('--live-exchange가 없으므로 token 교환을 생략합니다.');
+      console.log('실제 토큰 저장이 필요하면 --live-exchange 옵션을 추가해 재실행하세요.');
+    }
+  } catch (err) {
+    console.log('');
+    console.log(`콜백 수신 실패: ${err.message}`);
+  }
+}
+
+async function runClaudeLiveExchange({ code, callbackUrl, codeVerifier, state }) {
+  console.log('');
+  console.log('⚠ --live-exchange 모드: Claude token endpoint에 POST를 시도합니다.');
+  console.log(`  endpoint: ${CLAUDE_AUTH.tokenEndpoint}`);
+  console.log('');
+
+  try {
+    const tokenResponse = await exchangeClaudeAuthorizationCode({
+      code,
+      callbackUrl,
+      codeVerifier,
+      state,
+      allowLiveExchange: true,
+    });
+
+    console.log('token exchange 성공!');
+    console.log(`  token_type: ${tokenResponse.tokenType}`);
+    console.log(`  expires_in: ${tokenResponse.expiresIn}`);
+    console.log(`  scope: ${tokenResponse.scope ?? '(없음)'}`);
+
+    const identity = extractAccountIdentity({
+      idToken: tokenResponse.idToken,
+      accessToken: tokenResponse.accessToken,
+      fallbackCode: code,
+    });
+
+    console.log(`  identity source: ${identity.claimSource}`);
+
+    const now = new Date();
+    const expiresAt = tokenResponse.expiresIn
+      ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
+      : null;
+
+    const accountKeySource = identity.accountId ?? identity.email ?? 'live';
+    const account = createAccount({
+      accountKey: `${CLAUDE_AUTH.provider}:${accountKeySource}`,
+      email: identity.email,
+      displayName: identity.displayName,
+      accountId: identity.accountId,
+      authType: 'oauth',
+      source: 'agent-store',
+      tokens: {
+        accessToken: tokenResponse.accessToken,
+        refreshToken: tokenResponse.refreshToken ?? null,
+      },
+      raw: {
+        provider: CLAUDE_AUTH.provider,
+        mock: false,
+        liveExchange: true,
+        tokenType: tokenResponse.tokenType,
+        scope: tokenResponse.scope ?? null,
+        idToken: tokenResponse.idToken ?? null,
+        exchangedAt: now.toISOString(),
+        identityClaimSource: identity.claimSource,
+        note: 'live token exchange — observed client_id + S256 PKCE',
+      },
+    });
+    account.expiresAt = expiresAt;
+
+    const store = await loadAuthStore();
+    const nextStore = upsertProviderAccount(store, CLAUDE_AUTH.storeProvider, account);
+    await saveAuthStore(nextStore);
+
+    console.log('');
+    console.log('실제 토큰을 auth store에 저장했습니다.');
+    console.log(`  accountKey: ${account.accountKey}`);
+    if (expiresAt) console.log(`  expiresAt: ${expiresAt}`);
+    console.log('');
+    console.log('⚠ client_id / scope는 observed 값이므로 검증 전까지 실험적으로만 사용하세요.');
+  } catch (err) {
+    console.log('');
+    console.log(`❌ live token exchange 실패: ${err.message}`);
+    console.log('토큰을 저장하지 않습니다.');
+  }
 }

@@ -14,6 +14,8 @@ export async function runStatusCommand(command) {
   console.log(`서버 sync: ${snapshot.sync.enabled ? 'enabled' : 'disabled'}`);
   console.log('');
   printCodexSection(snapshot.codex);
+  console.log('');
+  printClaudeSection(snapshot.claude);
 }
 
 function printCodexSection(codex) {
@@ -50,6 +52,60 @@ function printCodexSection(codex) {
       console.log(`  에러: ${snapshot.status.message}`);
     }
   }
+}
+
+function printClaudeSection(claude) {
+  console.log('Claude usage');
+  console.log('------------');
+  console.log(`인증 소스: ${claude.authSource}`);
+  console.log(`credential 감지: ${claude.detected}`);
+  if (claude.selectedAccount) {
+    console.log(`계정: ${claude.selectedAccount.accountKey}`);
+  }
+
+  printClaudeNetworkUsage(claude.networkUsage);
+  printClaudeLocalUsage(claude.usage);
+}
+
+function printClaudeNetworkUsage(networkUsage) {
+  console.log('');
+  console.log('[live] api.anthropic.com/api/oauth/usage');
+  if (!networkUsage) {
+    console.log('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
+    return;
+  }
+
+  if (networkUsage.status?.ok) {
+    console.log(`  상태: OK (${networkUsage.status.httpStatus})`);
+    if (networkUsage.usageWindows.length === 0) {
+      console.log('  usageWindows 없음 (응답에 기대한 필드가 없었음)');
+    }
+    for (const window of networkUsage.usageWindows) {
+      console.log(`  ${window.kind}: ${formatWindow(window)}`);
+    }
+    return;
+  }
+
+  const http = networkUsage.status?.httpStatus ?? 'network/error';
+  const bucket = networkUsage.status?.bucket ?? 'unknown';
+  console.log(`  상태: 실패 (${http}, bucket=${bucket})`);
+  if (networkUsage.status?.message) {
+    console.log(`  메시지: ${networkUsage.status.message}`);
+  }
+}
+
+function printClaudeLocalUsage(usage) {
+  console.log('');
+  console.log('[local] stats-cache.json');
+  if (!usage || usage.source === 'not-found') {
+    console.log('  데이터 없음 (stats-cache.json 미발견)');
+    return;
+  }
+
+  console.log(`  총 세션 수: ${usage.totalSessions ?? '알 수 없음'}`);
+  console.log(`  총 메시지 수: ${usage.totalMessages ?? '알 수 없음'}`);
+  console.log(`  모델별 usage: ${usage.hasModelUsage ? '있음' : '없음'}`);
+  console.log(`  일별 token 통계: ${usage.hasDailyModelTokens ? '있음' : '없음'}`);
 }
 
 function formatWindow(window) {
