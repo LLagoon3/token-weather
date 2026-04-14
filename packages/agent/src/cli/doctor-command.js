@@ -31,6 +31,27 @@ export function formatClaudeSection(snapshot) {
     lines.push('  usage: 데이터 없음 (stats-cache.json 미발견)');
   }
 
+  const network = snapshot.networkUsage;
+  lines.push('');
+  lines.push('Claude live usage (api.anthropic.com/api/oauth/usage):');
+  if (!network) {
+    lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
+  } else if (network.status?.ok) {
+    lines.push(`  상태: OK (${network.status.httpStatus})`);
+    lines.push(`  usageWindows: ${network.usageWindows.length}개`);
+    for (const window of network.usageWindows) {
+      const reset = window.resetAt ? ` reset=${window.resetAt}` : '';
+      lines.push(`    - ${window.kind}: ${window.usedPercent ?? 'unknown'}%${reset}`);
+    }
+  } else {
+    const http = network.status?.httpStatus ?? 'network/error';
+    const bucket = network.status?.bucket ?? 'unknown';
+    lines.push(`  상태: 실패 (${http}, bucket=${bucket})`);
+    if (network.status?.message) {
+      lines.push(`  메시지: ${network.status.message}`);
+    }
+  }
+
   return lines;
 }
 
