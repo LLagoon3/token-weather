@@ -333,7 +333,12 @@ async function runClaudeLogin(args) {
     console.log(`code 수신 완료: ${result.code}`);
 
     if (options.liveExchange) {
-      await runClaudeLiveExchange({ code: result.code, callbackUrl, codeVerifier });
+      await runClaudeLiveExchange({
+        code: result.code,
+        callbackUrl,
+        codeVerifier,
+        state,
+      });
     } else {
       console.log('');
       console.log('--live-exchange가 없으므로 token 교환을 생략합니다.');
@@ -345,7 +350,7 @@ async function runClaudeLogin(args) {
   }
 }
 
-async function runClaudeLiveExchange({ code, callbackUrl, codeVerifier }) {
+async function runClaudeLiveExchange({ code, callbackUrl, codeVerifier, state }) {
   console.log('');
   console.log('⚠ --live-exchange 모드: Claude token endpoint에 POST를 시도합니다.');
   console.log(`  endpoint: ${CLAUDE_AUTH.tokenEndpoint}`);
@@ -356,6 +361,7 @@ async function runClaudeLiveExchange({ code, callbackUrl, codeVerifier }) {
       code,
       callbackUrl,
       codeVerifier,
+      state,
       allowLiveExchange: true,
     });
 

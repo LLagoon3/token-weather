@@ -24,6 +24,7 @@ function baseParams(overrides = {}) {
     code: 'code-123',
     callbackUrl: 'http://localhost:1455/callback',
     codeVerifier: 'verifier-abc',
+    state: 'state-xyz',
     ...overrides,
   };
 }
@@ -93,6 +94,7 @@ describe('exchangeClaudeAuthorizationCode — live exchange', () => {
     assert.equal(payload.redirect_uri, 'http://localhost:1455/callback');
     assert.equal(payload.code_verifier, 'verifier-abc');
     assert.equal(payload.client_id, CLAUDE_AUTH.observedClientId);
+    assert.equal(payload.state, 'state-xyz');
   });
 
   it('returns normalized token fields on 200', async () => {

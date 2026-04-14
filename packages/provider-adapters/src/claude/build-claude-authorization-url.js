@@ -29,12 +29,15 @@ export function buildClaudeAuthorizationUrl({
   scopes = CLAUDE_AUTH.defaultScopes,
 }) {
   const url = new URL(CLAUDE_AUTH.authorizationEndpoint);
-  url.searchParams.set('response_type', CLAUDE_AUTH.responseType);
+  // Claude Code 바이너리가 실제로 붙이는 관찰 파라미터.
+  // `code=true`는 OAuth 스펙 외 파라미터지만 Claude authorize 서버가 기대한다.
+  url.searchParams.set('code', 'true');
   url.searchParams.set('client_id', clientId);
+  url.searchParams.set('response_type', CLAUDE_AUTH.responseType);
   url.searchParams.set('redirect_uri', callbackUrl);
-  url.searchParams.set('state', state);
   url.searchParams.set('scope', scopes.join(' '));
   url.searchParams.set('code_challenge', codeChallenge);
   url.searchParams.set('code_challenge_method', codeChallengeMethod);
+  url.searchParams.set('state', state);
   return url.toString();
 }

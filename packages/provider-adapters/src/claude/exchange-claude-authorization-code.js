@@ -22,6 +22,7 @@ export async function exchangeClaudeAuthorizationCode({
   code,
   callbackUrl,
   codeVerifier,
+  state,
   allowLiveExchange = false,
   clientId = CLAUDE_AUTH.observedClientId,
   clientSecret = undefined,
@@ -32,6 +33,8 @@ export async function exchangeClaudeAuthorizationCode({
   if (!callbackUrl) throw new Error('[exchangeClaudeAuthorizationCode] callbackUrl이 비어 있습니다.');
   if (!codeVerifier) throw new Error('[exchangeClaudeAuthorizationCode] codeVerifier가 비어 있습니다.');
 
+  // Claude token endpoint는 state 필드를 body에 요구한다 (OAuth 스펙 외 확장).
+  // 바이너리 관찰: grant_type / code / redirect_uri / client_id / code_verifier / state.
   const body = {
     grant_type: 'authorization_code',
     code,
@@ -39,6 +42,7 @@ export async function exchangeClaudeAuthorizationCode({
     client_id: clientId,
     code_verifier: codeVerifier,
   };
+  if (state) body.state = state;
 
   if (clientSecret) body.client_secret = clientSecret;
 

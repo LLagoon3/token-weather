@@ -31,6 +31,11 @@ describe('buildClaudeAuthorizationUrl', () => {
     assert.equal(url.searchParams.get('code_challenge_method'), 'S256');
   });
 
+  it('includes observed extra param code=true (claude authorize 요구사항)', () => {
+    const url = new URL(buildClaudeAuthorizationUrl(baseParams()));
+    assert.equal(url.searchParams.get('code'), 'true');
+  });
+
   it('defaults scope to CLAUDE_AUTH.defaultScopes joined by space', () => {
     const url = new URL(buildClaudeAuthorizationUrl(baseParams()));
     assert.equal(url.searchParams.get('scope'), CLAUDE_AUTH.defaultScopes.join(' '));
