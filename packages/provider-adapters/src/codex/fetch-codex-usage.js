@@ -1,8 +1,10 @@
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
+import { fetchWithTimeout } from '../shared/fetch-with-timeout.js';
 
 export async function fetchCodexUsage(profile, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const capturedAt = options.capturedAt ?? new Date();
+  const timeoutMs = options.timeoutMs ?? 15_000;
 
   const headers = {
     Authorization: `Bearer ${profile.accessToken}`,
@@ -14,9 +16,10 @@ export async function fetchCodexUsage(profile, options = {}) {
     headers['ChatGPT-Account-Id'] = profile.accountId;
   }
 
-  const response = await fetchImpl('https://chatgpt.com/backend-api/wham/usage', {
+  const response = await fetchWithTimeout(fetchImpl, 'https://chatgpt.com/backend-api/wham/usage', {
     method: 'GET',
-    headers
+    headers,
+    timeoutMs,
   });
 
   const text = await response.text();

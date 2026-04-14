@@ -1,4 +1,5 @@
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
+import { fetchWithTimeout } from '../shared/fetch-with-timeout.js';
 
 /**
  * Claude OAuth usage endpoint fetcher.
@@ -18,11 +19,12 @@ import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
  *   }
  *
  * @param {{ id: string, accessToken: string, accountId?: string|null, email?: string|null }} profile
- * @param {{ fetchImpl?: typeof fetch, capturedAt?: Date }} [options]
+ * @param {{ fetchImpl?: typeof fetch, capturedAt?: Date, timeoutMs?: number }} [options]
  */
 export async function fetchClaudeUsage(profile, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const capturedAt = options.capturedAt ?? new Date();
+  const timeoutMs = options.timeoutMs ?? 15_000;
 
   const headers = {
     Authorization: `Bearer ${profile.accessToken}`,
@@ -32,9 +34,10 @@ export async function fetchClaudeUsage(profile, options = {}) {
     'anthropic-beta': 'oauth-2025-04-20',
   };
 
-  const response = await fetchImpl('https://api.anthropic.com/api/oauth/usage', {
+  const response = await fetchWithTimeout(fetchImpl, 'https://api.anthropic.com/api/oauth/usage', {
     method: 'GET',
     headers,
+    timeoutMs,
   });
 
   const text = await response.text();

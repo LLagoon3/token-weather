@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from './fetch-with-timeout.js';
+
 /**
  * OAuth token endpoint POST 공통 헬퍼 (authorization_code / refresh_token 공용).
  *
@@ -23,6 +25,7 @@
  * @param {typeof fetch} [options.fetchImpl]
  * @param {string} [options.errorPrefix='OAuth token request failed']
  * @param {string} [options.fallbackRefreshToken] - 응답에 refresh_token 없을 때 대체
+ * @param {number} [options.timeoutMs=15000] - AbortController 기반 요청 타임아웃 (0이면 비활성)
  * @returns {Promise<{ accessToken: string, refreshToken: string|null, idToken: string|null, expiresIn: number, tokenType: string, scope: string|null }>}
  */
 export async function postToTokenEndpoint({
@@ -33,6 +36,7 @@ export async function postToTokenEndpoint({
   fetchImpl = fetch,
   errorPrefix = 'OAuth token request failed',
   fallbackRefreshToken,
+  timeoutMs = 15_000,
 }) {
   if (!endpoint) throw new Error('postToTokenEndpoint: endpoint required');
   if (!body || typeof body !== 'object') {
@@ -41,10 +45,11 @@ export async function postToTokenEndpoint({
 
   const { headers, encodedBody } = encodeRequest(body, encoding, extraHeaders);
 
-  const res = await fetchImpl(endpoint, {
+  const res = await fetchWithTimeout(fetchImpl, endpoint, {
     method: 'POST',
     headers,
     body: encodedBody,
+    timeoutMs,
   });
 
   if (!res.ok) {
