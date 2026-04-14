@@ -120,4 +120,38 @@ describe('formatClaudeSection', () => {
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('authType') && l.includes('알 수 없음')));
   });
+
+  it('shows usage stats when usage source is stats-cache-json', () => {
+    const snapshot = {
+      credentialsPath: FAKE_PATH,
+      found: true,
+      parsed: true,
+      authSource: 'claude-cli-import',
+      selectedAccount: null,
+      usage: {
+        source: 'stats-cache-json',
+        totalSessions: 10,
+        totalMessages: 200,
+        hasModelUsage: true,
+        hasDailyModelTokens: false,
+      },
+    };
+    const lines = formatClaudeSection(snapshot);
+    assert.ok(lines.some((l) => l.includes('totalSessions') && l.includes('10')));
+    assert.ok(lines.some((l) => l.includes('totalMessages') && l.includes('200')));
+    assert.ok(lines.some((l) => l.includes('hasModelUsage') && l.includes('true')));
+  });
+
+  it('shows not-found message when usage source is not-found', () => {
+    const snapshot = {
+      credentialsPath: FAKE_PATH,
+      found: false,
+      parsed: false,
+      authSource: 'not-found',
+      selectedAccount: null,
+      usage: { source: 'not-found' },
+    };
+    const lines = formatClaudeSection(snapshot);
+    assert.ok(lines.some((l) => l.includes('데이터 없음')));
+  });
 });
