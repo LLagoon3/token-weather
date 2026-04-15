@@ -46,6 +46,9 @@ describe('runConfigInitCommand — fresh init', () => {
   });
 
   it('logs the created file path', async () => {
+    // 이전 it에 의존하지 않도록 자체적으로 커맨드를 재실행하고 로그도 reset 후 검증.
+    logged.length = 0;
+    await runConfigInitCommand();
     assert.ok(logged.some((l) => l.includes('기본 설정 파일을 생성했습니다')));
     assert.ok(logged.some((l) => l.includes('config.json')));
   });
