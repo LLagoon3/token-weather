@@ -197,8 +197,15 @@ async function saveLiveExchangeAccount(spec, tokenResponse, identity) {
 
 /**
  * 공통 login 옵션 파서.
- * `--port`, `--timeout`(초)은 숫자로 변환.
- * Unknown flag는 무시 (provider별 추가 플래그는 필요시 별도 처리).
+ *
+ * `--port`, `--timeout`(초)은 숫자로 변환하되 유효성을 검증한다.
+ *   - `--port`: 0~65535 정수. 범위 밖/NaN이면 경고 push + 해당 필드 유지(기본값 null).
+ *   - `--timeout`: 양의 정수(초). NaN/음수/0이면 경고 push + 기본값 유지.
+ *
+ * 반환값에 `warnings: string[]`이 포함된다. 호출자는 warnings.length > 0이면
+ * stderr 등으로 사용자에게 안내 후 조기 리턴하거나 기본값으로 계속 진행할 수 있다.
+ *
+ * Unknown flag는 조용히 무시한다 (provider별 추가 플래그는 필요시 별도 처리).
  */
 export function parseLoginOptions(args) {
   const options = {
@@ -208,6 +215,7 @@ export function parseLoginOptions(args) {
     liveExchange: false,
     port: null,
     timeoutMs: 120_000,
+    warnings: [],
   };
 
   for (let index = 0; index < (args ?? []).length; index += 1) {
@@ -218,18 +226,46 @@ export function parseLoginOptions(args) {
     else if (arg === '--live-exchange') options.liveExchange = true;
     else if (arg === '--port') {
       const value = args[index + 1];
-      if (value) {
-        options.port = Number(value);
+      if (value !== undefined) {
+        const parsed = parsePortValue(value);
+        if (parsed === null) {
+          options.warnings.push(
+            `--port 값 "${value}"이(가) 유효하지 않습니다. 정수 0~65535 범위로 지정해 주세요.`,
+          );
+        } else {
+          options.port = parsed;
+        }
         index += 1;
       }
     } else if (arg === '--timeout') {
       const value = args[index + 1];
-      if (value) {
-        options.timeoutMs = Number(value) * 1000;
+      if (value !== undefined) {
+        const parsed = parseTimeoutSeconds(value);
+        if (parsed === null) {
+          options.warnings.push(
+            `--timeout 값 "${value}"이(가) 유효하지 않습니다. 양의 정수(초)로 지정해 주세요.`,
+          );
+        } else {
+          options.timeoutMs = parsed * 1000;
+        }
         index += 1;
       }
     }
   }
 
   return options;
+}
+
+function parsePortValue(raw) {
+  const n = Number(raw);
+  if (!Number.isInteger(n)) return null;
+  if (n < 0 || n > 65535) return null;
+  return n;
+}
+
+function parseTimeoutSeconds(raw) {
+  const n = Number(raw);
+  if (!Number.isInteger(n)) return null;
+  if (n <= 0) return null;
+  return n;
 }

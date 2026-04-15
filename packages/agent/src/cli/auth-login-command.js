@@ -42,6 +42,7 @@ export async function runAuthLoginCommand(provider, args = []) {
 
 async function runCodexLogin(args) {
   const options = parseLoginOptions(args);
+  if (!reportAndGuardOptionWarnings(options)) return;
 
   if (options.device) {
     console.log('device code flow는 후순위 항목이라 아직 구현되지 않았어.');
@@ -123,6 +124,7 @@ async function runCodexManualPasteFlow() {
 
 async function runClaudeLogin(args) {
   const options = parseLoginOptions(args);
+  if (!reportAndGuardOptionWarnings(options)) return;
 
   if (options.device) {
     console.log('device code flow는 후순위 항목이라 아직 구현되지 않았어.');
@@ -159,3 +161,20 @@ const CLAUDE_LOGIN_SPEC = {
     }),
   supportsMockCallback: false,
 };
+
+// ─── Option validation ─────────────────────────────────────────────────────
+
+/**
+ * parseLoginOptions에서 받은 warnings를 stderr에 출력하고,
+ * 경고가 있으면 false를 반환해 호출자가 조기 리턴하도록 유도한다.
+ * @param {{ warnings: string[] }} options
+ * @returns {boolean} 진행 가능 여부
+ */
+function reportAndGuardOptionWarnings(options) {
+  if (!options.warnings || options.warnings.length === 0) return true;
+  for (const warning of options.warnings) {
+    console.error(`⚠ ${warning}`);
+  }
+  console.error('잘못된 옵션 값 때문에 login을 중단합니다.');
+  return false;
+}
