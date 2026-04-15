@@ -1,0 +1,74 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import url from 'node:url';
+
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+const BIN = path.resolve(__dirname, '../../bin/ai-usage-agent.js');
+
+/**
+ * Run the CLI in a clean tmp HOME so it never touches the real auth.json /
+ * Claude credentials. We accept that some commands (status / doctor) may
+ * attempt network calls; those should fail or produce empty results without
+ * crashing the process.
+ */
+function runCli(args, { timeoutMs = 20_000 } = {}) {
+  const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-usage-smoke-'));
+  try {
+    const result = spawnSync('node', [BIN, ...args], {
+      env: { ...process.env, HOME: tmpHome, NO_COLOR: '1' },
+      encoding: 'utf8',
+      timeout: timeoutMs,
+    });
+    return result;
+  } finally {
+    fs.rmSync(tmpHome, { recursive: true, force: true });
+  }
+}
+
+describe('bin/ai-usage-agent — smoke', () => {
+  it('exits 0 with usage-like output when called without args', () => {
+    const result = runCli([]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    // stdout 또는 stderr 어디든 사용법 안내가 있어야 함
+    const all = result.stdout + result.stderr;
+    assert.match(all, /ai-usage-agent|usage|status|doctor/i);
+  });
+
+  it('config init creates default config in HOME', () => {
+    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-usage-smoke-init-'));
+    try {
+      const result = spawnSync('node', [BIN, 'config', 'init'], {
+        env: { ...process.env, HOME: tmpHome },
+        encoding: 'utf8',
+        timeout: 10_000,
+      });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      const expected = path.join(tmpHome, '.config', 'ai-usage-agent', 'config.json');
+      assert.ok(fs.existsSync(expected), 'config.json should be created');
+      const parsed = JSON.parse(fs.readFileSync(expected, 'utf8'));
+      assert.ok(parsed.providers);
+    } finally {
+      fs.rmSync(tmpHome, { recursive: true, force: true });
+    }
+  });
+
+  it('auth logout without provider prints usage and exits non-zero', () => {
+    const result = runCli(['auth', 'logout'], { timeoutMs: 10_000 });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /사용법/);
+  });
+
+  it('auth login claude --port foo prints validation warning and exits cleanly', () => {
+    const result = runCli(['auth', 'login', 'claude', '--port', 'foo'], {
+      timeoutMs: 10_000,
+    });
+    // exit code is 0 (returns early after warning), warning goes to stderr
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /--port 값 "foo"/);
+    assert.match(result.stderr, /login을 중단합니다/);
+  });
+});
