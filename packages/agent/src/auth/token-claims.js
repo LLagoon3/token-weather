@@ -54,27 +54,37 @@ export function decodeJwtPayload(jwt) {
  * @param {string|null} params.idToken       - Raw id_token string (may be null).
  * @param {string|null} params.accessToken   - Raw access_token string (may be null).
  * @param {string}      params.fallbackCode  - Authorization code, used for last-resort fallback.
+ * @param {string}      [params.fallbackEmailDomain='agent-store.local']
+ *                                           - email/preferred_username 둘 다 없을 때
+ *                                             `{sub|live-suffix}@<domain>` 형태로 fallback에 쓰는 도메인.
+ *                                             provider별로 다른 값을 주입하면 accountKey의 도메인이
+ *                                             해당 provider 기준으로 만들어진다.
  * @returns {AccountIdentity}
  */
-export function extractAccountIdentity({ idToken, accessToken, fallbackCode }) {
+export function extractAccountIdentity({
+  idToken,
+  accessToken,
+  fallbackCode,
+  fallbackEmailDomain = 'agent-store.local',
+}) {
   // --- try id_token first ---
   const idClaims = decodeJwtPayload(idToken);
   if (idClaims) {
-    const identity = identityFromClaims(idClaims, 'id_token');
+    const identity = identityFromClaims(idClaims, 'id_token', fallbackEmailDomain);
     if (identity) return identity;
   }
 
   // --- try access_token (some providers issue JWTs) ---
   const atClaims = decodeJwtPayload(accessToken);
   if (atClaims) {
-    const identity = identityFromClaims(atClaims, 'access_token');
+    const identity = identityFromClaims(atClaims, 'access_token', fallbackEmailDomain);
     if (identity) return identity;
   }
 
   // --- fallback: code-prefix placeholder ---
   const suffix = (fallbackCode ?? '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 8) || 'live';
   return {
-    email: `live-${suffix}@codex.openai.com`,
+    email: `live-${suffix}@${fallbackEmailDomain}`,
     accountId: null,
     displayName: null,
     claimSource: 'fallback:code-prefix',
@@ -87,16 +97,17 @@ export function extractAccountIdentity({ idToken, accessToken, fallbackCode }) {
  *
  * @param {object} claims
  * @param {string} source - label like 'id_token' or 'access_token'
+ * @param {string} fallbackEmailDomain
  * @returns {AccountIdentity|null}
  */
-function identityFromClaims(claims, source) {
+function identityFromClaims(claims, source, fallbackEmailDomain) {
   const email = claims.email ?? null;
   const preferredUsername = claims.preferred_username ?? null;
   const sub = claims.sub ?? null;
   const name = claims.name ?? null;
 
   // We need at least one usable identifier.
-  const bestEmail = email ?? preferredUsername ?? (sub ? `${sub}@codex.openai.com` : null);
+  const bestEmail = email ?? preferredUsername ?? (sub ? `${sub}@${fallbackEmailDomain}` : null);
   if (!bestEmail) return null;
 
   return {

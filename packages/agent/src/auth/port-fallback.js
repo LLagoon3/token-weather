@@ -2,10 +2,12 @@
  * Port fallback helper for localhost callback server.
  *
  * Policy (from docs/auth-cli.md):
- * - Default port: 1455 (OpenClaw 문서 기준)
+ * - Default port: 1455 (OpenClaw/Codex 관례. Claude는 `/callback` path를 쓰되 포트는 공유)
  * - On conflict: try +1, +2, +3 (max 3 retries)
  * - If all fail: signal caller to switch to manual paste
  * - If user specified --port: try only that port, fail on conflict
+ *
+ * 1455 기본값은 provider별 spec에서 `defaultPort`로 덮어쓸 수 있다.
  */
 
 import { createServer } from 'node:net';
@@ -31,13 +33,19 @@ export function isPortAvailable(port) {
 /**
  * Find an available callback port according to the fallback policy.
  *
- * @param {object} options
- * @param {number|null} options.preferredPort - User-specified port via --port (null = use default + fallback)
+ * @param {object} [options]
+ * @param {number|null} [options.preferredPort=null] - User-specified port via --port
+ * @param {number} [options.defaultPort=DEFAULT_CALLBACK_PORT] - provider별로 덮어쓸 수 있는 시작 포트
+ * @param {number} [options.maxRetries=MAX_PORT_RETRIES]
  * @returns {Promise<{ port: number|null, fallbackExhausted: boolean }>}
  *   port            – the available port, or null if none found
  *   fallbackExhausted – true when all automatic retries failed (caller should switch to manual paste)
  */
-export async function resolveCallbackPort({ preferredPort = null } = {}) {
+export async function resolveCallbackPort({
+  preferredPort = null,
+  defaultPort = DEFAULT_CALLBACK_PORT,
+  maxRetries = MAX_PORT_RETRIES,
+} = {}) {
   // User explicitly specified a port — try only that one
   if (preferredPort != null) {
     const available = await isPortAvailable(preferredPort);
@@ -46,9 +54,9 @@ export async function resolveCallbackPort({ preferredPort = null } = {}) {
       : { port: null, fallbackExhausted: false };
   }
 
-  // Default port + up to MAX_PORT_RETRIES fallback attempts
-  for (let i = 0; i <= MAX_PORT_RETRIES; i++) {
-    const candidate = DEFAULT_CALLBACK_PORT + i;
+  // Default port + up to maxRetries fallback attempts
+  for (let i = 0; i <= maxRetries; i++) {
+    const candidate = defaultPort + i;
     const available = await isPortAvailable(candidate);
     if (available) {
       return { port: candidate, fallbackExhausted: false };

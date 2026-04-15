@@ -1,7 +1,7 @@
 import { resolveClaudeCredentialsPath, readClaudeCredentials } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
 import { buildClaudeSnapshot } from '../services/status-service.js';
 import { loadAuthStore, saveAuthStore } from '../auth/auth-store.js';
-import { importClaudeAccountIntoStore } from '../auth/import-claude-account-into-store.js';
+import { importClaudeAccountIntoStore } from '../auth/claude-imported-account.js';
 
 /**
  * auth import <provider>

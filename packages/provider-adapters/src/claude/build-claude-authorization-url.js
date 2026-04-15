@@ -1,24 +1,24 @@
 import { CLAUDE_AUTH } from './claude-auth-constants.js';
+import { buildOAuthAuthorizationUrl } from '../shared/oauth-authorization-url.js';
 
 /**
  * Build the Claude (Anthropic) OAuth authorization URL.
  *
- * HTTP 호출은 수행하지 않고, 브라우저에서 열 authorize URL만 조립한다.
+ * HTTP 호출 없이 브라우저에서 열 URL만 조립한다.
  *
- * 주의:
- *   - `clientId`와 `scopes` 기본값은 Claude Code 바이너리에서 관찰된 값.
- *     Anthropic 공식 문서에 기재된 값이 아니므로 성공이 보장되지 않는다.
- *   - redirect_uri는 localhost callback(기본 `/callback`) 또는 Claude platform
- *     manual redirect를 모두 받는다.
+ * 관찰된 사항:
+ *   - OAuth 스펙 외 파라미터 `code=true`가 앞에 필요 (Claude authorize 서버 요구)
+ *   - claude.ai 사용자 OAuth 경로 (CLAUDE_AUTH.authorizationEndpoint)
+ *   - client_id는 Claude Code 바이너리 관찰값 (공식 확정 아님)
  *
  * @param {object} params
- * @param {string} params.callbackUrl - The redirect_uri (localhost or manual).
- * @param {string} params.state - OAuth state parameter.
- * @param {string} params.codeChallenge - PKCE code_challenge value.
- * @param {string} params.codeChallengeMethod - PKCE method ('S256' default in caller).
- * @param {string} [params.clientId] - Override client_id.
- * @param {string[]} [params.scopes] - Override scopes.
- * @returns {string} Authorization URL with query parameters.
+ * @param {string} params.callbackUrl
+ * @param {string} params.state
+ * @param {string} params.codeChallenge
+ * @param {string} params.codeChallengeMethod
+ * @param {string} [params.clientId]
+ * @param {string[]} [params.scopes]
+ * @returns {string}
  */
 export function buildClaudeAuthorizationUrl({
   callbackUrl,
@@ -28,16 +28,19 @@ export function buildClaudeAuthorizationUrl({
   clientId = CLAUDE_AUTH.observedClientId,
   scopes = CLAUDE_AUTH.defaultScopes,
 }) {
-  const url = new URL(CLAUDE_AUTH.authorizationEndpoint);
-  // Claude Code 바이너리가 실제로 붙이는 관찰 파라미터.
-  // `code=true`는 OAuth 스펙 외 파라미터지만 Claude authorize 서버가 기대한다.
-  url.searchParams.set('code', 'true');
-  url.searchParams.set('client_id', clientId);
-  url.searchParams.set('response_type', CLAUDE_AUTH.responseType);
-  url.searchParams.set('redirect_uri', callbackUrl);
-  url.searchParams.set('scope', scopes.join(' '));
-  url.searchParams.set('code_challenge', codeChallenge);
-  url.searchParams.set('code_challenge_method', codeChallengeMethod);
-  url.searchParams.set('state', state);
-  return url.toString();
+  return buildOAuthAuthorizationUrl({
+    endpoint: CLAUDE_AUTH.authorizationEndpoint,
+    params: {
+      // Claude Code가 실제로 붙이는 관찰 파라미터 순서를 그대로 재현한다.
+      // `code=true`는 OAuth 스펙 외 확장이지만 서버가 기대한다.
+      code: 'true',
+      client_id: clientId,
+      response_type: CLAUDE_AUTH.responseType,
+      redirect_uri: callbackUrl,
+      scope: scopes.join(' '),
+      code_challenge: codeChallenge,
+      code_challenge_method: codeChallengeMethod,
+      state,
+    },
+  });
 }

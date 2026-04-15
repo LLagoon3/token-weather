@@ -50,15 +50,36 @@ export function buildCallbackUrl(port, path = '/auth/callback') {
 /**
  * Prepare everything needed before starting the OAuth browser flow.
  *
- * @param {object} options
- * @param {number|null} options.preferredPort - --port flag value (null = auto)
- * @returns {Promise<{ ready: boolean, params: object|null, reason: string|null }>}
+ * @param {object} [options]
+ * @param {number|null} [options.preferredPort=null] - `--port`로 지정된 포트, null이면 기본 포트부터 fallback
+ * @param {string} [options.callbackPath='/auth/callback'] - provider별 callback 경로
+ * @param {number} [options.defaultPort] - preferredPort가 없을 때 사용할 기본 포트 (미지정 시 port-fallback.js의 DEFAULT_CALLBACK_PORT)
+ * @returns {Promise<PreparedCallback>}
+ *
+ * @typedef {object} PreparedCallback
+ * @property {boolean} ready
+ * @property {PreparedCallbackParams|null} params  - ready=false면 null
+ * @property {string|null} reason                  - ready=false일 때의 사용자용 한글 설명
+ * @property {boolean} fallbackExhausted           - 모든 fallback 포트까지 실패한 경우 true
+ *
+ * @typedef {object} PreparedCallbackParams
+ * @property {number} port
+ * @property {string} callbackUrl
+ * @property {string} callbackPath
+ * @property {string} state
+ * @property {string} codeVerifier
+ * @property {string} codeChallenge
+ * @property {'S256'} codeChallengeMethod
  */
 export async function prepareLocalhostCallback({
   preferredPort = null,
   callbackPath = '/auth/callback',
+  defaultPort,
 } = {}) {
-  const { port, fallbackExhausted } = await resolveCallbackPort({ preferredPort });
+  const { port, fallbackExhausted } = await resolveCallbackPort({
+    preferredPort,
+    defaultPort,
+  });
 
   if (port == null) {
     const reason = preferredPort != null
@@ -87,13 +108,15 @@ export async function prepareLocalhostCallback({
  * - missing code query parameter
  * - state mismatch
  *
- * The server closes itself after the first valid or invalid /auth/callback request,
- * or when the timeout fires — whichever comes first.
+ * 서버는 첫 번째 유효/무효 `${callbackPath}` 요청을 처리하거나 타임아웃되면
+ * 자동으로 닫힌다. 그 외 경로는 404를 반환한다.
  *
  * @param {object} options
  * @param {number} options.port
  * @param {string} options.expectedState
  * @param {number} [options.timeoutMs=120000]
+ * @param {string} [options.callbackPath='/auth/callback']
+ * @param {string} [options.providerLabel] - 응답 메시지에 표기할 provider 이름 (예: 'Codex', 'Claude')
  * @returns {Promise<{ code: string, state: string }>}
  */
 export function startLocalhostCallbackServer({
@@ -101,7 +124,9 @@ export function startLocalhostCallbackServer({
   expectedState,
   timeoutMs = 120_000,
   callbackPath = '/auth/callback',
+  providerLabel,
 }) {
+  const prefix = providerLabel ? `[${providerLabel}] ` : '';
   return new Promise((resolve, reject) => {
     let settled = false;
     let timer;
@@ -119,18 +144,18 @@ export function startLocalhostCallbackServer({
       const state = url.searchParams.get('state');
 
       if (!code) {
-        respond(res, 400, '오류: code 파라미터가 없습니다.');
+        respond(res, 400, `${prefix}오류: code 파라미터가 없습니다.`);
         finish(new Error('callback에 code 파라미터가 없습니다.'));
         return;
       }
 
       if (state !== expectedState) {
-        respond(res, 400, '오류: state 값이 일치하지 않습니다.');
+        respond(res, 400, `${prefix}오류: state 값이 일치하지 않습니다.`);
         finish(new Error('state mismatch — CSRF 검증 실패'));
         return;
       }
 
-      respond(res, 200, 'code/state 수신 완료. 이 창을 닫아도 됩니다.');
+      respond(res, 200, `${prefix}code/state 수신 완료. 이 창을 닫아도 됩니다.`);
       finish(null, { code, state });
     });
 

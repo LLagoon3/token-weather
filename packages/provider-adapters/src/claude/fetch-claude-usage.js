@@ -1,28 +1,34 @@
-import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
+import { fetchWithTimeout } from '../shared/fetch-with-timeout.js';
+import {
+  buildUsageSnapshot,
+  toIsoString,
+  parseJsonSafely,
+} from '../shared/usage-snapshot.js';
+
+const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
+const PROVIDER_ID = 'anthropic-claude';
 
 /**
  * Claude OAuth usage endpoint fetcher.
  *
- * 확인된 endpoint / header 세트:
- *   GET https://api.anthropic.com/api/oauth/usage
+ * GET https://api.anthropic.com/api/oauth/usage
  *   Authorization: Bearer <accessToken>
  *   anthropic-version: 2023-06-01
  *   anthropic-beta: oauth-2025-04-20
  *
  * 응답 shape (관찰값):
- *   {
- *     five_hour: { utilization: number, resets_at: ISO string },
- *     seven_day: { utilization: number, resets_at: ISO string },
- *     seven_day_sonnet: { utilization: number },
- *     seven_day_opus: { utilization: number }
- *   }
+ *   five_hour: { utilization, resets_at }
+ *   seven_day: { utilization, resets_at }
+ *   seven_day_sonnet: { utilization }
+ *   seven_day_opus:   { utilization }
  *
  * @param {{ id: string, accessToken: string, accountId?: string|null, email?: string|null }} profile
- * @param {{ fetchImpl?: typeof fetch, capturedAt?: Date }} [options]
+ * @param {{ fetchImpl?: typeof fetch, capturedAt?: Date, timeoutMs?: number }} [options]
  */
 export async function fetchClaudeUsage(profile, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const capturedAt = options.capturedAt ?? new Date();
+  const timeoutMs = options.timeoutMs ?? 15_000;
 
   const headers = {
     Authorization: `Bearer ${profile.accessToken}`,
@@ -32,81 +38,47 @@ export async function fetchClaudeUsage(profile, options = {}) {
     'anthropic-beta': 'oauth-2025-04-20',
   };
 
-  const response = await fetchImpl('https://api.anthropic.com/api/oauth/usage', {
+  const response = await fetchWithTimeout(fetchImpl, USAGE_URL, {
     method: 'GET',
     headers,
+    timeoutMs,
   });
 
   const text = await response.text();
-  let data = null;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = null;
-  }
+  const data = parseJsonSafely(text);
+  const ok = response.ok;
 
-  return createClaudeUsageSnapshot({
+  return buildUsageSnapshot({
     profile,
+    providerId: PROVIDER_ID,
+    displayName: 'Claude',
+    snapshotIdPrefix: 'claude',
     capturedAt,
     responseStatus: response.status,
-    ok: response.ok,
+    ok,
     data,
     rawText: text,
+    fields: {
+      plan: data?.plan ?? null,
+      usageWindows: ok ? buildClaudeWindows(data) : [],
+      raw: {
+        five_hour: data?.five_hour ?? null,
+        seven_day: data?.seven_day ?? null,
+        seven_day_sonnet: data?.seven_day_sonnet ?? null,
+        seven_day_opus: data?.seven_day_opus ?? null,
+      },
+      extraBucket: claudeStatusBucket,
+    },
   });
 }
 
-function createClaudeUsageSnapshot({ profile, capturedAt, responseStatus, ok, data, rawText }) {
-  const capturedAtIso = toIsoString(capturedAt);
-  const lastSuccessAt = ok ? capturedAtIso : null;
-  const lastFailureAt = ok ? null : capturedAtIso;
-
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    snapshotId: `claude:${profile.id}:${capturedAtIso}`,
-    capturedAt: capturedAtIso,
-    provider: {
-      id: 'anthropic-claude',
-      displayName: 'Claude',
-      region: null,
-    },
-    account: {
-      profileId: profile.id,
-      accountId: profile.accountId ?? null,
-      email: profile.email ?? null,
-      plan: data?.plan ?? null,
-    },
-    source: 'provider_usage_endpoint',
-    authType: 'oauth',
-    confidence: ok ? 'high' : 'medium',
-    status: {
-      bucket: resolveStatusBucket(responseStatus, ok, data),
-      ok,
-      httpStatus: responseStatus,
-      message: ok ? null : safeErrorMessage(data, rawText),
-      lastSuccessAt,
-      lastFailureAt,
-    },
-    usageWindows: ok
-      ? [
-          normalizeWindow('five_hour', '5h', data?.five_hour),
-          normalizeWindow('seven_day', 'Week', data?.seven_day),
-          normalizeModelWindow('seven_day_sonnet', 'Sonnet', data?.seven_day_sonnet),
-          normalizeModelWindow('seven_day_opus', 'Opus', data?.seven_day_opus),
-        ].filter(Boolean)
-      : [],
-    credits: {
-      balance: null,
-      unit: null,
-    },
-    raw: {
-      provider: 'anthropic-claude',
-      five_hour: data?.five_hour ?? null,
-      seven_day: data?.seven_day ?? null,
-      seven_day_sonnet: data?.seven_day_sonnet ?? null,
-      seven_day_opus: data?.seven_day_opus ?? null,
-      rawError: ok ? null : (rawText ?? '').slice(0, 500),
-    },
-  };
+function buildClaudeWindows(data) {
+  return [
+    normalizeWindow('five_hour', '5h', data?.five_hour),
+    normalizeWindow('seven_day', 'Week', data?.seven_day),
+    normalizeModelWindow('seven_day_sonnet', 'Sonnet', data?.seven_day_sonnet),
+    normalizeModelWindow('seven_day_opus', 'Opus', data?.seven_day_opus),
+  ].filter(Boolean);
 }
 
 function normalizeWindow(kind, label, window) {
@@ -145,30 +117,16 @@ function clampPercent(value) {
   return scaled;
 }
 
-function resolveStatusBucket(status, ok, data) {
-  if (ok) return 'ok';
-  if (status === 401) return 'auth';
+/**
+ * Claude 전용 status bucket 분기. `extraBucket`으로 buildUsageSnapshot에 주입된다.
+ * 표준 분기에서 처리할 수 없는 케이스만 여기서 반환하고, null이면 표준 분기로 위임.
+ */
+function claudeStatusBucket(status, data) {
   if (status === 403) {
     const message = data?.error?.message;
     if (typeof message === 'string' && message.includes('scope requirement')) {
       return 'auth_scope';
     }
-    return 'auth';
   }
-  if (status === 429) return 'rate_limit';
-  if (status === 402) return 'billing';
-  if (status >= 500) return 'overloaded';
-  return 'unknown';
-}
-
-function safeErrorMessage(data, rawText) {
-  const apiMessage = data?.error?.message;
-  if (typeof apiMessage === 'string' && apiMessage.trim()) {
-    return apiMessage.trim();
-  }
-  return rawText ? rawText.slice(0, 500) : 'unknown error';
-}
-
-function toIsoString(value) {
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+  return null;
 }

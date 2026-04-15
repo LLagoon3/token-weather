@@ -1,54 +1,39 @@
-# Auth CLI 인터페이스 초안
+# Auth CLI 인터페이스
 
-## 목표
+`ai-usage-agent`의 인증 관련 CLI 명령 집합과 운영 정책을 정리한다.
 
-`ai-usage-agent`가 OpenClaw 없이도 자체 인증을 수행할 수 있도록 auth 관련 CLI 명령 집합을 정의한다.
-
-## 기본 명령 구조
+## 명령 구조
 
 ```text
 ai-usage-agent auth <subcommand> [provider] [options]
+ai-usage-agent doctor [provider] [options]
 ```
 
-## 우선 구현 후보
-
-### 1. login
+## login
 
 ```bash
-ai-usage-agent auth login codex
+ai-usage-agent auth login codex   [--live-exchange] [--manual] [--no-open] [--port N] [--timeout SEC]
+ai-usage-agent auth login claude  [--live-exchange] [--port N] [--timeout SEC]
 ```
 
-현재 구현 상태:
-- authorize → localhost callback → code/state 수신까지 동작 검증됨
-- authorization URL은 OpenClaw observed alignment 기준으로 생성됨
-- 기본 경로는 token exchange 없이 mock 저장으로 끝남
-- `--live-exchange` 옵션으로 실제 token exchange 수행 가능 (동작 검증됨, 실험적)
-- 브라우저 자동 열기는 아직 미구현
-- `--manual`에서는 mock 저장 흐름이 동작
+동작:
+- localhost callback OAuth (PKCE S256 + state) 기반
+- 기본 경로는 token exchange 없이 **mock 저장**
+- `--live-exchange` 시 provider token endpoint에 실제 POST (실험적, guard 해제)
+- 성공 시 agent-store(`auth.json`)에 access/refresh token 저장
 
-옵션 예시:
+옵션:
+- `--live-exchange`: 실제 token 교환 시도. 실패 시 mock fallback 없이 에러 표시
+- `--manual` (Codex): callback URL/code 수동 붙여넣기
+- `--no-open` (Codex): 브라우저 자동 실행 안 함
+- `--port N`: localhost callback 포트 지정
+- `--timeout SEC`: callback 대기 시간 (기본 120초)
 
-```bash
-ai-usage-agent auth login codex --no-open
-ai-usage-agent auth login codex --manual
-ai-usage-agent auth login codex --device
-ai-usage-agent auth login codex --port 38123
-ai-usage-agent auth login codex --live-exchange
-```
+provider별 callback 경로:
+- Codex: `/auth/callback`
+- Claude: `/callback`
 
-옵션 의미:
-- `--no-open`: 브라우저 자동 실행 안 함
-- `--manual`: callback URL 또는 code 수동 입력 흐름 강제
-- `--device`: 후순위 실험용 옵션, provider 지원 확인 전까지는 기본 경로로 사용하지 않음
-- `--port`: localhost callback 포트 지정
-- `--live-exchange`: **실험적** — callback에서 수신한 code로 실제 token endpoint에 POST를 시도.
-  기본 동작(mock 저장)을 대체하며, 실패 시 mock fallback 없이 에러를 표시.
-  주의: PKCE S256이 적용되어 있으나, client_id는 관찰값(observed)이므로 성공이 보장되지 않음.
-  성공 시 account 식별은 id_token → access_token JWT claims에서 추출을 시도하며,
-  claims를 얻을 수 없으면 code prefix 기반 임시값으로 fallback한다.
-  어떤 claim source가 사용되었는지는 저장된 raw의 `identityClaimSource`에 기록된다.
-
-### 2. list
+## list
 
 ```bash
 ai-usage-agent auth list
@@ -56,140 +41,114 @@ ai-usage-agent auth list openai-codex
 ai-usage-agent auth list claude
 ```
 
-Claude 구현 상태:
-- `auth list claude`는 `~/.claude/.credentials.json` 기준으로 account 표시
-- 수동 CLI 검증 완료 (live network 호출 없음)
-- write/import 경로는 미구현 (다음 단계)
+출력 필드: provider, accountKey, email, source, authType, status, mock 여부, liveToken 여부, refresh 가능 여부, expiresAt, createdAt, updatedAt.
 
-현재 출력 필드:
-- provider
-- accountKey
-- email
-- source
-- authType
-- expiresAt
-- mock 여부
-- refresh 가능 여부
+Claude는 agent-store에 저장된 계정과 `~/.claude/.credentials.json` import source 양쪽을 표시한다.
 
-### 3. logout
+## logout
 
 ```bash
-ai-usage-agent auth logout codex
-ai-usage-agent auth logout codex --account choonarm3@gmail.com
+ai-usage-agent auth logout <provider>
+ai-usage-agent auth logout <provider> --account <email|accountKey>
 ```
 
-동작:
 - 로컬 auth store에서 해당 계정 제거
-- provider 측 revoke endpoint 호출은 아직 미구현
+- provider 측 revoke endpoint 호출은 미구현 (후속)
 
-### 4. doctor
+## import
 
 ```bash
-ai-usage-agent doctor
-ai-usage-agent doctor codex
-ai-usage-agent doctor codex --refresh-live
-ai-usage-agent doctor claude
+ai-usage-agent auth import openclaw   # OpenClaw auth-profiles.json → agent-store
+ai-usage-agent auth import claude     # ~/.claude/.credentials.json → agent-store
 ```
 
-Claude 구현 상태:
-- `doctor claude`는 `~/.claude/.credentials.json` 기준으로 selectedAccount 표시
-- 수동 CLI 검증 완료 (live network 호출 없음)
+- runtime 기본 경로가 아닌 **migration/흡수** 용도
+- Claude import는 CLI credential을 그대로 복사하는 빠른 경로 (네트워크 호출 없음)
+
+## doctor
+
+```bash
+ai-usage-agent doctor                        # 공통 상태 점검
+ai-usage-agent doctor codex                  # Codex 계정/refresh 가능성 점검
+ai-usage-agent doctor codex  --refresh-live  # 실제 refresh POST
+ai-usage-agent doctor codex  --account <id>  # 특정 계정 지정
+ai-usage-agent doctor claude                 # Claude credential + live usage 점검
+ai-usage-agent doctor claude --refresh-live  # Claude refresh POST
+```
 
 점검 항목:
-- auth store 존재 여부
-- provider 계정 존재 여부
-- expiresAt 만료 여부
-- refresh 가능 여부
-- callback 포트/환경 문제 힌트
-- 현재 기본 선택될 계정이 무엇인지
-- `--refresh-live` 시 실제 refresh token 재발급 시도 및 store 갱신
+- auth store / credential 파일 존재 여부
+- 선택될 계정 (agent-store > import 우선순위)
+- expiresAt 만료 임박 여부
+- refresh 가능 여부 (refreshToken 존재 + mock 아님)
+- live usage endpoint 응답 요약
+- `--refresh-live` 시 실제 refresh 호출 + 결과 표시
 
-### 5. import
+## Guard 정책 (`allowLiveExchange`)
 
-```bash
-ai-usage-agent auth import openclaw
-```
+- `exchangeCodexAuthorizationCode`, `refreshCodexToken`, `exchangeClaudeAuthorizationCode`, `refreshClaudeToken` 모두 기본 guarded
+- CLI의 `--live-exchange` / `--refresh-live`를 통해서만 guard 해제
+- 실패 시 mock fallback 없이 에러 노출 (사용자 혼동 방지)
+- 관찰값(observed client_id, endpoint)이 변경될 때 자동 재시도로 피해가 커지는 것 방지
 
-목적:
-- 기존 OpenClaw 사용자의 migration 지원
-- 런타임 기본 의존이 아니라 초기 전환 도구로만 제공
+guard를 해제할 시점:
+1. client_id 공식 확정
+2. client_secret 요구사항 명확화
+3. 장기 안정성 확인
 
-## 추천 UX 원칙
+## 포트 충돌 정책 (Codex)
+
+- 기본 포트: `1455`
+- 충돌 시 `1456`, `1457` 순으로 최대 3회 시도
+- 3회 모두 실패 → manual paste 모드 자동 전환
+- `--port` 명시 시 해당 포트만 시도, 실패 시 에러
+
+Claude는 동일한 `resolveCallbackPort` 로직을 사용하되 callback path가 다르다.
+
+## Multi-account 정책
+
+- 계정 1개: 자동 선택
+- 계정 여러 개: `lastUsedAt`이 가장 최근인 active 계정 선택
+- `--account`로 명시 override 가능 (email 또는 accountKey)
+
+## UX 원칙
 
 - 기본 명령은 최대한 짧게
 - 세부 제어는 옵션으로 열기
 - 실패 시 단순한 에러 대신 다음 행동을 안내
-- headless 환경을 위한 fallback 경로를 명확히 제공
-- multi-account는 자동 선택 + 명시 override 방식으로 단순하게 유지
+- headless/원격 환경용 fallback 경로를 명확히 제공
+- multi-account는 자동 + 명시 override
 
 ## 예시 시나리오
 
-### 일반 데스크톱 환경
+### 데스크톱: Claude 독립 OAuth
 
 ```bash
-ai-usage-agent auth login codex
+ai-usage-agent auth login claude --live-exchange
+# authorize URL 출력 → 브라우저에서 직접 열기
+# 로그인 완료 → localhost callback 수신 → token 저장
+ai-usage-agent status
 ```
 
-출력:
-1. 브라우저를 여는 중...
-2. 로그인 완료 후 callback 수신 대기...
-3. 저장 완료
+### 데스크톱: Claude 빠른 import
 
-### SSH / 원격 환경
+```bash
+# Claude CLI로 이미 로그인된 상태에서
+ai-usage-agent auth import claude
+ai-usage-agent status
+```
+
+### SSH/원격: Codex manual
 
 ```bash
 ai-usage-agent auth login codex --manual --no-open
+# 안내에 따라 brower로 URL 수동 오픈 → 반환 URL 전체 붙여넣기
 ```
-
-현재 출력/동작:
-1. callback URL 전체 또는 code 입력 요청
-2. mock 계정을 auth store에 저장 (manual 경로는 token exchange 미수행)
-
-## 포트 충돌 정책
-
-- 기본 포트: `1455` (OpenClaw 문서 기준)
-- 포트 충돌 시 `1456`, `1457` 순으로 최대 3회 자동 재시도
-- 3회 모두 실패하면 manual paste 모드로 자동 전환
-- 사용자가 `--port`를 명시한 경우는 해당 포트만 시도하고 실패 시 에러 반환
-
-## multi-account 정책
-
-- 계정이 1개면 자동 선택
-- 계정이 여러 개면 `lastUsedAt`이 가장 최근인 active 계정 사용
-- `--account`로 명시 지정 가능
-
-## Codex OAuth endpoint 검증 현황
-
-아래 endpoint는 OpenClaw 로컬 문서/코드로부터 검증됨:
-- authorize: `https://auth.openai.com/oauth/authorize`
-- token: `https://auth.openai.com/oauth/token`
-- callback: `http://localhost:1455/auth/callback` (host는 `localhost` — OpenClaw 관찰 기준)
-
-client_id `app_EMoamEEZ73f0CkXaXp7hrann`은 로컬 JWT에서 관찰된 값이며, 공식 확정이 아님.
-
-현재 authorize URL은 OpenClaw가 실제로 생성하는 URL과 최대한 동일하게 정렬했다 (observed alignment).
-- scopes: `openid profile email offline_access`
-- extra params: `id_token_add_organizations=true`, `codex_cli_simplified_flow=true`, `originator=pi`
-
-이 정렬은 관찰 기반이며 공식 문서 확정이 아니므로, provider 변경 시 재정렬이 필요할 수 있다.
-
-## token exchange guard 정책
-
-`exchangeCodexAuthorizationCode()`와 `refreshCodexToken()`은 실제 fetch 코드가 포함되어 있지만,
-기본 동작은 `allowLiveExchange: false`로 보호되어 외부 호출을 하지 않는다.
-
-- CLI에서 `--live-exchange` 옵션을 명시하면 `allowLiveExchange: true`로 실제 token endpoint POST가 수행된다.
-- `--live-exchange` 없이 실행하면 기존과 동일한 mock 저장 흐름을 유지한다.
-- live exchange 실패 시 mock fallback 없이 에러를 표시한다 (사용자 혼동 방지).
-- `doctor codex --refresh-live`로 실제 refresh POST를 명시적으로 검증할 수 있다.
-- refresh 성공 시 accessToken, refreshToken, expiresAt를 store에 반영하고, 실패 시 저장값은 유지한다.
-- PKCE S256은 구현 완료됨. 이 guard는 client_id 공식 확정 시점까지 유지한다.
 
 ## 아직 미정인 부분
 
-- client_id 공식 확정 (현재는 관찰값만 존재)
-- client_secret 요구사항
-- revoke endpoint를 각 provider에서 어디까지 지원할지
-- `auth import openclaw`를 기본 노출할지 숨길지
-- device code를 실제로 도입할 provider 범위
-- claims에서 실제 email/sub가 얼마나 안정적으로 오는지 추가 관찰
+- client_secret 요구 여부 (Codex / Claude 모두)
+- revoke endpoint 지원 범위 (logout 시 서버측 무효화)
+- device code flow 도입 여부
+- keychain 연동
+- `auth import openclaw` 기본 노출 여부 (현재는 보조 명령으로 유지)
