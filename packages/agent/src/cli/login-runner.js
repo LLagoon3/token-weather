@@ -2,9 +2,15 @@ import {
   prepareLocalhostCallback,
   startLocalhostCallbackServer,
 } from '../auth/localhost-callback.js';
-import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
+import {
+  loadAuthStore,
+  saveAuthStore,
+  upsertProviderAccount,
+  removeProviderAccount,
+} from '../auth/auth-store.js';
 import { createAccount } from '../auth/auth-store-schema.js';
 import { extractAccountIdentity } from '../auth/token-claims.js';
+import { findLegacyDuplicates } from '../auth/find-legacy-duplicates.js';
 
 /**
  * Provider spec shape used by runOAuthLoginFlow.
@@ -95,6 +101,7 @@ export async function runOAuthLoginFlow(spec, options) {
         codeVerifier,
         state,
         label: options.label ?? null,
+        keepLegacy: options.keepLegacy ?? false,
       });
     } else if (spec.supportsMockCallback && spec.saveMockAccount) {
       await spec.saveMockAccount({ code: result.code });
@@ -109,7 +116,7 @@ export async function runOAuthLoginFlow(spec, options) {
   }
 }
 
-async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, state, label }) {
+async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, state, label, keepLegacy }) {
   console.log('');
   console.log('⚠ --live-exchange 모드: 실제 token endpoint에 POST를 시도합니다.');
   if (spec.endpointDescription) console.log(`  ${spec.endpointDescription}`);
@@ -137,7 +144,7 @@ async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, stat
     });
     console.log(`  identity source: ${identity.claimSource}`);
 
-    await saveLiveExchangeAccount(spec, tokenResponse, identity, { label });
+    await saveLiveExchangeAccount(spec, tokenResponse, identity, { label, keepLegacy });
   } catch (err) {
     console.log('');
     console.log(`❌ live token exchange 실패: ${err.message}`);
@@ -151,7 +158,7 @@ async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, stat
   }
 }
 
-async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label } = {}) {
+async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label, keepLegacy } = {}) {
   const now = new Date();
   const expiresAt = tokenResponse.expiresIn
     ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
@@ -185,7 +192,29 @@ async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label } 
   account.expiresAt = expiresAt;
 
   const store = await loadAuthStore();
-  const nextStore = upsertProviderAccount(store, spec.storeKey, account);
+  const existingAccounts = store.providers?.[spec.storeKey]?.accounts ?? [];
+  const duplicates = findLegacyDuplicates(existingAccounts, account);
+
+  let storeAfterCleanup = store;
+  if (duplicates.length > 0) {
+    if (keepLegacy) {
+      console.log('');
+      console.log('ℹ 같은 identity(sub/email)로 저장된 legacy accountKey를 감지했지만 --keep-legacy로 유지합니다:');
+      for (const dup of duplicates) {
+        console.log(`  - ${dup.accountKey} (${dup.reason})`);
+      }
+    } else {
+      console.log('');
+      console.log('ℹ 같은 identity(sub/email)로 저장된 legacy accountKey를 감지해 자동 정리합니다:');
+      for (const dup of duplicates) {
+        console.log(`  - 제거: ${dup.accountKey} (${dup.reason})`);
+        storeAfterCleanup = removeProviderAccount(storeAfterCleanup, spec.storeKey, dup.accountKey);
+      }
+      console.log('  (유지를 원하면 --keep-legacy 옵션 사용)');
+    }
+  }
+
+  const nextStore = upsertProviderAccount(storeAfterCleanup, spec.storeKey, account);
   await saveAuthStore(nextStore);
 
   console.log('');
@@ -218,6 +247,7 @@ export function parseLoginOptions(args) {
     port: null,
     timeoutMs: 120_000,
     label: null,
+    keepLegacy: false,
     warnings: [],
   };
 
@@ -227,6 +257,7 @@ export function parseLoginOptions(args) {
     else if (arg === '--manual') options.manual = true;
     else if (arg === '--device') options.device = true;
     else if (arg === '--live-exchange') options.liveExchange = true;
+    else if (arg === '--keep-legacy') options.keepLegacy = true;
     else if (arg === '--port') {
       const value = args[index + 1];
       if (value !== undefined) {

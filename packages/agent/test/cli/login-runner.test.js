@@ -13,6 +13,7 @@ describe('parseLoginOptions — defaults & flags', () => {
       port: null,
       timeoutMs: 120_000,
       label: null,
+      keepLegacy: false,
       warnings: [],
     });
   });
@@ -119,6 +120,17 @@ describe('parseLoginOptions — combined', () => {
   it('collects multiple warnings independently', () => {
     const opts = parseLoginOptions(['--port', 'x', '--timeout', 'y']);
     assert.equal(opts.warnings.length, 2);
+  });
+});
+
+describe('parseLoginOptions — --keep-legacy', () => {
+  it('toggles keepLegacy=true', () => {
+    const opts = parseLoginOptions(['--keep-legacy']);
+    assert.equal(opts.keepLegacy, true);
+  });
+
+  it('defaults to false when not provided', () => {
+    assert.equal(parseLoginOptions([]).keepLegacy, false);
   });
 });
 
