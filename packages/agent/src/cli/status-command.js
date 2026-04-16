@@ -120,7 +120,10 @@ export function formatClaudeSection(claude) {
   const lines = ['Claude usage', '------------'];
   lines.push(`인증 소스: ${claude.authSource}`);
   lines.push(`credential 감지: ${claude.detected}`);
-  if (claude.selectedAccount) {
+  // `기본 계정` 라인은 accountFilter가 없을 때만 표시한다.
+  // 필터가 걸려 있으면 아래 네트워크 조회 블록에 실제 조회 대상이 드러나고,
+  // 상단 'accountFilter' 라인에서 필터 값도 이미 보이므로 혼동을 피하기 위해 생략.
+  if (claude.selectedAccount && !claude.accountFilter) {
     lines.push(`기본 계정: ${claude.selectedAccount.accountKey}`);
   }
 

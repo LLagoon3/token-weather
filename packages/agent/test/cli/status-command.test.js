@@ -359,3 +359,38 @@ describe('formatClaudeNetworkUsages — filteredOut context', () => {
     assert.ok(lines.some((l) => l.includes('계정 필터 "nope"에 해당하는 Claude 계정을 찾지 못했습니다')));
   });
 });
+
+describe('formatClaudeSection — 기본 계정 라인 visibility', () => {
+  const baseClaude = {
+    authSource: 'agent-store',
+    detected: true,
+    selectedAccount: { accountKey: 'a:default' },
+    usage: { source: 'not-found' },
+    networkUsages: [
+      {
+        accountKey: 'a:default',
+        snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+      },
+    ],
+  };
+
+  it('shows "기본 계정" line when accountFilter is not set', () => {
+    const lines = formatClaudeSection(baseClaude);
+    assert.ok(lines.some((l) => l.startsWith('기본 계정: a:default')));
+  });
+
+  it('hides "기본 계정" line when accountFilter is active (avoid confusion with filtered set)', () => {
+    const lines = formatClaudeSection({
+      ...baseClaude,
+      accountFilter: 'work',
+      networkUsages: [
+        {
+          accountKey: 'a:work',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+      ],
+    });
+    assert.ok(!lines.some((l) => l.startsWith('기본 계정:')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+  });
+});
