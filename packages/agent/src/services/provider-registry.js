@@ -25,13 +25,25 @@ export const PROVIDER_REGISTRY = Object.freeze([
 
 /**
  * Run all registered providers with the given config and return keyed snapshots.
+ * CLI로 전달된 accountFilter가 있으면 그 값을 우선 적용하고, 없으면
+ * config.defaults.profiles.<provider>로 fallback한다.
+ *
  * @param {object} config
  * @param {RunOptions} [options]
  * @returns {Promise<Record<string, object>>}
  */
-export async function runProviderSnapshots(config, options) {
+export async function runProviderSnapshots(config, options = {}) {
   const entries = await Promise.all(
-    PROVIDER_REGISTRY.map(async (p) => [p.id, await p.getSnapshot(config, options)]),
+    PROVIDER_REGISTRY.map(async (p) => {
+      const providerOptions = {
+        ...options,
+        accountFilter:
+          options.accountFilter
+            ?? config?.defaults?.profiles?.[p.id]
+            ?? null,
+      };
+      return [p.id, await p.getSnapshot(config, providerOptions)];
+    }),
   );
   return Object.fromEntries(entries);
 }

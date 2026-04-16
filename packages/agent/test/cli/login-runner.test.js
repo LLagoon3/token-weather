@@ -12,6 +12,7 @@ describe('parseLoginOptions — defaults & flags', () => {
       liveExchange: false,
       port: null,
       timeoutMs: 120_000,
+      label: null,
       warnings: [],
     });
   });
@@ -118,5 +119,26 @@ describe('parseLoginOptions — combined', () => {
   it('collects multiple warnings independently', () => {
     const opts = parseLoginOptions(['--port', 'x', '--timeout', 'y']);
     assert.equal(opts.warnings.length, 2);
+  });
+});
+
+describe('parseLoginOptions — --label', () => {
+  it('stores trimmed label value', () => {
+    const opts = parseLoginOptions(['--label', '  work  ']);
+    assert.equal(opts.label, 'work');
+    assert.deepEqual(opts.warnings, []);
+  });
+
+  it('warns when label is empty string', () => {
+    const opts = parseLoginOptions(['--label', '   ']);
+    assert.equal(opts.label, null);
+    assert.equal(opts.warnings.length, 1);
+    assert.match(opts.warnings[0], /--label 값이 비어/);
+  });
+
+  it('accepts --label together with --live-exchange', () => {
+    const opts = parseLoginOptions(['--label', 'personal', '--live-exchange']);
+    assert.equal(opts.label, 'personal');
+    assert.equal(opts.liveExchange, true);
   });
 });

@@ -89,7 +89,8 @@ export function filterProfilesByAccount(profiles, accountFilter) {
   return profiles.filter(
     (p) =>
       (p.id ?? '').toLowerCase() === needle
-      || (p.email ?? '').toLowerCase() === needle,
+      || (p.email ?? '').toLowerCase() === needle
+      || (p.label ?? '').toLowerCase() === needle,
   );
 }
 
@@ -105,6 +106,7 @@ function resolveClaudeProfilesForFetch(base, agentClaudeAccounts) {
       accessToken: a.tokens?.accessToken ?? a.accessToken ?? null,
       accountId: a.accountId ?? null,
       email: a.email ?? null,
+      label: a.label ?? null,
     })).filter((p) => p.accessToken);
   }
   const single = resolveClaudeProfileFromSnapshot(base);

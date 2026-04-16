@@ -57,7 +57,8 @@ export function filterProfilesByAccount(profiles, accountFilter) {
   return profiles.filter(
     (p) =>
       (p.id ?? '').toLowerCase() === needle
-      || (p.email ?? '').toLowerCase() === needle,
+      || (p.email ?? '').toLowerCase() === needle
+      || (p.label ?? '').toLowerCase() === needle,
   );
 }
 
@@ -128,6 +129,7 @@ function mapAccountToProfile(account) {
     accessToken: account.tokens.accessToken,
     accountId: account.accountId ?? null,
     email: account.email ?? null,
+    label: account.label ?? null,
     expires: account.expiresAt ?? null,
   };
 }

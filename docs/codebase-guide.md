@@ -281,6 +281,20 @@ Provider spec shape(`LoginProviderSpec`):
 - `accountKeyPrefix`는 snapshot의 `provider.id`와 같다 (`openai-codex`, `anthropic-claude`).
 - identity는 `extractAccountIdentity` 결과 중 `accountId`(JWT sub) 우선, 없으면 `email`, 둘 다 없으면 `'live'`.
 
+### 6.2.1 Account label
+
+account에는 optional `label` 필드가 있다 (`createAccount({ label })`).
+- `auth login <provider> --label <name>`으로 저장 시 지정.
+- `auth list` 출력에 `label` 라인이 항상 포함 (미설정 시 `(없음)`).
+- `resolveAccountByIdentifier(accounts, id)`가 email / accountKey / label 세 축을 case-insensitive 매치하므로,
+  `doctor codex --account work`, `status --account work`처럼 label로도 필터 가능하다.
+
+### 6.2.2 기본 프로필(config)
+
+`config.json`의 `defaults.profiles.{provider}`에 accountKey / email / label 중 하나를 설정하면,
+CLI에서 별도 `--account`를 주지 않을 때 해당 계정(또는 매치되는 집합)만 조회한다.
+`--account` CLI 옵션이 주어지면 설정값을 덮어쓴다.
+
 ### 6.3 Import 경로
 
 각 provider에 대해 두 import 경로가 공존할 수 있다:

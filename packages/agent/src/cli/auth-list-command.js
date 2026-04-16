@@ -43,6 +43,7 @@ export async function runAuthListCommand(provider, options = {}) {
       const lines = [
         `  accountKey : ${acct.accountKey}`,
         `  email      : ${acct.email ?? '(없음)'}`,
+        `  label      : ${acct.label ?? '(없음)'}`,
         `  source     : ${acct.source ?? '(알 수 없음)'}`,
         `  authType   : ${acct.authType ?? '(알 수 없음)'}`,
         `  status     : ${status}`,

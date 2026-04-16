@@ -31,7 +31,7 @@ import { extractAccountIdentity } from '../auth/token-claims.js';
  * 공통 흐름을 수행한다.
  *
  * @param {LoginProviderSpec} spec
- * @param {{ port: number|null, timeoutMs: number, liveExchange: boolean }} options
+ * @param {{ port: number|null, timeoutMs: number, liveExchange: boolean, label?: string|null }} options
  */
 export async function runOAuthLoginFlow(spec, options) {
   const prepared = await prepareLocalhostCallback({
@@ -94,6 +94,7 @@ export async function runOAuthLoginFlow(spec, options) {
         callbackUrl,
         codeVerifier,
         state,
+        label: options.label ?? null,
       });
     } else if (spec.supportsMockCallback && spec.saveMockAccount) {
       await spec.saveMockAccount({ code: result.code });
@@ -108,7 +109,7 @@ export async function runOAuthLoginFlow(spec, options) {
   }
 }
 
-async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, state }) {
+async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, state, label }) {
   console.log('');
   console.log('⚠ --live-exchange 모드: 실제 token endpoint에 POST를 시도합니다.');
   if (spec.endpointDescription) console.log(`  ${spec.endpointDescription}`);
@@ -136,7 +137,7 @@ async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, stat
     });
     console.log(`  identity source: ${identity.claimSource}`);
 
-    await saveLiveExchangeAccount(spec, tokenResponse, identity);
+    await saveLiveExchangeAccount(spec, tokenResponse, identity, { label });
   } catch (err) {
     console.log('');
     console.log(`❌ live token exchange 실패: ${err.message}`);
@@ -150,7 +151,7 @@ async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, stat
   }
 }
 
-async function saveLiveExchangeAccount(spec, tokenResponse, identity) {
+async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label } = {}) {
   const now = new Date();
   const expiresAt = tokenResponse.expiresIn
     ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
@@ -164,6 +165,7 @@ async function saveLiveExchangeAccount(spec, tokenResponse, identity) {
     accountId: identity.accountId,
     authType: 'oauth',
     source: 'agent-store',
+    label: label ?? null,
     tokens: {
       accessToken: tokenResponse.accessToken,
       refreshToken: tokenResponse.refreshToken ?? null,
@@ -215,6 +217,7 @@ export function parseLoginOptions(args) {
     liveExchange: false,
     port: null,
     timeoutMs: 120_000,
+    label: null,
     warnings: [],
   };
 
@@ -247,6 +250,17 @@ export function parseLoginOptions(args) {
           );
         } else {
           options.timeoutMs = parsed * 1000;
+        }
+        index += 1;
+      }
+    } else if (arg === '--label') {
+      const value = args[index + 1];
+      if (value !== undefined) {
+        const trimmed = String(value).trim();
+        if (trimmed.length === 0) {
+          options.warnings.push('--label 값이 비어 있습니다.');
+        } else {
+          options.label = trimmed;
         }
         index += 1;
       }
