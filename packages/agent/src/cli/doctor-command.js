@@ -2,6 +2,7 @@ import { resolveAgentConfigPath } from '../config/config-path.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveAccount } from '../auth/account-resolver.js';
 import { getClaudeSnapshot } from '../services/status-service.js';
+import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
 import {
   formatClaudeSection,
   formatTokenExpiry,
@@ -86,11 +87,55 @@ async function runDoctorClaudeRefreshLive(snapshot) {
     return;
   }
 
+  // claude-cli-import source는 auth-store에 대응 레코드가 없으므로(원본 파일을 비파괴로
+  // 읽어오는 경로) store 갱신 대신 안내 메시지만 출력한다.
+  const isImportSource = account?.source === 'claude-cli-import';
+
   console.log('');
-  await runRefreshLiveAttempt(CLAUDE_REFRESH_SPEC, refreshToken, () => {
-    console.log('');
-    console.log('ℹ 현재는 결과만 표시합니다. Claude agent-store 연결은 별도 단계에서 붙입니다.');
+  await runRefreshLiveAttempt(CLAUDE_REFRESH_SPEC, refreshToken, async (tokenResponse) => {
+    if (isImportSource) {
+      console.log('');
+      console.log('ℹ claude-cli-import 출처 계정입니다 — agent-store에는 대응 레코드가 없어');
+      console.log('  새 토큰을 저장하지 않습니다 (원본 ~/.claude/.credentials.json 비파괴).');
+      console.log('  agent-store에 유지하려면 `auth login claude --live-exchange`로 재로그인하세요.');
+      return;
+    }
+    await updateClaudeStoreAfterRefresh(account, tokenResponse);
   });
+}
+
+async function updateClaudeStoreAfterRefresh(account, tokenResponse) {
+  const now = new Date();
+  const expiresAt = tokenResponse.expiresIn
+    ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
+    : null;
+
+  const updatedAccount = {
+    ...account,
+    tokens: {
+      ...account.tokens,
+      accessToken: tokenResponse.accessToken,
+      refreshToken: tokenResponse.refreshToken,
+    },
+    expiresAt,
+    updatedAt: now.toISOString(),
+    lastUsedAt: now.toISOString(),
+    raw: {
+      ...account.raw,
+      lastRefreshedAt: now.toISOString(),
+      scope: tokenResponse.scope ?? account.raw?.scope ?? null,
+      tokenType: tokenResponse.tokenType ?? account.raw?.tokenType ?? null,
+    },
+  };
+
+  const freshStore = await loadAuthStore();
+  const nextStore = upsertProviderAccount(freshStore, CLAUDE_AUTH.storeProvider, updatedAccount);
+  await saveAuthStore(nextStore);
+
+  console.log('');
+  console.log('store 갱신 완료:');
+  console.log(`  accountKey: ${updatedAccount.accountKey}`);
+  console.log(`  expiresAt: ${expiresAt ?? '(없음)'}`);
 }
 
 export function parseDoctorClaudeOptions(args) {
