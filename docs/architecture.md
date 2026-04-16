@@ -25,7 +25,11 @@ Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구�
 
 - `status`, `usage`, `doctor`, `config init`
 - `auth login/list/logout/import`
-- multi-account resolver (`lastUsedAt` 자동 선택 + `--account` override)
+- multi-account 지원
+  - 한 provider에 여러 real 계정 저장/조회 (status는 기본적으로 병렬 전체 조회)
+  - `auth login --label <name>`로 사용자 친화적 라벨 부여
+  - `status --account <email|accountKey|label>`로 필터
+  - `config.json defaults.profiles.{provider}`로 기본 필터 지정
 - login-runner(`cli/login-runner.js`)로 provider별 OAuth 흐름 공통화
 
 ### Services (`packages/agent/src/services`)

@@ -38,9 +38,14 @@ npm run agent:config:init
 ### 공통 기능
 
 - PKCE S256 + state 검증 localhost OAuth callback
-- multi-account resolver (`lastUsedAt` 자동 선택 + `--account` override)
+- multi-account 지원
+  - 한 provider에 여러 계정 저장/조회 (한 번의 `status`가 모든 live 계정 병렬 조회)
+  - `auth login <provider> --label <name>`으로 계정에 label 부여
+  - `status --account <email | accountKey | label>`로 필터
+  - `config.json defaults.profiles.{provider}`로 기본 필터 지정
 - refresh token rotation 반영
 - `--live-exchange` guard (실수로 실제 token 호출이 반복되는 것 방지)
+- network 호출 timeout/abort (기본 15초, `fetchWithTimeout`)
 - CLI / status-service / provider adapter 3계층 분리
 
 ## 패키지 구조
@@ -63,15 +68,17 @@ scripts/poc/           experimental scripts (저위험 실험)
 ```bash
 ai-usage-agent status
 ai-usage-agent usage
+ai-usage-agent status --account <email | accountKey | label>  # 특정 계정만
 ```
 
 provider별 credential 상태, 선택된 계정, live usage window, 로컬 캐시 요약을 출력한다.
+한 provider에 여러 계정이 저장되어 있으면 기본은 모두 병렬 조회.
 
 ### auth
 
 ```bash
-ai-usage-agent auth login codex   [--live-exchange] [--port N] [--timeout SEC] [--manual] [--no-open]
-ai-usage-agent auth login claude  [--live-exchange] [--port N] [--timeout SEC]
+ai-usage-agent auth login codex   [--live-exchange] [--port N] [--timeout SEC] [--label NAME] [--manual] [--no-open]
+ai-usage-agent auth login claude  [--live-exchange] [--port N] [--timeout SEC] [--label NAME]
 ai-usage-agent auth list
 ai-usage-agent auth logout <provider> [--account <id>]
 ai-usage-agent auth import openclaw    # 기존 OpenClaw auth-profiles 흡수
@@ -79,6 +86,7 @@ ai-usage-agent auth import claude      # ~/.claude/.credentials.json 흡수
 ```
 
 `--live-exchange` 없이 호출하면 mock 저장만 수행한다.
+`--label <name>`을 지정하면 저장된 계정에 사용자 친화적 이름이 붙고, 이후 `--account <name>`으로 참조 가능하다.
 
 ### doctor
 
