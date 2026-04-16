@@ -241,6 +241,17 @@ Provider spec shape(`LoginProviderSpec`):
 
 `parseLoginOptions(args)`를 사용. 공통 플래그: `--port`, `--timeout`, `--no-open`, `--manual`, `--device`, `--live-exchange`.
 
+반환 shape:
+```js
+{ noOpen, manual, device, liveExchange, port, timeoutMs, warnings: string[] }
+```
+
+숫자 옵션은 내부에서 유효성 검증한다:
+- `--port`: 정수 0~65535 범위 밖이면 `warnings`에 경고 push, `port`는 기본값(null) 유지.
+- `--timeout`: 양의 정수(초)가 아니면 경고 push, `timeoutMs`는 기본값(120000) 유지.
+
+호출자는 `options.warnings.length > 0`이면 stderr로 출력 후 조기 리턴한다 (`auth-login-command.js::reportAndGuardOptionWarnings` 참고).
+
 ---
 
 ## 6. Auth store / credential 처리
@@ -327,8 +338,10 @@ createClaudeImportedAccountPayload → prepareClaudeImportedAccount → importCl
 
 - **Pure function은 전수 테스트.** guard/edge case 포함.
 - **네트워크 호출**은 `fetchImpl` 주입 mock으로 테스트. 실제 HTTP 금지.
-- **CLI 명령**은 stdout 캡처 대신 순수 helper(`formatXxxSection`, `parseXxxOptions`)를 export해서 테스트.
-- **파일 I/O**가 있는 함수는 `os.tmpdir()`에 임시 파일 생성 후 정리.
+- **CLI 명령**은 stdout 캡처 대신 순수 helper(`formatXxxSection`, `parseXxxOptions`)를 export해서 테스트. 진입점(`runStatusCommand`, `runDoctorCommand` 등)은 helper가 만든 라인을 출력만 해야 하며, 로직은 helper에 둔다.
+- **파일 I/O**가 있는 함수는 `os.tmpdir()` 또는 `HOME=tmpdir` 격리로 실 환경을 건드리지 않는다 (예: `test/cli/config-init-command.test.js`).
+- **bin 스모크**는 `test/integration/smoke.test.js`에 `spawnSync` 기반으로 둔다. HOME=tmpdir 격리 필수.
+- 테스트 간 상태 공유 금지 — 같은 describe 안의 두 `it`이 앞선 `it`에서 남긴 부작용을 읽으면 안 된다 (ordering 의존은 brittle). 각 `it`은 자체적으로 arrange 후 assert.
 
 ### 8.4 테스트 이름
 
@@ -338,6 +351,17 @@ describe('functionName', () => {
 })
 ```
 한글/영문 혼용 OK. "동작 / 결과" 관점으로 서술.
+
+### 8.5 현재 규모
+
+- 총 384 테스트 (2026-04-16 기준). `npm test`로 실행.
+- 주요 파일 위치:
+  - `packages/provider-adapters/test/shared/` — 공용 OAuth / snapshot / fetch helper
+  - `packages/provider-adapters/test/{codex,claude}/` — provider별 adapter
+  - `packages/agent/test/auth/` — auth store / token-claims / manual-paste / callback / port-fallback / claude-imported-account
+  - `packages/agent/test/cli/` — CLI 명령별 단위
+  - `packages/agent/test/services/` — registry + provider별 snapshot 빌더
+  - `packages/agent/test/integration/` — bin spawn smoke
 
 ---
 
@@ -353,6 +377,25 @@ describe('functionName', () => {
 - 브랜치 흐름: 작업 → dev → main
 
 **주의**: 스택 PR을 쓸 때는 각 PR이 **dev로 직접** 머지되도록 순서를 조정해야 한다. base → head 흐름이 dev가 아니면 내용이 dev에 반영되지 않을 수 있다 (경험 사례: PR #17/18 → auth/usage 브랜치로만 들어가고 dev는 PR #19로 다시 올려야 했음).
+
+### 9.1 CI
+
+`.github/workflows/ci.yml`는 다음 trigger로 동작:
+
+```yaml
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+- feature 브랜치 push → CI 안 돌음 (PR 열리면 `pull_request` 이벤트로 1회만 실행)
+- dev / main 머지 → 해당 브랜치에서 1회 실행
+- 같은 PR에 연속 push 시 이전 run 자동 취소 → 빠른 피드백
+- GitHub Actions에서 `npm install --no-package-lock` 후 `npm test`
 
 ---
 

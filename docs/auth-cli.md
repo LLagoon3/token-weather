@@ -26,8 +26,8 @@ ai-usage-agent auth login claude  [--live-exchange] [--port N] [--timeout SEC]
 - `--live-exchange`: 실제 token 교환 시도. 실패 시 mock fallback 없이 에러 표시
 - `--manual` (Codex): callback URL/code 수동 붙여넣기
 - `--no-open` (Codex): 브라우저 자동 실행 안 함
-- `--port N`: localhost callback 포트 지정
-- `--timeout SEC`: callback 대기 시간 (기본 120초)
+- `--port N`: localhost callback 포트 지정 (정수 0~65535). 범위를 벗어나면 경고를 출력하고 login을 중단한다.
+- `--timeout SEC`: callback 대기 시간 (기본 120초). 양의 정수여야 하며 아니면 경고 후 중단.
 
 provider별 callback 경로:
 - Codex: `/auth/callback`

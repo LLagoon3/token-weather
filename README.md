@@ -141,12 +141,23 @@ ai-usage-agent config init
 ## 개발 / 테스트
 
 ```bash
-npm test              # 전체 테스트
+npm test              # 전체 테스트 (현재 384개)
 npm run test:agent    # agent 패키지만
 npm run test:adapters # provider adapters만
 ```
 
-CI: push / pull_request에서 자동 실행 (`.github/workflows/ci.yml`).
+테스트 레이아웃:
+- `packages/provider-adapters/test/shared/` — 공용 OAuth / usage snapshot / fetch helper
+- `packages/provider-adapters/test/{codex,claude}/` — provider adapter
+- `packages/agent/test/auth/` — auth store / token claims / callback / imported-account 등
+- `packages/agent/test/cli/` — CLI 명령별 pure formatter / parser
+- `packages/agent/test/services/` — registry + provider snapshot 빌더
+- `packages/agent/test/integration/` — bin spawn smoke
+
+CI(`.github/workflows/ci.yml`):
+- pull_request에서는 항상 실행
+- push는 main / dev 브랜치에서만 (feature 브랜치 push는 PR이 열리면 한 번만 실행)
+- concurrency 그룹으로 같은 브랜치에 연속 push 시 이전 run 자동 취소
 
 ## 작업 / 협업 규칙
 
