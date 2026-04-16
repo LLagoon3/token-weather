@@ -1,29 +1,72 @@
 # 아키텍처
 
+Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구성만.
+
 ## 요약
 
-이 프로젝트는 하이브리드 구조를 사용한다.
+로컬 CLI agent 중심 구조. 외부 auth store(OpenClaw 등) 의존 없이 독립적으로 인증, 토큰 저장·갱신·사용량 조회를 수행한다.
 
-- 로컬 인증 및 세션 재사용이 필요한 provider는 로컬 에이전트에서 처리
-- 공식 usage endpoint가 안정적인 provider는 백엔드에서 직접 poll
-- 최종 상태 표시는 공통 정규화 계층을 통해 통합
+```
+[ai-usage-agent CLI]
+  ├─ Auth Commands (login / list / logout / import)
+  ├─ Auth Broker (OAuth localhost callback, manual paste fallback, PKCE S256)
+  ├─ Credential Store (auth.json, 0600)
+  ├─ Provider Registry (services/provider-registry.js)
+  │   ├─ Codex provider
+  │   └─ Claude provider
+  ├─ Provider Adapters (packages/provider-adapters/src/{codex,claude})
+  │   └─ 공통 OAuth 헬퍼 (packages/provider-adapters/src/shared/)
+  └─ Schemas (packages/schemas — usage snapshot / event JSON Schema)
+```
 
 ## 주요 구성 요소
 
-### 로컬 에이전트
-- provider별 인증 해석
-- 로컬 usage endpoint 호출
-- 이벤트 관측
-- 버퍼링 및 업로드
+### CLI Agent (`packages/agent`)
 
-### 백엔드 API
-- 정규화 이벤트 수집
-- 가능한 provider 직접 poll
-- 상태 집계
-- 대시보드용 API 제공
+- `status`, `usage`, `doctor`, `config init`
+- `auth login/list/logout/import`
+- multi-account resolver (`lastUsedAt` 자동 선택 + `--account` override)
+- login-runner(`cli/login-runner.js`)로 provider별 OAuth 흐름 공통화
 
-### 웹 대시보드
-- 전체 overview
-- provider / account 상세
-- timeline
-- health 표시
+### Services (`packages/agent/src/services`)
+
+- `status-service.js` — config 로드 + provider registry 순회
+- `provider-registry.js` — PROVIDER_REGISTRY 배열로 provider 등록
+- `{provider}-provider.js` — 각 provider의 snapshot 빌더
+
+새 provider를 추가할 때는 `codebase-guide.md §11` 체크리스트 참고.
+
+### Provider Adapters (`packages/provider-adapters`)
+
+- `shared/` — provider 중립 OAuth 헬퍼
+  - `buildOAuthAuthorizationUrl` — authorize URL 조립
+  - `postToTokenEndpoint` — token endpoint POST (form/json, timeout, error 정규화)
+  - `fetchWithTimeout` — AbortController 기반 공통 wrapper
+  - `liveExchangeDisabledError` — guard용 표준 에러
+- `codex/` — Codex (OpenAI) 인증 + usage
+- `claude/` — Claude (Anthropic) 인증 + usage + stats-cache
+
+각 provider는 동일한 파일 구성 패턴을 따른다 (constants / build-authorization-url / exchange-code / refresh-token / fetch-usage). 상세는 `docs/codebase-guide.md §3`.
+
+### Schemas (`packages/schemas`)
+
+- `usage-snapshot.schema.json`
+- `usage-event.schema.json`
+- 핵심 필드: `source`, `authType`, `confidence`, `usageWindows`, `status.bucket`
+
+### 인증 계층
+
+- 기본: localhost callback OAuth (PKCE S256)
+- fallback: manual paste (Codex만)
+- import: `auth import openclaw` (Codex) / `auth import claude` (Claude)
+- 후순위: device code (미구현)
+- credential source 우선순위: `agent-store` > `{provider}-cli-import` 또는 `openclaw-import`
+
+상세: `docs/auth-architecture.md`, `docs/auth-cli.md`.
+
+## 확장 가능성
+
+- 백엔드 API: 정규화 이벤트 수집, provider 직접 poll, 상태 집계
+- 웹 대시보드: overview, provider/account 상세, timeline
+- keychain 연동
+- 추가 provider (예: Gemini, Perplexity 등) — `codebase-guide.md §11` 따라 추가

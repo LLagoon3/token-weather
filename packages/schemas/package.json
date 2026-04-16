@@ -1,0 +1,8 @@
+{
+  "name": "@llagoon3/usage-schemas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "공통 데이터 계약 (usage snapshot, usage event JSON Schema)",
+  "type": "module",
+  "main": "./src/index.js"
+}

@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llagoon3.dev/schemas/usage-snapshot.schema.json",
+  "title": "UsageSnapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "snapshotId",
+    "capturedAt",
+    "provider",
+    "account",
+    "source",
+    "authType",
+    "confidence",
+    "status",
+    "usageWindows"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "snapshotId": { "type": "string" },
+    "capturedAt": { "type": "string", "format": "date-time" },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "displayName": { "type": ["string", "null"] },
+        "region": { "type": ["string", "null"] }
+      }
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profileId"],
+      "properties": {
+        "profileId": { "type": "string" },
+        "accountId": { "type": ["string", "null"] },
+        "email": { "type": ["string", "null"] },
+        "plan": { "type": ["string", "null"] }
+      }
+    },
+    "source": {
+      "type": "string",
+      "enum": ["provider_usage_endpoint", "local_observed_event", "inferred"]
+    },
+    "authType": {
+      "type": "string",
+      "enum": ["oauth", "session_cookie", "session_key", "api_key", "unknown"]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bucket", "ok"],
+      "properties": {
+        "bucket": {
+          "type": "string",
+          "enum": ["ok", "rate_limit", "usage_window", "billing", "auth", "overloaded", "unknown"]
+        },
+        "ok": { "type": "boolean" },
+        "httpStatus": { "type": ["integer", "null"] },
+        "message": { "type": ["string", "null"] },
+        "lastSuccessAt": { "type": ["string", "null"], "format": "date-time" },
+        "lastFailureAt": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "usageWindows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind"],
+        "properties": {
+          "kind": { "type": "string" },
+          "label": { "type": ["string", "null"] },
+          "usedPercent": { "type": ["number", "integer", "null"] },
+          "usedAmount": { "type": ["number", "integer", "null"] },
+          "limitAmount": { "type": ["number", "integer", "null"] },
+          "remainingAmount": { "type": ["number", "integer", "null"] },
+          "windowSeconds": { "type": ["integer", "null"] },
+          "resetAt": { "type": ["string", "null"], "format": "date-time" }
+        }
+      }
+    },
+    "credits": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "balance": { "type": ["number", "integer", "null"] },
+        "unit": { "type": ["string", "null"] }
+      }
+    },
+    "raw": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    }
+  }
+}

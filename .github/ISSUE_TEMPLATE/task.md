@@ -22,8 +22,7 @@ assignees: []
 
 ## 영향 범위
 
-- [ ] `apps/web`
-- [ ] `apps/api`
+- [ ] `packages/agent`
 - [ ] `packages/schemas`
 - [ ] `packages/provider-adapters`
 - [ ] `repo`

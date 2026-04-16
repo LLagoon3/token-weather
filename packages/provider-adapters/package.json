@@ -1,0 +1,8 @@
+{
+  "name": "@llagoon3/provider-adapters",
+  "version": "0.1.0",
+  "private": true,
+  "description": "provider별 인증/endpoint 연결 및 usage 정규화 어댑터",
+  "type": "module",
+  "main": "./src/index.js"
+}

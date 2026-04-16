@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://llagoon3.dev/schemas/usage-event.schema.json",
+  "title": "UsageEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "occurredAt",
+    "provider",
+    "account",
+    "source",
+    "authType",
+    "confidence",
+    "reason",
+    "severity"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "eventId": { "type": "string" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "displayName": { "type": ["string", "null"] }
+      }
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profileId"],
+      "properties": {
+        "profileId": { "type": "string" },
+        "accountId": { "type": ["string", "null"] },
+        "email": { "type": ["string", "null"] }
+      }
+    },
+    "source": {
+      "type": "string",
+      "enum": ["provider_usage_endpoint", "local_observed_event", "inferred"]
+    },
+    "authType": {
+      "type": "string",
+      "enum": ["oauth", "session_cookie", "session_key", "api_key", "unknown"]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bucket", "code"],
+      "properties": {
+        "bucket": {
+          "type": "string",
+          "enum": ["rate_limit", "usage_window", "billing", "auth", "overloaded", "network", "unknown"]
+        },
+        "code": { "type": "string" },
+        "message": { "type": ["string", "null"] },
+        "httpStatus": { "type": ["integer", "null"] }
+      }
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "warning", "error"]
+    },
+    "raw": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    }
+  }
+}

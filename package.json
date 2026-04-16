@@ -1,16 +1,22 @@
 {
-  "name": "ai-usage-dashboard",
+  "name": "ai-usage-agent",
   "private": true,
   "version": "0.1.0",
-  "description": "Integrated dashboard for AI service usage, quota windows, and availability",
+  "description": "CLI agent and packages for monitoring AI service usage and auth status",
+  "packageManager": "npm@11.6.2",
   "workspaces": [
-    "apps/*",
     "packages/*"
   ],
   "scripts": {
     "dev": "echo \"TODO: wire dev commands\"",
     "build": "echo \"TODO: wire build commands\"",
     "lint": "echo \"TODO: wire lint commands\"",
-    "test": "echo \"TODO: wire test commands\""
+    "test": "node --test packages/agent/test/**/*.test.js packages/provider-adapters/test/**/*.test.js",
+    "test:agent": "node --test packages/agent/test/**/*.test.js",
+    "test:adapters": "node --test packages/provider-adapters/test/**/*.test.js",
+    "agent:status": "node ./packages/agent/bin/ai-usage-agent.js status",
+    "agent:usage": "node ./packages/agent/bin/ai-usage-agent.js usage",
+    "agent:doctor": "node ./packages/agent/bin/ai-usage-agent.js doctor",
+    "agent:config:init": "node ./packages/agent/bin/ai-usage-agent.js config init"
   }
 }
