@@ -6,8 +6,10 @@ import {
   formatCodexSection,
   formatClaudeSection,
   formatClaudeNetworkUsage,
+  formatClaudeNetworkUsages,
   formatClaudeLocalUsage,
   formatWindow,
+  parseStatusOptions,
   STATUS_COMMANDS,
 } from '../../src/cli/status-command.js';
 
@@ -187,5 +189,208 @@ describe('formatStatusOutput', () => {
     assert.ok(lines.includes('설정 파일: /x/config.json'));
     assert.ok(lines.includes('Codex 사용: enabled'));
     assert.ok(lines.includes('Claude 사용: disabled'));
+  });
+});
+
+describe('formatClaudeNetworkUsages — multi-account', () => {
+  it('renders single "호출 안 함" line when usages is empty', () => {
+    const lines = formatClaudeNetworkUsages([]);
+    assert.ok(lines.some((l) => l.includes('호출 안 함')));
+  });
+
+  it('outputs a single block without account header when usages has one entry', () => {
+    const lines = formatClaudeNetworkUsages([
+      {
+        accountKey: 'a:1',
+        snapshot: {
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [{ kind: 'five_hour', usedPercent: 10, resetAt: '2026-04-16' }],
+        },
+      },
+    ]);
+    // 단일 계정 블록은 '계정:' 헤더를 붙이지 않음
+    assert.ok(!lines.some((l) => l.startsWith('  - 계정:')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+  });
+
+  it('outputs per-account header + body for multiple usages', () => {
+    const lines = formatClaudeNetworkUsages([
+      {
+        accountKey: 'a:1',
+        snapshot: {
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [{ kind: 'five_hour', usedPercent: 5 }],
+        },
+      },
+      {
+        accountKey: 'a:2',
+        snapshot: {
+          status: { ok: false, httpStatus: 401, bucket: 'auth', message: 'expired' },
+          usageWindows: [],
+        },
+      },
+    ]);
+    assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
+    assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+    assert.ok(lines.some((l) => l.includes('실패 (401, bucket=auth)')));
+    assert.ok(lines.some((l) => l.includes('메시지: expired')));
+  });
+});
+
+describe('formatClaudeSection — networkUsages array support', () => {
+  it('uses networkUsages when provided (multi-account path)', () => {
+    const lines = formatClaudeSection({
+      authSource: 'agent-store',
+      detected: true,
+      selectedAccount: { accountKey: 'a:1' },
+      networkUsages: [
+        {
+          accountKey: 'a:1',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+        {
+          accountKey: 'a:2',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+      ],
+      usage: { source: 'not-found' },
+    });
+    assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
+    assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
+  });
+
+  it('falls back to legacy networkUsage when networkUsages absent', () => {
+    const lines = formatClaudeSection({
+      authSource: 'claude-cli-import',
+      detected: true,
+      selectedAccount: null,
+      networkUsage: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+      usage: { source: 'not-found' },
+    });
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+    // 단일 블록이므로 '- 계정:' 헤더 없어야 함
+    assert.ok(!lines.some((l) => l.startsWith('  - 계정:')));
+  });
+});
+
+describe('parseStatusOptions', () => {
+  it('returns { account: null } for empty args', () => {
+    assert.deepEqual(parseStatusOptions([]), { account: null });
+  });
+
+  it('handles null/undefined args', () => {
+    assert.deepEqual(parseStatusOptions(undefined), { account: null });
+  });
+
+  it('parses --account <value>', () => {
+    assert.equal(parseStatusOptions(['--account', 'alice@x.com']).account, 'alice@x.com');
+    assert.equal(parseStatusOptions(['--account', 'codex:abc']).account, 'codex:abc');
+  });
+
+  it('ignores unknown flags', () => {
+    const out = parseStatusOptions(['--unknown', '--account', 'a']);
+    assert.equal(out.account, 'a');
+  });
+});
+
+describe('formatStatusOutput — accountFilter line', () => {
+  it('omits 계정 필터 line when not set', () => {
+    const lines = formatStatusOutput('status', {
+      configPath: '/x',
+      providers: { codex: { enabled: true }, claude: { enabled: true } },
+      sync: { enabled: false },
+      codex: { enabled: false },
+      claude: {
+        authSource: 'not-found',
+        detected: false,
+        selectedAccount: null,
+        networkUsages: [],
+        usage: { source: 'not-found' },
+      },
+    });
+    assert.ok(!lines.some((l) => l.includes('계정 필터')));
+  });
+
+  it('includes 계정 필터 line when accountFilter present', () => {
+    const lines = formatStatusOutput('status', {
+      configPath: '/x',
+      providers: { codex: { enabled: true }, claude: { enabled: true } },
+      sync: { enabled: false },
+      accountFilter: 'alice@x.com',
+      codex: { enabled: false },
+      claude: {
+        authSource: 'not-found',
+        detected: false,
+        selectedAccount: null,
+        networkUsages: [],
+        usage: { source: 'not-found' },
+      },
+    });
+    assert.ok(lines.includes('계정 필터: alice@x.com'));
+  });
+});
+
+describe('formatCodexSection — accountFilter empty result', () => {
+  it('shows filter-specific message when filteredOut=true and snapshots empty', () => {
+    const lines = formatCodexSection({
+      enabled: true,
+      authSource: 'agent-store',
+      accountFilter: 'nope@x.com',
+      filteredOut: true,
+      snapshots: [],
+    });
+    assert.ok(lines.some((l) => l.includes('계정 필터 "nope@x.com"에 해당하는 Codex 계정을 찾지 못했습니다')));
+  });
+
+  it('falls back to normal "프로필 없음" when filteredOut=false', () => {
+    const lines = formatCodexSection({
+      enabled: true,
+      authSource: 'agent-store',
+      snapshots: [],
+    });
+    assert.ok(lines.some((l) => l.includes('Codex OAuth 프로필이 없습니다')));
+  });
+});
+
+describe('formatClaudeNetworkUsages — filteredOut context', () => {
+  it('shows filter-specific message when context.filteredOut is set', () => {
+    const lines = formatClaudeNetworkUsages([], { filteredOut: true, accountFilter: 'nope' });
+    assert.ok(lines.some((l) => l.includes('계정 필터 "nope"에 해당하는 Claude 계정을 찾지 못했습니다')));
+  });
+});
+
+describe('formatClaudeSection — 기본 계정 라인 visibility', () => {
+  const baseClaude = {
+    authSource: 'agent-store',
+    detected: true,
+    selectedAccount: { accountKey: 'a:default' },
+    usage: { source: 'not-found' },
+    networkUsages: [
+      {
+        accountKey: 'a:default',
+        snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+      },
+    ],
+  };
+
+  it('shows "기본 계정" line when accountFilter is not set', () => {
+    const lines = formatClaudeSection(baseClaude);
+    assert.ok(lines.some((l) => l.startsWith('기본 계정: a:default')));
+  });
+
+  it('hides "기본 계정" line when accountFilter is active (avoid confusion with filtered set)', () => {
+    const lines = formatClaudeSection({
+      ...baseClaude,
+      accountFilter: 'work',
+      networkUsages: [
+        {
+          accountKey: 'a:work',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+      ],
+    });
+    assert.ok(!lines.some((l) => l.startsWith('기본 계정:')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
   });
 });

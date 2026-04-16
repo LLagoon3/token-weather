@@ -10,6 +10,7 @@ import { fetchClaudeUsage } from '../../../provider-adapters/src/claude/fetch-cl
 import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore } from '../auth/auth-store.js';
+import { filterProfilesByAccount as filterProfilesByAccountImpl } from './account-filter.js';
 
 /**
  * Build the Claude section of the top-level status snapshot.
@@ -24,6 +25,7 @@ import { loadAuthStore } from '../auth/auth-store.js';
  */
 export async function getClaudeSnapshot(
   config = { providers: { claude: { enabled: true } } },
+  options = {},
 ) {
   const agentClaudeAccounts = await loadAgentStoreClaudeAccounts();
   const base = buildClaudeSnapshot(
@@ -34,23 +36,70 @@ export async function getClaudeSnapshot(
   );
 
   if (!config.providers?.claude?.enabled) {
-    return { ...base, networkUsage: null };
+    return { ...base, networkUsages: [], networkUsage: null };
   }
 
-  const profile = resolveClaudeProfileFromSnapshot(base);
-  if (!profile) {
-    return { ...base, networkUsage: null };
-  }
-
-  try {
-    const networkUsage = await fetchClaudeUsage(profile);
-    return { ...base, networkUsage };
-  } catch (error) {
+  const allProfiles = resolveClaudeProfilesForFetch(base, agentClaudeAccounts);
+  const profiles = filterProfilesByAccountImpl(allProfiles, options.accountFilter);
+  if (profiles.length === 0) {
     return {
       ...base,
-      networkUsage: createClaudeNetworkFailureSnapshot(profile, error),
+      networkUsages: [],
+      networkUsage: null,
+      accountFilter: options.accountFilter ?? null,
+      filteredOut: options.accountFilter && allProfiles.length > 0,
     };
   }
+
+  // 각 계정에 대해 병렬로 usage 조회. 한 계정이 실패해도 다른 계정은 유지.
+  const settled = await Promise.all(
+    profiles.map(async (profile) => {
+      try {
+        const snapshot = await fetchClaudeUsage(profile);
+        return { accountKey: profile.id, snapshot };
+      } catch (error) {
+        return {
+          accountKey: profile.id,
+          snapshot: createClaudeNetworkFailureSnapshot(profile, error),
+        };
+      }
+    }),
+  );
+
+  return {
+    ...base,
+    networkUsages: settled,
+    // backward-compat alias: selectedAccount에 해당하는 항목을 우선 노출,
+    // 없으면 첫 항목.
+    networkUsage:
+      settled.find((s) => s.accountKey === base.selectedAccount?.accountKey)?.snapshot
+        ?? settled[0]?.snapshot
+        ?? null,
+    accountFilter: options.accountFilter ?? null,
+    filteredOut: false,
+  };
+}
+
+// Re-export from shared for backward-compat (tests import from this module).
+export { filterProfilesByAccount } from './account-filter.js';
+
+/**
+ * 조회 대상 계정 목록 결정.
+ *   - agent-store에 real 계정이 1개 이상 있으면 그 전부 (multi-account A).
+ *   - 없으면 selectedAccount(= claude-cli-import)를 단일 profile로 변환.
+ */
+function resolveClaudeProfilesForFetch(base, agentClaudeAccounts) {
+  if (agentClaudeAccounts.length > 0) {
+    return agentClaudeAccounts.map((a) => ({
+      id: a.accountKey,
+      accessToken: a.tokens?.accessToken ?? a.accessToken ?? null,
+      accountId: a.accountId ?? null,
+      email: a.email ?? null,
+      label: a.label ?? null,
+    })).filter((p) => p.accessToken);
+  }
+  const single = resolveClaudeProfileFromSnapshot(base);
+  return single ? [single] : [];
 }
 
 /**

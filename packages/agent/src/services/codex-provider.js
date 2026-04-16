@@ -6,6 +6,7 @@ import {
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveDefaultAccount } from '../auth/account-resolver.js';
+import { filterProfilesByAccount } from './account-filter.js';
 
 const CODEX_PROVIDER_ID = 'openai-codex';
 
@@ -16,7 +17,7 @@ const CODEX_PROVIDER_ID = 'openai-codex';
  * @param {object} config
  * @returns {Promise<object>}
  */
-export async function getCodexSnapshot(config) {
+export async function getCodexSnapshot(config, options = {}) {
   if (!config.providers?.codex?.enabled) {
     return {
       enabled: false,
@@ -25,7 +26,8 @@ export async function getCodexSnapshot(config) {
     };
   }
 
-  const { profiles, authSource } = await resolveCodexProfiles();
+  const { profiles: allProfiles, authSource } = await resolveCodexProfiles();
+  const profiles = filterProfilesByAccount(allProfiles, options.accountFilter);
   const snapshots = [];
 
   for (const profile of profiles) {
@@ -41,8 +43,13 @@ export async function getCodexSnapshot(config) {
     authSource,
     authProfilesPath: authSource === 'openclaw-import' ? getDefaultAuthProfilesPath() : null,
     snapshots,
+    accountFilter: options.accountFilter ?? null,
+    filteredOut: options.accountFilter && allProfiles.length > 0 && profiles.length === 0,
   };
 }
+
+// Re-export from shared for backward-compat (tests import from this module).
+export { filterProfilesByAccount } from './account-filter.js';
 
 /**
  * Pure selection: agent-store > openclaw-import.
@@ -88,20 +95,21 @@ async function getAgentStoreProfiles() {
   const realAccounts = filterRealCodexAccounts(providerData.accounts);
   if (realAccounts.length === 0) return [];
 
-  const { account } = resolveDefaultAccount(realAccounts);
-  if (!account) return [];
-
-  // Keep multi-account selection stable across runs.
+  // lastUsedAt 업데이트는 "기본 선택" 계정에만 적용한다 — multi-account일 때
+  // 모두 갱신하면 자동 선택 로직이 의미 없어진다. 조회 자체는 모든 real 계정에 대해 수행.
   try {
-    const freshStore = await loadAuthStore();
-    const updatedAccount = { ...account, lastUsedAt: new Date().toISOString() };
-    const nextStore = upsertProviderAccount(freshStore, CODEX_PROVIDER_ID, updatedAccount);
-    await saveAuthStore(nextStore);
+    const { account: defaultAccount } = resolveDefaultAccount(realAccounts);
+    if (defaultAccount) {
+      const freshStore = await loadAuthStore();
+      const updatedAccount = { ...defaultAccount, lastUsedAt: new Date().toISOString() };
+      const nextStore = upsertProviderAccount(freshStore, CODEX_PROVIDER_ID, updatedAccount);
+      await saveAuthStore(nextStore);
+    }
   } catch {
     // best-effort
   }
 
-  return [mapAccountToProfile(account)];
+  return realAccounts.map(mapAccountToProfile);
 }
 
 function mapAccountToProfile(account) {
@@ -110,6 +118,7 @@ function mapAccountToProfile(account) {
     accessToken: account.tokens.accessToken,
     accountId: account.accountId ?? null,
     email: account.email ?? null,
+    label: account.label ?? null,
     expires: account.expiresAt ?? null,
   };
 }

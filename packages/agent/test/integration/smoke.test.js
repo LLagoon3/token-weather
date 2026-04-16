@@ -71,4 +71,12 @@ describe('bin/ai-usage-agent — smoke', () => {
     assert.match(result.stderr, /--port 값 "foo"/);
     assert.match(result.stderr, /login을 중단합니다/);
   });
+
+  it('status --account <unknown> exits cleanly and prints filter line', () => {
+    const result = runCli(['status', '--account', 'definitely-not-an-account'], {
+      timeoutMs: 15_000,
+    });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /계정 필터: definitely-not-an-account/);
+  });
 });

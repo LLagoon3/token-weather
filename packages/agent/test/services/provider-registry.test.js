@@ -40,4 +40,22 @@ describe('runProviderSnapshots', () => {
     // Claude snapshot always returns a base+networkUsage(null when disabled/no profile) — just assert shape
     assert.equal(out.claude.networkUsage, null);
   });
+
+  it('CLI accountFilter and config.defaults.profiles do not throw when both supplied', async () => {
+    // disabled 상태라 실제 필터 효과는 없지만 호출 경로가 throw 없이 돌아가는지 확인.
+    await runProviderSnapshots(
+      {
+        providers: { codex: { enabled: false }, claude: { enabled: false } },
+        defaults: { profiles: { codex: 'cfg-codex', claude: 'cfg-claude' } },
+      },
+      { accountFilter: 'cli-override' },
+    );
+  });
+
+  it('falls back to config.defaults.profiles when no CLI accountFilter', async () => {
+    await runProviderSnapshots({
+      providers: { codex: { enabled: false } },
+      defaults: { profiles: { codex: 'config-default' } },
+    });
+  });
 });

@@ -20,7 +20,7 @@ const CODEX_STORE_KEY = 'openai-codex';
 export async function runAuthLoginCommand(provider, args = []) {
   if (!provider) {
     console.log(
-      '사용법: ai-usage-agent auth login <provider> [--manual] [--no-open] [--port <number>] [--timeout <seconds>] [--live-exchange]',
+      '사용법: ai-usage-agent auth login <provider> [--manual] [--no-open] [--port <number>] [--timeout <seconds>] [--live-exchange] [--label <name>] [--keep-legacy]',
     );
     return;
   }

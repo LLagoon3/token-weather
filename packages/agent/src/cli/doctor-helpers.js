@@ -36,27 +36,55 @@ export function formatClaudeSection(snapshot) {
     lines.push('  usage: 데이터 없음 (stats-cache.json 미발견)');
   }
 
-  const network = snapshot.networkUsage;
   lines.push('');
   lines.push('Claude live usage (api.anthropic.com/api/oauth/usage):');
-  if (!network) {
+
+  // multi-account: networkUsages 배열 우선. 없으면 legacy networkUsage 단일값으로 흡수.
+  const usages = Array.isArray(snapshot.networkUsages)
+    ? snapshot.networkUsages
+    : snapshot.networkUsage
+      ? [{ accountKey: snapshot.selectedAccount?.accountKey ?? null, snapshot: snapshot.networkUsage }]
+      : [];
+
+  if (usages.length === 0) {
     lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
-  } else if (network.status?.ok) {
-    lines.push(`  상태: OK (${network.status.httpStatus})`);
-    lines.push(`  usageWindows: ${network.usageWindows.length}개`);
-    for (const window of network.usageWindows) {
-      const reset = window.resetAt ? ` reset=${window.resetAt}` : '';
-      lines.push(`    - ${window.kind}: ${window.usedPercent ?? 'unknown'}%${reset}`);
-    }
-  } else {
-    const http = network.status?.httpStatus ?? 'network/error';
-    const bucket = network.status?.bucket ?? 'unknown';
-    lines.push(`  상태: 실패 (${http}, bucket=${bucket})`);
-    if (network.status?.message) {
-      lines.push(`  메시지: ${network.status.message}`);
-    }
+    return lines;
   }
 
+  const multi = usages.length > 1;
+  for (const { accountKey, snapshot: network } of usages) {
+    if (multi) lines.push(`  - 계정: ${accountKey ?? '(unknown)'}`);
+    lines.push(...formatClaudeNetworkSnapshot(network, multi ? '    ' : '  '));
+  }
+
+  return lines;
+}
+
+/**
+ * 단일 Claude live usage snapshot → 출력 라인 배열.
+ * indent는 multi-account 블록일 때 2칸 더 들여쓴다.
+ */
+export function formatClaudeNetworkSnapshot(network, indent = '  ') {
+  const lines = [];
+  if (!network) {
+    lines.push(`${indent}호출 안 함`);
+    return lines;
+  }
+  if (network.status?.ok) {
+    lines.push(`${indent}상태: OK (${network.status.httpStatus})`);
+    lines.push(`${indent}usageWindows: ${network.usageWindows.length}개`);
+    for (const window of network.usageWindows) {
+      const reset = window.resetAt ? ` reset=${window.resetAt}` : '';
+      lines.push(`${indent}  - ${window.kind}: ${window.usedPercent ?? 'unknown'}%${reset}`);
+    }
+    return lines;
+  }
+  const http = network.status?.httpStatus ?? 'network/error';
+  const bucket = network.status?.bucket ?? 'unknown';
+  lines.push(`${indent}상태: 실패 (${http}, bucket=${bucket})`);
+  if (network.status?.message) {
+    lines.push(`${indent}메시지: ${network.status.message}`);
+  }
   return lines;
 }
 

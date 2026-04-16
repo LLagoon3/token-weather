@@ -108,6 +108,34 @@ describe('resolveAccountByIdentifier', () => {
     const result = resolveAccountByIdentifier([], 'x');
     assert.equal(result.reason, 'no-accounts');
   });
+
+  it('finds by label', () => {
+    const labeledAccounts = [
+      { accountKey: 'codex:a', email: 'a@x.com', label: 'work', status: 'active' },
+      { accountKey: 'codex:b', email: 'b@x.com', label: 'personal', status: 'active' },
+    ];
+    const result = resolveAccountByIdentifier(labeledAccounts, 'personal');
+    assert.equal(result.account.accountKey, 'codex:b');
+    assert.equal(result.reason, 'explicit-selection');
+  });
+
+  it('matches case-insensitively on email / accountKey / label', () => {
+    const labeledAccounts = [
+      { accountKey: 'codex:Alice', email: 'Alice@X.com', label: 'Work', status: 'active' },
+    ];
+    assert.equal(
+      resolveAccountByIdentifier(labeledAccounts, 'ALICE@x.COM').account.accountKey,
+      'codex:Alice',
+    );
+    assert.equal(
+      resolveAccountByIdentifier(labeledAccounts, 'codex:alice').account.accountKey,
+      'codex:Alice',
+    );
+    assert.equal(
+      resolveAccountByIdentifier(labeledAccounts, 'WORK').account.accountKey,
+      'codex:Alice',
+    );
+  });
 });
 
 describe('resolveAccount (combined)', () => {

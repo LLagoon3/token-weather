@@ -235,3 +235,68 @@ describe('parseDoctorClaudeOptions', () => {
     assert.deepEqual(parseDoctorClaudeOptions(null), { refreshLive: false });
   });
 });
+
+describe('formatClaudeSection — multi-account networkUsages', () => {
+  const basicSnapshot = {
+    credentialsPath: '/x/.credentials.json',
+    found: true,
+    parsed: true,
+    authSource: 'agent-store',
+    selectedAccount: { accountKey: 'a:1', authType: 'oauth' },
+    usage: { source: 'not-found' },
+  };
+
+  it('renders per-account blocks when networkUsages has multiple entries', () => {
+    const lines = formatClaudeSection({
+      ...basicSnapshot,
+      networkUsages: [
+        {
+          accountKey: 'a:1',
+          snapshot: {
+            status: { ok: true, httpStatus: 200 },
+            usageWindows: [{ kind: 'five_hour', usedPercent: 5, resetAt: '2026-04-16' }],
+          },
+        },
+        {
+          accountKey: 'a:2',
+          snapshot: {
+            status: { ok: false, httpStatus: 401, bucket: 'auth', message: 'expired' },
+            usageWindows: [],
+          },
+        },
+      ],
+    });
+    assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
+    assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+    assert.ok(lines.some((l) => l.includes('실패 (401, bucket=auth)')));
+    assert.ok(lines.some((l) => l.includes('메시지: expired')));
+  });
+
+  it('omits per-account header when single entry', () => {
+    const lines = formatClaudeSection({
+      ...basicSnapshot,
+      networkUsages: [
+        {
+          accountKey: 'a:1',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+      ],
+    });
+    assert.ok(!lines.some((l) => l.startsWith('  - 계정:')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+  });
+
+  it('falls back to legacy networkUsage when networkUsages missing', () => {
+    const lines = formatClaudeSection({
+      ...basicSnapshot,
+      networkUsage: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+    });
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+  });
+
+  it('shows "호출 안 함" when neither networkUsages nor networkUsage', () => {
+    const lines = formatClaudeSection({ ...basicSnapshot, networkUsages: [] });
+    assert.ok(lines.some((l) => l.includes('호출 안 함')));
+  });
+});

@@ -6,6 +6,7 @@ import {
   resolveClaudeProfileFromSnapshot,
   selectClaudeAuthSource,
   getClaudeSnapshot,
+  filterProfilesByAccount,
 } from '../../src/services/claude-provider.js';
 
 const FAKE_PATH = '/tmp/fake-claude-credentials.json';
@@ -132,10 +133,30 @@ describe('resolveClaudeProfileFromSnapshot (via claude-provider)', () => {
 });
 
 describe('getClaudeSnapshot — disabled config contract', () => {
-  it('returns networkUsage=null when claude provider is disabled', async () => {
+  it('returns networkUsage=null and networkUsages=[] when claude provider is disabled', async () => {
     const snap = await getClaudeSnapshot({ providers: { claude: { enabled: false } } });
     assert.equal(snap.networkUsage, null);
-    // base snapshot도 포함
+    assert.deepEqual(snap.networkUsages, []);
     assert.ok(typeof snap.authSource === 'string');
+  });
+});
+
+describe('filterProfilesByAccount (claude-provider)', () => {
+  const profiles = [
+    { id: 'anthropic-claude:a', email: 'a@x.com' },
+    { id: 'anthropic-claude:b', email: 'b@x.com' },
+  ];
+
+  it('returns all when filter falsy', () => {
+    assert.deepEqual(filterProfilesByAccount(profiles, null), profiles);
+  });
+
+  it('filters by accountKey or email (case-insensitive)', () => {
+    assert.equal(filterProfilesByAccount(profiles, 'anthropic-claude:a').length, 1);
+    assert.equal(filterProfilesByAccount(profiles, 'A@X.COM').length, 1);
+  });
+
+  it('returns empty for no match', () => {
+    assert.deepEqual(filterProfilesByAccount(profiles, 'nope'), []);
   });
 });
