@@ -214,25 +214,50 @@ describe('formatClaudeSection', () => {
 });
 
 describe('parseDoctorClaudeOptions', () => {
-  it('returns refreshLive=false by default', () => {
-    assert.deepEqual(parseDoctorClaudeOptions([]), { refreshLive: false });
+  it('returns defaults', () => {
+    assert.deepEqual(parseDoctorClaudeOptions([]), {
+      refreshLive: false,
+      account: null,
+    });
   });
 
   it('sets refreshLive=true when --refresh-live is present', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--refresh-live']), {
       refreshLive: true,
+      account: null,
     });
   });
 
   it('handles mixed / unknown args gracefully', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--foo', '--refresh-live', 'bar']), {
       refreshLive: true,
+      account: null,
     });
   });
 
   it('handles null/undefined args', () => {
-    assert.deepEqual(parseDoctorClaudeOptions(undefined), { refreshLive: false });
-    assert.deepEqual(parseDoctorClaudeOptions(null), { refreshLive: false });
+    assert.deepEqual(parseDoctorClaudeOptions(undefined), {
+      refreshLive: false,
+      account: null,
+    });
+    assert.deepEqual(parseDoctorClaudeOptions(null), {
+      refreshLive: false,
+      account: null,
+    });
+  });
+
+  it('parses --account <value>', () => {
+    assert.deepEqual(parseDoctorClaudeOptions(['--refresh-live', '--account', 'work']), {
+      refreshLive: true,
+      account: 'work',
+    });
+  });
+
+  it('ignores --account without value', () => {
+    assert.deepEqual(parseDoctorClaudeOptions(['--account']), {
+      refreshLive: false,
+      account: null,
+    });
   });
 });
 

@@ -44,8 +44,10 @@ async function runDoctorRoot() {
   console.log('  ai-usage-agent doctor codex                 codex 계정 상태 점검');
   console.log('  ai-usage-agent doctor codex --refresh-live  실제 refresh token 재발급 시도');
   console.log('  ai-usage-agent doctor codex --account <id>  특정 계정 지정');
-  console.log('  ai-usage-agent doctor claude                claude credential 상태 점검');
-  console.log('  ai-usage-agent doctor claude --refresh-live Claude OAuth refresh token으로 실제 재발급 시도');
+  console.log('  ai-usage-agent doctor claude                   claude credential 상태 점검');
+  console.log('  ai-usage-agent doctor claude --refresh-live    Claude OAuth refresh token으로 실제 재발급');
+  console.log('  ai-usage-agent doctor claude --refresh-live --account <id>');
+  console.log('                                                 특정 계정 지정 (email / accountKey / label)');
 }
 
 // ─── Claude ────────────────────────────────────────────────────────────────
@@ -69,23 +71,27 @@ async function runDoctorClaude(args = []) {
   }
 
   if (!options.refreshLive) return;
-  await runDoctorClaudeRefreshLive(snapshot);
+  await runDoctorClaudeRefreshLive(snapshot, { accountIdentifier: options.account });
 }
 
-async function runDoctorClaudeRefreshLive(snapshot) {
-  const account = snapshot.selectedAccount;
-  const refreshToken = account?.refreshToken ?? account?.tokens?.refreshToken ?? null;
-
+async function runDoctorClaudeRefreshLive(snapshot, { accountIdentifier } = {}) {
   console.log('');
   console.log('⚠ --refresh-live: 실제 token endpoint에 refresh POST를 시도합니다.');
   console.log('  주의: client_id는 Claude Code 바이너리 관찰값 기반이며 성공이 보장되지 않습니다.');
 
+  const account = await resolveClaudeRefreshTargetAccount(snapshot, accountIdentifier);
+  if (!account) return;
+
+  const refreshToken = account?.refreshToken ?? account?.tokens?.refreshToken ?? null;
   if (!refreshToken) {
     console.log('');
-    console.log('selectedAccount에서 refreshToken을 찾을 수 없습니다.');
+    console.log(`대상 계정(${account.accountKey})에서 refreshToken을 찾을 수 없습니다.`);
     console.log('Claude CLI에서 최신 로그인 상태인지 확인하세요.');
     return;
   }
+
+  console.log('');
+  console.log(`대상 계정: ${account.accountKey}`);
 
   // claude-cli-import source는 auth-store에 대응 레코드가 없으므로(원본 파일을 비파괴로
   // 읽어오는 경로) store 갱신 대신 안내 메시지만 출력한다.
@@ -102,6 +108,44 @@ async function runDoctorClaudeRefreshLive(snapshot) {
     }
     await updateClaudeStoreAfterRefresh(account, tokenResponse);
   });
+}
+
+/**
+ * refresh 대상 계정 선택 규칙:
+ *   - accountIdentifier(--account)가 있으면 agent-store(Claude provider)에서 email/accountKey/label
+ *     매치되는 계정을 찾음. 매치 실패 시 에러 안내 후 null.
+ *   - 없으면 snapshot.selectedAccount(= 기본 선택 계정)를 그대로 사용.
+ *   - snapshot.selectedAccount도 없으면 에러.
+ */
+async function resolveClaudeRefreshTargetAccount(snapshot, accountIdentifier) {
+  if (!accountIdentifier) {
+    const account = snapshot.selectedAccount;
+    if (!account) {
+      console.log('');
+      console.log('선택 가능한 Claude 계정이 없습니다.');
+      console.log('`auth login claude --live-exchange` 또는 `auth import claude`로 먼저 저장하세요.');
+      return null;
+    }
+    return account;
+  }
+
+  const store = await loadAuthStore();
+  const accounts = store.providers?.[CLAUDE_AUTH.storeProvider]?.accounts ?? [];
+  if (accounts.length === 0) {
+    console.log('');
+    console.log('agent-store에 저장된 Claude 계정이 없습니다.');
+    console.log('--account 옵션은 agent-store 계정에만 동작합니다.');
+    return null;
+  }
+
+  const { account, reason } = resolveAccount(accounts, { accountIdentifier });
+  if (!account) {
+    console.log('');
+    console.log(`계정을 찾을 수 없습니다. (reason: ${reason})`);
+    console.log('  email / accountKey / label 중 하나로 지정하세요.');
+    return null;
+  }
+  return account;
 }
 
 async function updateClaudeStoreAfterRefresh(account, tokenResponse) {
@@ -139,9 +183,18 @@ async function updateClaudeStoreAfterRefresh(account, tokenResponse) {
 }
 
 export function parseDoctorClaudeOptions(args) {
-  const options = { refreshLive: false };
-  for (const arg of args ?? []) {
+  const options = { refreshLive: false, account: null };
+  const list = args ?? [];
+  for (let i = 0; i < list.length; i += 1) {
+    const arg = list[i];
     if (arg === '--refresh-live') options.refreshLive = true;
+    else if (arg === '--account') {
+      const value = list[i + 1];
+      if (value) {
+        options.account = value;
+        i += 1;
+      }
+    }
   }
   return options;
 }
