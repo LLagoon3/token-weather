@@ -1,0 +1,141 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  buildClaudeSnapshot,
+  resolveClaudeProfileFromSnapshot,
+  selectClaudeAuthSource,
+  getClaudeSnapshot,
+} from '../../src/services/claude-provider.js';
+
+const FAKE_PATH = '/tmp/fake-claude-credentials.json';
+
+describe('selectClaudeAuthSource (via claude-provider)', () => {
+  it('agent-store > claude-cli-import > not-found', () => {
+    assert.equal(selectClaudeAuthSource([{ id: 'a' }], { x: true }), 'agent-store');
+    assert.equal(selectClaudeAuthSource([], { x: true }), 'claude-cli-import');
+    assert.equal(selectClaudeAuthSource([], null), 'not-found');
+  });
+});
+
+describe('buildClaudeSnapshot (via claude-provider)', () => {
+  it('returns detected=false when no credentials and no agent accounts', () => {
+    const snap = buildClaudeSnapshot(FAKE_PATH, () => null, [], '/tmp/no-stats.json', () => null);
+    assert.equal(snap.detected, false);
+    assert.equal(snap.authSource, 'not-found');
+    assert.equal(snap.usage.source, 'not-found');
+  });
+
+  it('detects credentials from injected readFn', () => {
+    const fakeCreds = {
+      accessToken: 't',
+      refreshToken: 'r',
+      expiresAt: null,
+      scopes: [],
+      subscriptionType: null,
+      rateLimitTier: null,
+    };
+    const snap = buildClaudeSnapshot(
+      FAKE_PATH,
+      () => fakeCreds,
+      [],
+      '/tmp/no-stats.json',
+      () => null,
+    );
+    assert.equal(snap.detected, true);
+    assert.equal(snap.authSource, 'claude-cli-import');
+    assert.equal(snap.selectedAccount?.accountKey, 'claude-cli-import');
+  });
+
+  it('includes stats-cache usage when readStatsCacheFn returns data', () => {
+    const snap = buildClaudeSnapshot(
+      FAKE_PATH,
+      () => null,
+      [],
+      '/tmp/stats.json',
+      () => ({
+        version: 3,
+        totalSessions: 10,
+        totalMessages: 42,
+        hasModelUsage: true,
+        hasDailyModelTokens: false,
+        raw: {},
+      }),
+    );
+    assert.equal(snap.usage.source, 'stats-cache-json');
+    assert.equal(snap.usage.totalSessions, 10);
+    assert.equal(snap.usage.hasModelUsage, true);
+  });
+
+  it('prefers agent-store account over claude-cli-import credentials', () => {
+    const fakeCreds = {
+      accessToken: 'cli',
+      refreshToken: null,
+      expiresAt: null,
+      scopes: [],
+      subscriptionType: null,
+      rateLimitTier: null,
+    };
+    const agentAccount = {
+      accountKey: 'claude:alice',
+      provider: 'claude',
+      source: 'agent-store',
+      status: 'active',
+      tokens: { accessToken: 'agent-store-tok' },
+    };
+    const snap = buildClaudeSnapshot(
+      FAKE_PATH,
+      () => fakeCreds,
+      [agentAccount],
+      '/tmp/stats.json',
+      () => null,
+    );
+    assert.equal(snap.authSource, 'agent-store');
+    assert.equal(snap.selectedAccount.accountKey, 'claude:alice');
+  });
+});
+
+describe('resolveClaudeProfileFromSnapshot (via claude-provider)', () => {
+  it('returns null when selectedAccount is missing', () => {
+    assert.equal(resolveClaudeProfileFromSnapshot({ selectedAccount: null }), null);
+  });
+
+  it('extracts accessToken from claude-cli-import (top-level)', () => {
+    const profile = resolveClaudeProfileFromSnapshot({
+      selectedAccount: {
+        accountKey: 'claude-cli-import',
+        accessToken: 'sk-ant-cli',
+        email: 'x@example.com',
+      },
+    });
+    assert.equal(profile.id, 'claude-cli-import');
+    assert.equal(profile.accessToken, 'sk-ant-cli');
+    assert.equal(profile.email, 'x@example.com');
+  });
+
+  it('extracts accessToken from tokens.accessToken (agent-store)', () => {
+    const profile = resolveClaudeProfileFromSnapshot({
+      selectedAccount: {
+        accountKey: 'claude:alice',
+        tokens: { accessToken: 'sk-ant-store' },
+      },
+    });
+    assert.equal(profile.accessToken, 'sk-ant-store');
+  });
+
+  it('returns null when no accessToken anywhere', () => {
+    assert.equal(
+      resolveClaudeProfileFromSnapshot({ selectedAccount: { accountKey: 'x' } }),
+      null,
+    );
+  });
+});
+
+describe('getClaudeSnapshot — disabled config contract', () => {
+  it('returns networkUsage=null when claude provider is disabled', async () => {
+    const snap = await getClaudeSnapshot({ providers: { claude: { enabled: false } } });
+    assert.equal(snap.networkUsage, null);
+    // base snapshot도 포함
+    assert.ok(typeof snap.authSource === 'string');
+  });
+});
