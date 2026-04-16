@@ -84,37 +84,76 @@ export function formatClaudeSection(claude) {
   lines.push(`인증 소스: ${claude.authSource}`);
   lines.push(`credential 감지: ${claude.detected}`);
   if (claude.selectedAccount) {
-    lines.push(`계정: ${claude.selectedAccount.accountKey}`);
+    lines.push(`기본 계정: ${claude.selectedAccount.accountKey}`);
   }
-  lines.push(...formatClaudeNetworkUsage(claude.networkUsage));
+
+  // Multi-account: networkUsages 배열 우선. 없으면 networkUsage 단일 값으로 fallback.
+  const usages = Array.isArray(claude.networkUsages)
+    ? claude.networkUsages
+    : claude.networkUsage
+      ? [{ accountKey: claude.selectedAccount?.accountKey ?? null, snapshot: claude.networkUsage }]
+      : [];
+  lines.push(...formatClaudeNetworkUsages(usages));
   lines.push(...formatClaudeLocalUsage(claude.usage));
   return lines;
 }
 
-/** Pure formatter: Claude live network usage block. */
-export function formatClaudeNetworkUsage(networkUsage) {
+/**
+ * Pure formatter: Claude live network usage 블록(들).
+ * usages가 비어 있으면 "호출 안 함" 단일 블록, 여러 개면 계정별 블록 반복.
+ */
+export function formatClaudeNetworkUsages(usages) {
   const lines = ['', '[live] api.anthropic.com/api/oauth/usage'];
-  if (!networkUsage) {
+  if (!usages || usages.length === 0) {
     lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
     return lines;
   }
 
+  for (const { accountKey, snapshot } of usages) {
+    if (usages.length > 1) lines.push(`  - 계정: ${accountKey ?? '(unknown)'}`);
+    lines.push(...formatClaudeNetworkUsageBody(snapshot, usages.length > 1));
+  }
+  return lines;
+}
+
+/**
+ * 단일 Claude network usage snapshot 출력 (들여쓰기 포함).
+ * @param {object|null} networkUsage
+ * @param {boolean} indented - multi-account 블록일 때 true → 추가 들여쓰기
+ */
+export function formatClaudeNetworkUsageBody(networkUsage, indented = false) {
+  const prefix = indented ? '    ' : '  ';
+  const lines = [];
+  if (!networkUsage) {
+    lines.push(`${prefix}호출 안 함`);
+    return lines;
+  }
+
   if (networkUsage.status?.ok) {
-    lines.push(`  상태: OK (${networkUsage.status.httpStatus})`);
+    lines.push(`${prefix}상태: OK (${networkUsage.status.httpStatus})`);
     if (networkUsage.usageWindows.length === 0) {
-      lines.push('  usageWindows 없음 (응답에 기대한 필드가 없었음)');
+      lines.push(`${prefix}usageWindows 없음 (응답에 기대한 필드가 없었음)`);
     }
     for (const window of networkUsage.usageWindows) {
-      lines.push(`  ${window.kind}: ${formatWindow(window)}`);
+      lines.push(`${prefix}${window.kind}: ${formatWindow(window)}`);
     }
     return lines;
   }
 
   const http = networkUsage.status?.httpStatus ?? 'network/error';
   const bucket = networkUsage.status?.bucket ?? 'unknown';
-  lines.push(`  상태: 실패 (${http}, bucket=${bucket})`);
-  if (networkUsage.status?.message) lines.push(`  메시지: ${networkUsage.status.message}`);
+  lines.push(`${prefix}상태: 실패 (${http}, bucket=${bucket})`);
+  if (networkUsage.status?.message) lines.push(`${prefix}메시지: ${networkUsage.status.message}`);
   return lines;
+}
+
+/**
+ * 기존 이름 유지(backward compat): 단일 networkUsage 객체를 받는 구 시그니처.
+ * 신규 코드는 formatClaudeNetworkUsages(배열)를 권장.
+ */
+export function formatClaudeNetworkUsage(networkUsage) {
+  const header = ['', '[live] api.anthropic.com/api/oauth/usage'];
+  return [...header, ...formatClaudeNetworkUsageBody(networkUsage, false)];
 }
 
 /** Pure formatter: Claude local stats-cache block. */

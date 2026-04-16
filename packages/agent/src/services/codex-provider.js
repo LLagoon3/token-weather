@@ -88,20 +88,21 @@ async function getAgentStoreProfiles() {
   const realAccounts = filterRealCodexAccounts(providerData.accounts);
   if (realAccounts.length === 0) return [];
 
-  const { account } = resolveDefaultAccount(realAccounts);
-  if (!account) return [];
-
-  // Keep multi-account selection stable across runs.
+  // lastUsedAt 업데이트는 "기본 선택" 계정에만 적용한다 — multi-account일 때
+  // 모두 갱신하면 자동 선택 로직이 의미 없어진다. 조회 자체는 모든 real 계정에 대해 수행.
   try {
-    const freshStore = await loadAuthStore();
-    const updatedAccount = { ...account, lastUsedAt: new Date().toISOString() };
-    const nextStore = upsertProviderAccount(freshStore, CODEX_PROVIDER_ID, updatedAccount);
-    await saveAuthStore(nextStore);
+    const { account: defaultAccount } = resolveDefaultAccount(realAccounts);
+    if (defaultAccount) {
+      const freshStore = await loadAuthStore();
+      const updatedAccount = { ...defaultAccount, lastUsedAt: new Date().toISOString() };
+      const nextStore = upsertProviderAccount(freshStore, CODEX_PROVIDER_ID, updatedAccount);
+      await saveAuthStore(nextStore);
+    }
   } catch {
     // best-effort
   }
 
-  return [mapAccountToProfile(account)];
+  return realAccounts.map(mapAccountToProfile);
 }
 
 function mapAccountToProfile(account) {

@@ -6,6 +6,7 @@ import {
   formatCodexSection,
   formatClaudeSection,
   formatClaudeNetworkUsage,
+  formatClaudeNetworkUsages,
   formatClaudeLocalUsage,
   formatWindow,
   STATUS_COMMANDS,
@@ -187,5 +188,87 @@ describe('formatStatusOutput', () => {
     assert.ok(lines.includes('설정 파일: /x/config.json'));
     assert.ok(lines.includes('Codex 사용: enabled'));
     assert.ok(lines.includes('Claude 사용: disabled'));
+  });
+});
+
+describe('formatClaudeNetworkUsages — multi-account', () => {
+  it('renders single "호출 안 함" line when usages is empty', () => {
+    const lines = formatClaudeNetworkUsages([]);
+    assert.ok(lines.some((l) => l.includes('호출 안 함')));
+  });
+
+  it('outputs a single block without account header when usages has one entry', () => {
+    const lines = formatClaudeNetworkUsages([
+      {
+        accountKey: 'a:1',
+        snapshot: {
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [{ kind: 'five_hour', usedPercent: 10, resetAt: '2026-04-16' }],
+        },
+      },
+    ]);
+    // 단일 계정 블록은 '계정:' 헤더를 붙이지 않음
+    assert.ok(!lines.some((l) => l.startsWith('  - 계정:')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+  });
+
+  it('outputs per-account header + body for multiple usages', () => {
+    const lines = formatClaudeNetworkUsages([
+      {
+        accountKey: 'a:1',
+        snapshot: {
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [{ kind: 'five_hour', usedPercent: 5 }],
+        },
+      },
+      {
+        accountKey: 'a:2',
+        snapshot: {
+          status: { ok: false, httpStatus: 401, bucket: 'auth', message: 'expired' },
+          usageWindows: [],
+        },
+      },
+    ]);
+    assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
+    assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+    assert.ok(lines.some((l) => l.includes('실패 (401, bucket=auth)')));
+    assert.ok(lines.some((l) => l.includes('메시지: expired')));
+  });
+});
+
+describe('formatClaudeSection — networkUsages array support', () => {
+  it('uses networkUsages when provided (multi-account path)', () => {
+    const lines = formatClaudeSection({
+      authSource: 'agent-store',
+      detected: true,
+      selectedAccount: { accountKey: 'a:1' },
+      networkUsages: [
+        {
+          accountKey: 'a:1',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+        {
+          accountKey: 'a:2',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+      ],
+      usage: { source: 'not-found' },
+    });
+    assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
+    assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
+  });
+
+  it('falls back to legacy networkUsage when networkUsages absent', () => {
+    const lines = formatClaudeSection({
+      authSource: 'claude-cli-import',
+      detected: true,
+      selectedAccount: null,
+      networkUsage: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+      usage: { source: 'not-found' },
+    });
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+    // 단일 블록이므로 '- 계정:' 헤더 없어야 함
+    assert.ok(!lines.some((l) => l.startsWith('  - 계정:')));
   });
 });

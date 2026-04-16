@@ -132,10 +132,10 @@ describe('resolveClaudeProfileFromSnapshot (via claude-provider)', () => {
 });
 
 describe('getClaudeSnapshot — disabled config contract', () => {
-  it('returns networkUsage=null when claude provider is disabled', async () => {
+  it('returns networkUsage=null and networkUsages=[] when claude provider is disabled', async () => {
     const snap = await getClaudeSnapshot({ providers: { claude: { enabled: false } } });
     assert.equal(snap.networkUsage, null);
-    // base snapshot도 포함
+    assert.deepEqual(snap.networkUsages, []);
     assert.ok(typeof snap.authSource === 'string');
   });
 });

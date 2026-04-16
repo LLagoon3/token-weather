@@ -56,3 +56,19 @@ describe('getCodexSnapshot — disabled config contract', () => {
     assert.equal(typeof snap.authProfilesPath, 'string');
   });
 });
+
+describe('filterRealCodexAccounts — multi-account retention', () => {
+  it('returns all real accounts when multiple are active (multi-account A)', () => {
+    const accounts = [
+      { accountKey: 'one', status: 'active', tokens: { accessToken: 'real-1' } },
+      { accountKey: 'two', status: 'active', tokens: { accessToken: 'real-2' } },
+      { accountKey: 'mock', status: 'active', tokens: { accessToken: 'mock-x' } },
+    ];
+    const result = filterRealCodexAccounts(accounts);
+    assert.equal(result.length, 2);
+    assert.deepEqual(
+      result.map((a) => a.accountKey).sort(),
+      ['one', 'two'],
+    );
+  });
+});
