@@ -6,6 +6,7 @@ import {
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveDefaultAccount } from '../auth/account-resolver.js';
+import { filterProfilesByAccount } from './account-filter.js';
 
 const CODEX_PROVIDER_ID = 'openai-codex';
 
@@ -47,20 +48,8 @@ export async function getCodexSnapshot(config, options = {}) {
   };
 }
 
-/**
- * accountFilter가 주어지면 id(accountKey) 또는 email이 매치되는 profile만 남긴다.
- * Pure. Exported for testing.
- */
-export function filterProfilesByAccount(profiles, accountFilter) {
-  if (!accountFilter) return profiles;
-  const needle = String(accountFilter).toLowerCase();
-  return profiles.filter(
-    (p) =>
-      (p.id ?? '').toLowerCase() === needle
-      || (p.email ?? '').toLowerCase() === needle
-      || (p.label ?? '').toLowerCase() === needle,
-  );
-}
+// Re-export from shared for backward-compat (tests import from this module).
+export { filterProfilesByAccount } from './account-filter.js';
 
 /**
  * Pure selection: agent-store > openclaw-import.

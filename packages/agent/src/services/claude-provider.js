@@ -10,6 +10,7 @@ import { fetchClaudeUsage } from '../../../provider-adapters/src/claude/fetch-cl
 import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
 import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore } from '../auth/auth-store.js';
+import { filterProfilesByAccount as filterProfilesByAccountImpl } from './account-filter.js';
 
 /**
  * Build the Claude section of the top-level status snapshot.
@@ -39,7 +40,7 @@ export async function getClaudeSnapshot(
   }
 
   const allProfiles = resolveClaudeProfilesForFetch(base, agentClaudeAccounts);
-  const profiles = filterProfilesByAccount(allProfiles, options.accountFilter);
+  const profiles = filterProfilesByAccountImpl(allProfiles, options.accountFilter);
   if (profiles.length === 0) {
     return {
       ...base,
@@ -79,20 +80,8 @@ export async function getClaudeSnapshot(
   };
 }
 
-/**
- * accountFilter가 주어지면 id(accountKey) 또는 email이 매치되는 profile만 남긴다.
- * Pure. Exported for testing.
- */
-export function filterProfilesByAccount(profiles, accountFilter) {
-  if (!accountFilter) return profiles;
-  const needle = String(accountFilter).toLowerCase();
-  return profiles.filter(
-    (p) =>
-      (p.id ?? '').toLowerCase() === needle
-      || (p.email ?? '').toLowerCase() === needle
-      || (p.label ?? '').toLowerCase() === needle,
-  );
-}
+// Re-export from shared for backward-compat (tests import from this module).
+export { filterProfilesByAccount } from './account-filter.js';
 
 /**
  * 조회 대상 계정 목록 결정.
