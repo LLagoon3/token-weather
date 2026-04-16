@@ -24,6 +24,7 @@ import { loadAuthStore } from '../auth/auth-store.js';
  */
 export async function getClaudeSnapshot(
   config = { providers: { claude: { enabled: true } } },
+  options = {},
 ) {
   const agentClaudeAccounts = await loadAgentStoreClaudeAccounts();
   const base = buildClaudeSnapshot(
@@ -37,9 +38,16 @@ export async function getClaudeSnapshot(
     return { ...base, networkUsages: [], networkUsage: null };
   }
 
-  const profiles = resolveClaudeProfilesForFetch(base, agentClaudeAccounts);
+  const allProfiles = resolveClaudeProfilesForFetch(base, agentClaudeAccounts);
+  const profiles = filterProfilesByAccount(allProfiles, options.accountFilter);
   if (profiles.length === 0) {
-    return { ...base, networkUsages: [], networkUsage: null };
+    return {
+      ...base,
+      networkUsages: [],
+      networkUsage: null,
+      accountFilter: options.accountFilter ?? null,
+      filteredOut: options.accountFilter && allProfiles.length > 0,
+    };
   }
 
   // 각 계정에 대해 병렬로 usage 조회. 한 계정이 실패해도 다른 계정은 유지.
@@ -66,7 +74,23 @@ export async function getClaudeSnapshot(
       settled.find((s) => s.accountKey === base.selectedAccount?.accountKey)?.snapshot
         ?? settled[0]?.snapshot
         ?? null,
+    accountFilter: options.accountFilter ?? null,
+    filteredOut: false,
   };
+}
+
+/**
+ * accountFilter가 주어지면 id(accountKey) 또는 email이 매치되는 profile만 남긴다.
+ * Pure. Exported for testing.
+ */
+export function filterProfilesByAccount(profiles, accountFilter) {
+  if (!accountFilter) return profiles;
+  const needle = String(accountFilter).toLowerCase();
+  return profiles.filter(
+    (p) =>
+      (p.id ?? '').toLowerCase() === needle
+      || (p.email ?? '').toLowerCase() === needle,
+  );
 }
 
 /**

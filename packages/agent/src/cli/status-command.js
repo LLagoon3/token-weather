@@ -5,12 +5,39 @@ export const STATUS_COMMANDS = ['status', 'usage'];
 /**
  * `status` / `usage` 진입점.
  * 출력 라인 생성은 pure formatter에 위임하고, 본 함수는 console.log만 담당.
+ *
+ * @param {string} command
+ * @param {string[]} [args] - CLI args (e.g. ['--account', 'alice@x.com'])
  */
-export async function runStatusCommand(command) {
-  const snapshot = await getStatusSnapshot();
+export async function runStatusCommand(command, args = []) {
+  const options = parseStatusOptions(args);
+  const snapshot = await getStatusSnapshot({ accountFilter: options.account });
   for (const line of formatStatusOutput(command, snapshot)) {
     console.log(line);
   }
+}
+
+/**
+ * `status` / `usage` 옵션 파서.
+ * 현재 지원: `--account <id>` (email / accountKey 매치).
+ * Unknown flag는 무시.
+ *
+ * @param {string[]} args
+ * @returns {{ account: string|null }}
+ */
+export function parseStatusOptions(args) {
+  const options = { account: null };
+  for (let i = 0; i < (args ?? []).length; i += 1) {
+    const arg = args[i];
+    if (arg === '--account') {
+      const value = args[i + 1];
+      if (value) {
+        options.account = value;
+        i += 1;
+      }
+    }
+  }
+  return options;
 }
 
 /**
@@ -20,7 +47,7 @@ export async function runStatusCommand(command) {
  * @returns {string[]}
  */
 export function formatStatusOutput(command, snapshot) {
-  return [
+  const lines = [
     `명령: ${command}`,
     '로컬 에이전트 상태 요약',
     '-----------------------',
@@ -28,11 +55,17 @@ export function formatStatusOutput(command, snapshot) {
     `Codex 사용: ${snapshot.providers.codex.enabled ? 'enabled' : 'disabled'}`,
     `Claude 사용: ${snapshot.providers.claude.enabled ? 'enabled' : 'disabled'}`,
     `서버 sync: ${snapshot.sync.enabled ? 'enabled' : 'disabled'}`,
+  ];
+  if (snapshot.accountFilter) {
+    lines.push(`계정 필터: ${snapshot.accountFilter}`);
+  }
+  lines.push(
     '',
     ...formatCodexSection(snapshot.codex),
     '',
     ...formatClaudeSection(snapshot.claude),
-  ];
+  );
+  return lines;
 }
 
 /** Pure formatter: Codex usage section. */
@@ -50,7 +83,11 @@ export function formatCodexSection(codex) {
   }
 
   if (codex.snapshots.length === 0) {
-    lines.push('발견된 Codex OAuth 프로필이 없습니다.');
+    if (codex.filteredOut) {
+      lines.push(`계정 필터 "${codex.accountFilter}"에 해당하는 Codex 계정을 찾지 못했습니다.`);
+    } else {
+      lines.push('발견된 Codex OAuth 프로필이 없습니다.');
+    }
     return lines;
   }
 
@@ -93,7 +130,12 @@ export function formatClaudeSection(claude) {
     : claude.networkUsage
       ? [{ accountKey: claude.selectedAccount?.accountKey ?? null, snapshot: claude.networkUsage }]
       : [];
-  lines.push(...formatClaudeNetworkUsages(usages));
+  lines.push(
+    ...formatClaudeNetworkUsages(usages, {
+      filteredOut: claude.filteredOut,
+      accountFilter: claude.accountFilter,
+    }),
+  );
   lines.push(...formatClaudeLocalUsage(claude.usage));
   return lines;
 }
@@ -102,10 +144,14 @@ export function formatClaudeSection(claude) {
  * Pure formatter: Claude live network usage 블록(들).
  * usages가 비어 있으면 "호출 안 함" 단일 블록, 여러 개면 계정별 블록 반복.
  */
-export function formatClaudeNetworkUsages(usages) {
+export function formatClaudeNetworkUsages(usages, context = {}) {
   const lines = ['', '[live] api.anthropic.com/api/oauth/usage'];
   if (!usages || usages.length === 0) {
-    lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
+    if (context.filteredOut) {
+      lines.push(`  계정 필터 "${context.accountFilter}"에 해당하는 Claude 계정을 찾지 못했습니다.`);
+    } else {
+      lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
+    }
     return lines;
   }
 

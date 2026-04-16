@@ -16,7 +16,7 @@ const CODEX_PROVIDER_ID = 'openai-codex';
  * @param {object} config
  * @returns {Promise<object>}
  */
-export async function getCodexSnapshot(config) {
+export async function getCodexSnapshot(config, options = {}) {
   if (!config.providers?.codex?.enabled) {
     return {
       enabled: false,
@@ -25,7 +25,8 @@ export async function getCodexSnapshot(config) {
     };
   }
 
-  const { profiles, authSource } = await resolveCodexProfiles();
+  const { profiles: allProfiles, authSource } = await resolveCodexProfiles();
+  const profiles = filterProfilesByAccount(allProfiles, options.accountFilter);
   const snapshots = [];
 
   for (const profile of profiles) {
@@ -41,7 +42,23 @@ export async function getCodexSnapshot(config) {
     authSource,
     authProfilesPath: authSource === 'openclaw-import' ? getDefaultAuthProfilesPath() : null,
     snapshots,
+    accountFilter: options.accountFilter ?? null,
+    filteredOut: options.accountFilter && allProfiles.length > 0 && profiles.length === 0,
   };
+}
+
+/**
+ * accountFilter가 주어지면 id(accountKey) 또는 email이 매치되는 profile만 남긴다.
+ * Pure. Exported for testing.
+ */
+export function filterProfilesByAccount(profiles, accountFilter) {
+  if (!accountFilter) return profiles;
+  const needle = String(accountFilter).toLowerCase();
+  return profiles.filter(
+    (p) =>
+      (p.id ?? '').toLowerCase() === needle
+      || (p.email ?? '').toLowerCase() === needle,
+  );
 }
 
 /**

@@ -21,17 +21,20 @@ export {
 /**
  * Build the top-level status snapshot by loading config and calling every
  * registered provider. New providers go through provider-registry.js, not here.
+ *
+ * @param {{ accountFilter?: string }} [options]
  */
-export async function getStatusSnapshot() {
+export async function getStatusSnapshot(options = {}) {
   const configPath = resolveAgentConfigPath();
   const config = loadConfig(configPath);
-  const providerSnapshots = await runProviderSnapshots(config);
+  const providerSnapshots = await runProviderSnapshots(config, options);
 
   return {
     schemaVersion: SCHEMA_VERSION,
     configPath,
     providers: config.providers,
     sync: config.sync,
+    accountFilter: options.accountFilter ?? null,
     ...providerSnapshots,
   };
 }

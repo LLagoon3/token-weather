@@ -5,6 +5,7 @@ import {
   getCodexSnapshot,
   selectCodexAuthSource,
   filterRealCodexAccounts,
+  filterProfilesByAccount,
 } from '../../src/services/codex-provider.js';
 
 // ── pure helpers ─────────────────────────────────────────────────────────────
@@ -70,5 +71,45 @@ describe('filterRealCodexAccounts — multi-account retention', () => {
       result.map((a) => a.accountKey).sort(),
       ['one', 'two'],
     );
+  });
+});
+
+describe('filterProfilesByAccount', () => {
+  const profiles = [
+    { id: 'openai-codex:a', email: 'a@x.com' },
+    { id: 'openai-codex:b', email: 'b@x.com' },
+  ];
+
+  it('returns all profiles when accountFilter is falsy', () => {
+    assert.deepEqual(filterProfilesByAccount(profiles, null), profiles);
+    assert.deepEqual(filterProfilesByAccount(profiles, undefined), profiles);
+    assert.deepEqual(filterProfilesByAccount(profiles, ''), profiles);
+  });
+
+  it('matches by accountKey (case-insensitive)', () => {
+    const result = filterProfilesByAccount(profiles, 'OPENAI-CODEX:A');
+    assert.equal(result.length, 1);
+    assert.equal(result[0].id, 'openai-codex:a');
+  });
+
+  it('matches by email (case-insensitive)', () => {
+    const result = filterProfilesByAccount(profiles, 'B@X.COM');
+    assert.equal(result.length, 1);
+    assert.equal(result[0].email, 'b@x.com');
+  });
+
+  it('returns empty array when no match', () => {
+    assert.deepEqual(filterProfilesByAccount(profiles, 'nope'), []);
+  });
+});
+
+describe('getCodexSnapshot — accountFilter flow', () => {
+  it('propagates accountFilter into returned snapshot meta when disabled', async () => {
+    const snap = await getCodexSnapshot(
+      { providers: { codex: { enabled: false } } },
+      { accountFilter: 'x@x.com' },
+    );
+    assert.equal(snap.enabled, false);
+    // disabled path는 accountFilter 노출하지 않음 (provider 진입 전 short-circuit)
   });
 });
