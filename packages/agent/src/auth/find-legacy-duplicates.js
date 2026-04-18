@@ -25,6 +25,9 @@ export function findLegacyDuplicates(existingAccounts, newAccount) {
   const duplicates = [];
   for (const existing of existingAccounts) {
     if (!existing || existing.accountKey === newAccount.accountKey) continue;
+    // manual/mock 계정은 실토큰이 아니라 placeholder 데이터이므로
+    // identity가 우연히 일치하더라도 자동 제거 대상에서 제외한다.
+    if (isManualOrMockAccount(existing)) continue;
     const existingIdentity = extractIdentity(existing);
 
     if (
@@ -45,6 +48,13 @@ export function findLegacyDuplicates(existingAccounts, newAccount) {
     }
   }
   return duplicates;
+}
+
+function isManualOrMockAccount(account) {
+  if (!account) return false;
+  if (account.source === 'manual') return true;
+  if (account.raw?.mock === true) return true;
+  return false;
 }
 
 function extractIdentity(account) {

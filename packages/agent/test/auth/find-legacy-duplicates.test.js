@@ -114,3 +114,24 @@ describe('findLegacyDuplicates — priority', () => {
     assert.equal(out[0].reason, 'same-sub');
   });
 });
+
+describe('findLegacyDuplicates — manual/mock exclusion', () => {
+  it('skips accounts with source=manual', () => {
+    const existing = [
+      { accountKey: 'mock', accountId: 'sub1', email: 'a@x.com', source: 'manual' },
+      { accountKey: 'real', accountId: 'sub1', email: 'a@x.com', source: 'agent-store' },
+    ];
+    const newAccount = { accountKey: 'new', accountId: 'sub1', email: 'a@x.com' };
+    const out = findLegacyDuplicates(existing, newAccount);
+    assert.equal(out.length, 1);
+    assert.equal(out[0].accountKey, 'real');
+  });
+
+  it('skips accounts with raw.mock=true', () => {
+    const existing = [
+      { accountKey: 'mock', accountId: 'sub1', email: 'a@x.com', raw: { mock: true } },
+    ];
+    const newAccount = { accountKey: 'new', accountId: 'sub1', email: 'a@x.com' };
+    assert.deepEqual(findLegacyDuplicates(existing, newAccount), []);
+  });
+});

@@ -51,10 +51,11 @@ Claude는 agent-store에 저장된 계정과 `~/.claude/.credentials.json` impor
 
 ```bash
 ai-usage-agent auth logout <provider>
-ai-usage-agent auth logout <provider> --account <email|accountKey>
+ai-usage-agent auth logout <provider> --account <email | accountKey | label>
 ```
 
 - 로컬 auth store에서 해당 계정 제거
+- `--account`는 email / accountKey / label 중 하나로 지정 가능 (case-insensitive)
 - provider 측 revoke endpoint 호출은 미구현 (후속)
 
 ## import
