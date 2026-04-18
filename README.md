@@ -97,6 +97,7 @@ ai-usage-agent doctor codex  --refresh-live  # 실제 refresh POST
 ai-usage-agent doctor codex  --account <id>
 ai-usage-agent doctor claude                 # Claude credential·live usage 점검
 ai-usage-agent doctor claude --refresh-live  # 실제 refresh POST
+ai-usage-agent doctor claude --refresh-live --account <id>  # 특정 계정 지정
 ```
 
 ### config
@@ -149,7 +150,7 @@ ai-usage-agent config init
 ## 개발 / 테스트
 
 ```bash
-npm test              # 전체 테스트 (현재 384개)
+npm test              # 전체 테스트 (현재 445개)
 npm run test:agent    # agent 패키지만
 npm run test:adapters # provider adapters만
 ```

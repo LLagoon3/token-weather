@@ -368,7 +368,7 @@ describe('functionName', () => {
 
 ### 8.5 현재 규모
 
-- 총 384 테스트 (2026-04-16 기준). `npm test`로 실행.
+- 총 445 테스트 (2026-04-18 기준). `npm test`로 실행.
 - 주요 파일 위치:
   - `packages/provider-adapters/test/shared/` — 공용 OAuth / snapshot / fetch helper
   - `packages/provider-adapters/test/{codex,claude}/` — provider별 adapter

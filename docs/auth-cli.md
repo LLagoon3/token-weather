@@ -77,6 +77,7 @@ ai-usage-agent doctor codex  --refresh-live  # 실제 refresh POST
 ai-usage-agent doctor codex  --account <id>  # 특정 계정 지정
 ai-usage-agent doctor claude                 # Claude credential + live usage 점검
 ai-usage-agent doctor claude --refresh-live  # Claude refresh POST
+ai-usage-agent doctor claude --refresh-live --account <id>  # 특정 계정 지정
 ```
 
 점검 항목:
