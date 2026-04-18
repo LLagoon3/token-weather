@@ -111,13 +111,9 @@ async function runDoctorClaudeRefreshLive(snapshot, { accountIdentifier } = {}) 
 }
 
 /**
- * refresh 대상 계정 선택 규칙:
- *   - accountIdentifier(--account)가 있으면 agent-store(Claude provider)에서 email/accountKey/label
- *     매치되는 계정을 찾음. 매치 실패 시 에러 안내 후 null.
- *   - 없으면 snapshot.selectedAccount(= 기본 선택 계정)를 그대로 사용.
- *   - snapshot.selectedAccount도 없으면 에러.
+ * refresh 대상 계정 선택 규칙. Exported for testing.
  */
-async function resolveClaudeRefreshTargetAccount(snapshot, accountIdentifier) {
+export async function resolveClaudeRefreshTargetAccount(snapshot, accountIdentifier) {
   if (!accountIdentifier) {
     const account = snapshot.selectedAccount;
     if (!account) {
@@ -148,7 +144,10 @@ async function resolveClaudeRefreshTargetAccount(snapshot, accountIdentifier) {
   return account;
 }
 
-async function updateClaudeStoreAfterRefresh(account, tokenResponse) {
+/**
+ * Claude refresh 성공 후 agent-store 갱신. Exported for testing.
+ */
+export async function updateClaudeStoreAfterRefresh(account, tokenResponse) {
   const now = new Date();
   const expiresAt = tokenResponse.expiresIn
     ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
