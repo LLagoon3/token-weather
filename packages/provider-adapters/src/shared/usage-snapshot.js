@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
+import { SCHEMA_VERSION, validateUsageSnapshot } from '../../../schemas/src/index.js';
 
 /**
  * Provider-중립 usage snapshot 헬퍼.
@@ -107,7 +107,7 @@ export function buildUsageSnapshot({
   const lastSuccessAt = ok ? capturedAtIso : null;
   const lastFailureAt = ok ? null : capturedAtIso;
 
-  return {
+  const snapshot = {
     schemaVersion: SCHEMA_VERSION,
     snapshotId: `${snapshotIdPrefix}:${profile.id}:${capturedAtIso}`,
     capturedAt: capturedAtIso,
@@ -137,4 +137,17 @@ export function buildUsageSnapshot({
       rawError: ok ? null : (rawText ?? '').slice(0, 500),
     },
   };
+
+  // Soft enforcement: schema validation at the exit of every snapshot build.
+  // Invalid → console.warn + confidence downgrade. 동작은 계속 (비파괴).
+  const validation = validateUsageSnapshot(snapshot);
+  if (!validation.valid) {
+    console.warn(
+      `[schema-warning] usage snapshot validation failed (${validation.errors.length} errors):`,
+      validation.errors.slice(0, 5).join('; '),
+    );
+    snapshot.confidence = 'low';
+  }
+
+  return snapshot;
 }

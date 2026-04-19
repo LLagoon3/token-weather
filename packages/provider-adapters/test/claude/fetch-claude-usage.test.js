@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { fetchClaudeUsage } from '../../src/claude/fetch-claude-usage.js';
+import { validateUsageSnapshot } from '../../../schemas/src/validate.js';
 
 function createMockResponse({ status = 200, body = {}, asText = null } = {}) {
   const text = asText !== null ? asText : JSON.stringify(body);
@@ -172,5 +173,35 @@ describe('fetchClaudeUsage', () => {
     assert.equal(snapshot.account.email, 'user@example.com');
     assert.equal(snapshot.account.accountId, 'acc-123');
     assert.equal(snapshot.account.profileId, 'claude-cli-import');
+  });
+});
+
+describe('fetchClaudeUsage — schema compliance', () => {
+  it('success snapshot passes schema validation', async () => {
+    const fetchImpl = async () => createMockResponse({
+      status: 200,
+      body: { five_hour: { utilization: 0.25, resets_at: '2026-04-19T00:00:00Z' } },
+    });
+    const snap = await fetchClaudeUsage(BASE_PROFILE, { fetchImpl });
+    const result = validateUsageSnapshot(snap);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('failure snapshot passes schema validation', async () => {
+    const fetchImpl = async () => createMockResponse({ status: 401, body: { error: { message: 'invalid' } } });
+    const snap = await fetchClaudeUsage(BASE_PROFILE, { fetchImpl });
+    const result = validateUsageSnapshot(snap);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('auth_scope bucket passes schema validation', async () => {
+    const fetchImpl = async () => createMockResponse({
+      status: 403,
+      body: { error: { message: 'missing scope requirement user:profile' } },
+    });
+    const snap = await fetchClaudeUsage(BASE_PROFILE, { fetchImpl });
+    assert.equal(snap.status.bucket, 'auth_scope');
+    const result = validateUsageSnapshot(snap);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
   });
 });

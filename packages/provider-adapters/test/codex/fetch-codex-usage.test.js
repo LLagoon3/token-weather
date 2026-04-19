@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { fetchCodexUsage } from '../../src/codex/fetch-codex-usage.js';
+import { validateUsageSnapshot } from '../../../schemas/src/validate.js';
 
 function mockResponse({ status = 200, body = {}, asText = null } = {}) {
   const text = asText !== null ? asText : JSON.stringify(body);
@@ -159,5 +160,24 @@ describe('fetchCodexUsage — error status buckets', () => {
     const snap = await runStatus(500, 'upstream plain text');
     assert.equal(snap.status.ok, false);
     assert.equal(snap.status.message, 'upstream plain text');
+  });
+});
+
+describe('fetchCodexUsage — schema compliance', () => {
+  it('success snapshot passes schema validation', async () => {
+    const fetchImpl = async () => mockResponse({
+      status: 200,
+      body: { plan_type: 'plus', rate_limit: { primary_window: { used_percent: 0, reset_at: 1700000000 } } },
+    });
+    const snap = await fetchCodexUsage(BASE_PROFILE, { fetchImpl });
+    const result = validateUsageSnapshot(snap);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
+  });
+
+  it('failure snapshot passes schema validation', async () => {
+    const fetchImpl = async () => mockResponse({ status: 500, asText: 'server error' });
+    const snap = await fetchCodexUsage(BASE_PROFILE, { fetchImpl });
+    const result = validateUsageSnapshot(snap);
+    assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
   });
 });

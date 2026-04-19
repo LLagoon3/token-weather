@@ -118,12 +118,14 @@ ai-usage-agent config init
 
 ## 스키마
 
-`packages/schemas`에 JSON Schema 정의.
+`packages/schemas`에 JSON Schema 정의 + zero-dep 런타임 validator.
 
 - `usage-snapshot.schema.json`
 - `usage-event.schema.json`
 - 핵심 필드: `source`, `authType`, `confidence`, `usageWindows`, `status.bucket`
-- `status.bucket` 값: `ok` / `rate_limit` / `usage_window` / `billing` / `auth` / `overloaded` / `unknown`
+- `status.bucket` 값: `ok` / `rate_limit` / `usage_window` / `billing` / `auth` / `auth_scope` / `overloaded` / `unknown`
+- `validateUsageSnapshot(data)` / `validateUsageEvent(data)` — 런타임 검증 함수
+- `buildUsageSnapshot` 출구에서 자동 validation (soft enforcement: invalid → warn + confidence 하강)
 
 ## 보안 원칙
 
@@ -150,7 +152,7 @@ ai-usage-agent config init
 ## 개발 / 테스트
 
 ```bash
-npm test              # 전체 테스트 (현재 445개)
+npm test              # 전체 테스트 (현재 482개)
 npm run test:agent    # agent 패키지만
 npm run test:adapters # provider adapters만
 ```

@@ -57,6 +57,8 @@ Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구�
 - `usage-snapshot.schema.json`
 - `usage-event.schema.json`
 - 핵심 필드: `source`, `authType`, `confidence`, `usageWindows`, `status.bucket`
+- `validateUsageSnapshot` / `validateUsageEvent` — zero-dep 런타임 validator
+- `buildUsageSnapshot` 출구에서 자동 validation (soft enforcement — invalid 시 warn + confidence 하강)
 
 ### 인증 계층
 
