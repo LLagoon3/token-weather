@@ -12,6 +12,11 @@ import { loadAuthStore } from '../auth/auth-store.js';
 import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
 import { resolveProviderProfiles } from './provider-profile-resolver.js';
 import { filterProfilesByAccount } from './account-filter.js';
+import {
+  filterClaudeRealAccounts,
+  claudeMapAccountToProfile,
+  matchesFilter,
+} from './claude-account-spec.js';
 
 /**
  * Build the Claude section of the top-level status snapshot.
@@ -106,36 +111,8 @@ export async function getClaudeSnapshot(
 // Re-export from shared for backward-compat (tests import from this module).
 export { filterProfilesByAccount } from './account-filter.js';
 
-function filterClaudeRealAccounts(accounts) {
-  return (accounts ?? []).filter((a) => {
-    if (a.status === 'disabled') return false;
-    if (a.raw?.mock === true) return false;
-    const accessToken = a.tokens?.accessToken ?? a.accessToken ?? null;
-    if (!accessToken) return false;
-    if (a.source === 'claude-cli-import') return false;
-    return true;
-  });
-}
-
-function claudeMapAccountToProfile(account) {
-  return {
-    id: account.accountKey,
-    accessToken: account.tokens?.accessToken ?? account.accessToken ?? null,
-    accountId: account.accountId ?? null,
-    email: account.email ?? null,
-    label: account.label ?? null,
-  };
-}
-
-function matchesFilter(profile, accountFilter) {
-  if (!accountFilter) return true;
-  const needle = String(accountFilter).toLowerCase();
-  return (
-    (profile.id ?? '').toLowerCase() === needle
-    || (profile.email ?? '').toLowerCase() === needle
-    || (profile.label ?? '').toLowerCase() === needle
-  );
-}
+// filterClaudeRealAccounts, claudeMapAccountToProfile, matchesFilter
+// → imported from claude-account-spec.js
 
 /**
  * Pure: build a Claude credential + stats-cache snapshot.
