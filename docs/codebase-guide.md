@@ -154,6 +154,9 @@ export async function fetchFooUsage(profile, options = {}) {
 
 응답 정규화는 provider별로 다르므로 각자 작성. `packages/schemas/` 타입을 준수.
 
+**모든 usage fetcher의 반환값은 schema validation을 자동으로 통과한다.**
+`buildUsageSnapshot` 출구에서 `validateUsageSnapshot`이 호출되고, invalid 시 `console.warn` + `confidence: 'low'`로 하강한다 (soft enforcement — 비파괴). failure snapshot도 `buildUsageSnapshot` 경유이므로 동일하게 적용된다.
+
 ### 3.5 Guard 패턴 (`allowLiveExchange`)
 
 관찰값(observed) 기반으로 구현한 live 호출은 기본적으로 **차단**되어야 한다.
