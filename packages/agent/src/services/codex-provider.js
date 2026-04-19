@@ -3,10 +3,10 @@ import {
   getDefaultAuthProfilesPath,
   readCodexAuthProfiles,
 } from '../../../provider-adapters/src/codex/index.js';
-import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import { resolveDefaultAccount } from '../auth/account-resolver.js';
 import { filterProfilesByAccount } from './account-filter.js';
+import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
 
 const CODEX_PROVIDER_ID = 'openai-codex';
 
@@ -124,32 +124,17 @@ function mapAccountToProfile(account) {
 }
 
 function createCodexFailureSnapshot(profile, error) {
-  const capturedAt = new Date().toISOString();
   const message = error instanceof Error ? error.message : String(error);
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    snapshotId: `codex:${profile.id}:${capturedAt}`,
-    capturedAt,
-    provider: { id: 'openai-codex', displayName: 'Codex', region: null },
-    account: {
-      profileId: profile.id,
-      accountId: profile.accountId ?? null,
-      email: profile.email ?? null,
-      plan: null,
-    },
-    source: 'provider_usage_endpoint',
-    authType: 'oauth',
-    confidence: 'low',
-    status: {
-      bucket: 'unknown',
-      ok: false,
-      httpStatus: null,
-      message,
-      lastSuccessAt: null,
-      lastFailureAt: capturedAt,
-    },
-    usageWindows: [],
-    credits: { balance: null, unit: null },
-    raw: { provider: 'openai-codex', rawError: message },
-  };
+  return buildUsageSnapshot({
+    profile,
+    providerId: 'openai-codex',
+    displayName: 'Codex',
+    snapshotIdPrefix: 'codex',
+    capturedAt: new Date(),
+    responseStatus: null,
+    ok: false,
+    data: null,
+    rawText: message,
+    fields: {},
+  });
 }

@@ -8,9 +8,9 @@ import { resolveClaudeUsageSourcePath } from '../../../provider-adapters/src/cla
 import { readClaudeStatsCache } from '../../../provider-adapters/src/claude/read-claude-stats-cache.js';
 import { fetchClaudeUsage } from '../../../provider-adapters/src/claude/fetch-claude-usage.js';
 import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
-import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
 import { loadAuthStore } from '../auth/auth-store.js';
 import { filterProfilesByAccount as filterProfilesByAccountImpl } from './account-filter.js';
+import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
 
 /**
  * Build the Claude section of the top-level status snapshot.
@@ -208,32 +208,17 @@ async function loadAgentStoreClaudeAccounts() {
 }
 
 function createClaudeNetworkFailureSnapshot(profile, error) {
-  const capturedAt = new Date().toISOString();
   const message = error instanceof Error ? error.message : String(error);
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    snapshotId: `claude:${profile.id}:${capturedAt}`,
-    capturedAt,
-    provider: { id: 'anthropic-claude', displayName: 'Claude', region: null },
-    account: {
-      profileId: profile.id,
-      accountId: profile.accountId ?? null,
-      email: profile.email ?? null,
-      plan: null,
-    },
-    source: 'provider_usage_endpoint',
-    authType: 'oauth',
-    confidence: 'low',
-    status: {
-      bucket: 'unknown',
-      ok: false,
-      httpStatus: null,
-      message,
-      lastSuccessAt: null,
-      lastFailureAt: capturedAt,
-    },
-    usageWindows: [],
-    credits: { balance: null, unit: null },
-    raw: { provider: 'anthropic-claude', rawError: message },
-  };
+  return buildUsageSnapshot({
+    profile,
+    providerId: 'anthropic-claude',
+    displayName: 'Claude',
+    snapshotIdPrefix: 'claude',
+    capturedAt: new Date(),
+    responseStatus: null,
+    ok: false,
+    data: null,
+    rawText: message,
+    fields: {},
+  });
 }
