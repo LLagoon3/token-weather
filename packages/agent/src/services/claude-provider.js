@@ -11,6 +11,7 @@ import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-c
 import { loadAuthStore } from '../auth/auth-store.js';
 import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
 import { resolveProviderProfiles } from './provider-profile-resolver.js';
+import { filterProfilesByAccount } from './account-filter.js';
 
 /**
  * Build the Claude section of the top-level status snapshot.
@@ -39,23 +40,30 @@ export async function getClaudeSnapshot(
     return { ...base, networkUsages: [], networkUsage: null };
   }
 
-  // agent-store의 real 계정을 runner로 일괄 해결.
-  // runner가 0개 반환 시 selectedAccount(= cli-import)를 single profile로 fallback.
-  let profiles = await resolveProviderProfiles({
+  // Source 선택은 unfiltered 기준으로 먼저 결정.
+  // accountFilter가 source precedence를 바꿔서는 안 된다.
+  const allAgentProfiles = await resolveProviderProfiles({
     providerId: CLAUDE_AUTH.storeProvider,
     filterFn: filterClaudeRealAccounts,
     mapFn: claudeMapAccountToProfile,
-    accountFilter: options.accountFilter,
+    accountFilter: null, // source 선택은 필터 없이
     updateLastUsed: false,
   });
-  if (profiles.length === 0) {
+
+  let profiles;
+  if (allAgentProfiles.length > 0) {
+    // agent-store 확정. 그 위에서 accountFilter 적용.
+    profiles = filterProfilesByAccount(allAgentProfiles, options.accountFilter);
+  } else {
+    // cli-import fallback
     const single = resolveClaudeProfileFromSnapshot(base);
-    if (single && !options.accountFilter) {
+    if (single && (!options.accountFilter || matchesFilter(single, options.accountFilter))) {
       profiles = [single];
-    } else if (single && matchesFilter(single, options.accountFilter)) {
-      profiles = [single];
+    } else {
+      profiles = [];
     }
   }
+
   if (profiles.length === 0) {
     return {
       ...base,

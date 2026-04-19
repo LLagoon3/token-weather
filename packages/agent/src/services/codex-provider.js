@@ -74,15 +74,19 @@ export function filterRealCodexAccounts(accounts) {
 }
 
 async function resolveCodexProfiles(accountFilter) {
-  const agentProfiles = await resolveProviderProfiles({
+  // Source 선택은 unfiltered 기준으로 먼저 결정한다.
+  // accountFilter가 source precedence를 바꿔서는 안 된다.
+  const allAgentProfiles = await resolveProviderProfiles({
     providerId: CODEX_PROVIDER_ID,
     filterFn: filterRealCodexAccounts,
     mapFn: codexMapAccountToProfile,
-    accountFilter,
+    accountFilter: null, // 필터 없이 전체 real 프로필 로드
   });
 
-  if (agentProfiles.length > 0) {
-    return { profiles: agentProfiles, authSource: 'agent-store' };
+  if (allAgentProfiles.length > 0) {
+    // agent-store 확정. 그 위에서 accountFilter 적용.
+    const filtered = filterProfilesByAccount(allAgentProfiles, accountFilter);
+    return { profiles: filtered, authSource: 'agent-store' };
   }
 
   // Fallback: OpenClaw import
