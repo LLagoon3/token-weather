@@ -9,8 +9,9 @@ import { readClaudeStatsCache } from '../../../provider-adapters/src/claude/read
 import { fetchClaudeUsage } from '../../../provider-adapters/src/claude/fetch-claude-usage.js';
 import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
 import { loadAuthStore } from '../auth/auth-store.js';
-import { filterProfilesByAccount as filterProfilesByAccountImpl } from './account-filter.js';
 import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
+import { resolveProviderProfiles } from './provider-profile-resolver.js';
+import { filterProfilesByAccount } from './account-filter.js';
 
 /**
  * Build the Claude section of the top-level status snapshot.
@@ -39,15 +40,37 @@ export async function getClaudeSnapshot(
     return { ...base, networkUsages: [], networkUsage: null };
   }
 
-  const allProfiles = resolveClaudeProfilesForFetch(base, agentClaudeAccounts);
-  const profiles = filterProfilesByAccountImpl(allProfiles, options.accountFilter);
+  // Source 선택은 unfiltered 기준으로 먼저 결정.
+  // accountFilter가 source precedence를 바꿔서는 안 된다.
+  const allAgentProfiles = await resolveProviderProfiles({
+    providerId: CLAUDE_AUTH.storeProvider,
+    filterFn: filterClaudeRealAccounts,
+    mapFn: claudeMapAccountToProfile,
+    accountFilter: null, // source 선택은 필터 없이
+    updateLastUsed: false,
+  });
+
+  let profiles;
+  if (allAgentProfiles.length > 0) {
+    // agent-store 확정. 그 위에서 accountFilter 적용.
+    profiles = filterProfilesByAccount(allAgentProfiles, options.accountFilter);
+  } else {
+    // cli-import fallback
+    const single = resolveClaudeProfileFromSnapshot(base);
+    if (single && (!options.accountFilter || matchesFilter(single, options.accountFilter))) {
+      profiles = [single];
+    } else {
+      profiles = [];
+    }
+  }
+
   if (profiles.length === 0) {
     return {
       ...base,
       networkUsages: [],
       networkUsage: null,
       accountFilter: options.accountFilter ?? null,
-      filteredOut: options.accountFilter && allProfiles.length > 0,
+      filteredOut: Boolean(options.accountFilter),
     };
   }
 
@@ -83,23 +106,35 @@ export async function getClaudeSnapshot(
 // Re-export from shared for backward-compat (tests import from this module).
 export { filterProfilesByAccount } from './account-filter.js';
 
-/**
- * 조회 대상 계정 목록 결정.
- *   - agent-store에 real 계정이 1개 이상 있으면 그 전부 (multi-account A).
- *   - 없으면 selectedAccount(= claude-cli-import)를 단일 profile로 변환.
- */
-function resolveClaudeProfilesForFetch(base, agentClaudeAccounts) {
-  if (agentClaudeAccounts.length > 0) {
-    return agentClaudeAccounts.map((a) => ({
-      id: a.accountKey,
-      accessToken: a.tokens?.accessToken ?? a.accessToken ?? null,
-      accountId: a.accountId ?? null,
-      email: a.email ?? null,
-      label: a.label ?? null,
-    })).filter((p) => p.accessToken);
-  }
-  const single = resolveClaudeProfileFromSnapshot(base);
-  return single ? [single] : [];
+function filterClaudeRealAccounts(accounts) {
+  return (accounts ?? []).filter((a) => {
+    if (a.status === 'disabled') return false;
+    if (a.raw?.mock === true) return false;
+    const accessToken = a.tokens?.accessToken ?? a.accessToken ?? null;
+    if (!accessToken) return false;
+    if (a.source === 'claude-cli-import') return false;
+    return true;
+  });
+}
+
+function claudeMapAccountToProfile(account) {
+  return {
+    id: account.accountKey,
+    accessToken: account.tokens?.accessToken ?? account.accessToken ?? null,
+    accountId: account.accountId ?? null,
+    email: account.email ?? null,
+    label: account.label ?? null,
+  };
+}
+
+function matchesFilter(profile, accountFilter) {
+  if (!accountFilter) return true;
+  const needle = String(accountFilter).toLowerCase();
+  return (
+    (profile.id ?? '').toLowerCase() === needle
+    || (profile.email ?? '').toLowerCase() === needle
+    || (profile.label ?? '').toLowerCase() === needle
+  );
 }
 
 /**
@@ -165,10 +200,7 @@ export function resolveClaudeProfileFromSnapshot(snapshot) {
 }
 
 /**
- * Pure: select effective Claude auth source (Codex 쪽 selectCodexAuthSource과 유사).
- * Priority: agent-store > claude-cli-import > not-found.
- *
- * Exported for testing.
+ * @deprecated 공통 resolveAuthSource로 대체됨. 기존 테스트 import 호환용.
  */
 export function selectClaudeAuthSource(agentAccounts, importedCredential) {
   if (agentAccounts && agentAccounts.length > 0) return 'agent-store';
@@ -178,7 +210,9 @@ export function selectClaudeAuthSource(agentAccounts, importedCredential) {
 
 /**
  * agent-store에 저장된 Claude 계정 중 live token이 있는 항목만 반환.
- * claude-cli-import source는 buildClaudeSnapshot 기반 경로가 별도로 처리한다.
+ * resolveProviderProfiles의 filterFn과 동일한 기준이지만, 여기서는
+ * buildClaudeSnapshot에 agentClaudeAccounts를 넘기기 위해 별도로 로드.
+ * (runner와는 달리 profile shape가 아닌 account shape 그대로 반환.)
  */
 async function loadAgentStoreClaudeAccounts() {
   let store;
@@ -191,20 +225,11 @@ async function loadAgentStoreClaudeAccounts() {
   const provider = store.providers?.[CLAUDE_AUTH.storeProvider];
   if (!provider?.accounts?.length) return [];
 
-  return provider.accounts
-    .filter((a) => {
-      if (a.status === 'disabled') return false;
-      if (a.raw?.mock === true) return false;
-      const accessToken = a.tokens?.accessToken ?? a.accessToken ?? null;
-      if (!accessToken) return false;
-      if (a.source === 'claude-cli-import') return false;
-      return true;
-    })
-    .map((a) => ({
-      ...a,
-      provider: a.provider ?? 'claude',
-      source: a.source ?? 'agent-store',
-    }));
+  return filterClaudeRealAccounts(provider.accounts).map((a) => ({
+    ...a,
+    provider: a.provider ?? 'claude',
+    source: a.source ?? 'agent-store',
+  }));
 }
 
 function createClaudeNetworkFailureSnapshot(profile, error) {

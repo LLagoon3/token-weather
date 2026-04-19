@@ -3,10 +3,10 @@ import {
   getDefaultAuthProfilesPath,
   readCodexAuthProfiles,
 } from '../../../provider-adapters/src/codex/index.js';
-import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
-import { resolveDefaultAccount } from '../auth/account-resolver.js';
 import { filterProfilesByAccount } from './account-filter.js';
 import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
+import { resolveAuthSource } from './auth-source-resolver.js';
+import { resolveProviderProfiles } from './provider-profile-resolver.js';
 
 const CODEX_PROVIDER_ID = 'openai-codex';
 
@@ -26,8 +26,7 @@ export async function getCodexSnapshot(config, options = {}) {
     };
   }
 
-  const { profiles: allProfiles, authSource } = await resolveCodexProfiles();
-  const profiles = filterProfilesByAccount(allProfiles, options.accountFilter);
+  const { profiles, authSource } = await resolveCodexProfiles(options.accountFilter);
   const snapshots = [];
 
   for (const profile of profiles) {
@@ -44,7 +43,7 @@ export async function getCodexSnapshot(config, options = {}) {
     authProfilesPath: authSource === 'openclaw-import' ? getDefaultAuthProfilesPath() : null,
     snapshots,
     accountFilter: options.accountFilter ?? null,
-    filteredOut: options.accountFilter && allProfiles.length > 0 && profiles.length === 0,
+    filteredOut: Boolean(options.accountFilter) && profiles.length === 0,
   };
 }
 
@@ -52,14 +51,13 @@ export async function getCodexSnapshot(config, options = {}) {
 export { filterProfilesByAccount } from './account-filter.js';
 
 /**
- * Pure selection: agent-store > openclaw-import.
- * Exported for testing.
+ * @deprecated 공통 resolveAuthSource로 대체됨. 기존 테스트 import 호환용 re-export.
  */
 export function selectCodexAuthSource(agentProfiles, openclawProfiles) {
-  if (agentProfiles.length > 0) {
-    return { profiles: agentProfiles, authSource: 'agent-store' };
-  }
-  return { profiles: openclawProfiles, authSource: 'openclaw-import' };
+  const { accounts, authSource } = resolveAuthSource(agentProfiles, [
+    { id: 'openclaw-import', accounts: openclawProfiles },
+  ]);
+  return { profiles: accounts, authSource };
 }
 
 /**
@@ -75,44 +73,32 @@ export function filterRealCodexAccounts(accounts) {
   );
 }
 
-async function resolveCodexProfiles() {
-  const agentProfiles = await getAgentStoreProfiles();
-  const openclawProfiles = agentProfiles.length === 0 ? readCodexAuthProfiles() : [];
-  return selectCodexAuthSource(agentProfiles, openclawProfiles);
-}
+async function resolveCodexProfiles(accountFilter) {
+  // Source 선택은 unfiltered 기준으로 먼저 결정한다.
+  // accountFilter가 source precedence를 바꿔서는 안 된다.
+  const allAgentProfiles = await resolveProviderProfiles({
+    providerId: CODEX_PROVIDER_ID,
+    filterFn: filterRealCodexAccounts,
+    mapFn: codexMapAccountToProfile,
+    accountFilter: null, // 필터 없이 전체 real 프로필 로드
+  });
 
-async function getAgentStoreProfiles() {
-  let store;
-  try {
-    store = await loadAuthStore();
-  } catch {
-    return [];
+  if (allAgentProfiles.length > 0) {
+    // agent-store 확정. 그 위에서 accountFilter 적용.
+    const filtered = filterProfilesByAccount(allAgentProfiles, accountFilter);
+    return { profiles: filtered, authSource: 'agent-store' };
   }
 
-  const providerData = store.providers?.[CODEX_PROVIDER_ID];
-  if (!providerData?.accounts?.length) return [];
-
-  const realAccounts = filterRealCodexAccounts(providerData.accounts);
-  if (realAccounts.length === 0) return [];
-
-  // lastUsedAt 업데이트는 "기본 선택" 계정에만 적용한다 — multi-account일 때
-  // 모두 갱신하면 자동 선택 로직이 의미 없어진다. 조회 자체는 모든 real 계정에 대해 수행.
-  try {
-    const { account: defaultAccount } = resolveDefaultAccount(realAccounts);
-    if (defaultAccount) {
-      const freshStore = await loadAuthStore();
-      const updatedAccount = { ...defaultAccount, lastUsedAt: new Date().toISOString() };
-      const nextStore = upsertProviderAccount(freshStore, CODEX_PROVIDER_ID, updatedAccount);
-      await saveAuthStore(nextStore);
-    }
-  } catch {
-    // best-effort
-  }
-
-  return realAccounts.map(mapAccountToProfile);
+  // Fallback: OpenClaw import
+  const openclawProfiles = readCodexAuthProfiles();
+  const filtered = filterProfilesByAccount(openclawProfiles, accountFilter);
+  const { accounts, authSource } = resolveAuthSource([], [
+    { id: 'openclaw-import', accounts: filtered },
+  ]);
+  return { profiles: accounts, authSource };
 }
 
-function mapAccountToProfile(account) {
+function codexMapAccountToProfile(account) {
   return {
     id: account.accountKey,
     accessToken: account.tokens.accessToken,

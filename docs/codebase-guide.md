@@ -176,11 +176,40 @@ export async function fetchFooUsage(profile, options = {}) {
 
 ```
 packages/agent/src/services/
-├── status-service.js         얇은 진입점: loadConfig + registry 순회
-├── provider-registry.js      PROVIDER_REGISTRY 배열 + runProviderSnapshots
-├── codex-provider.js         Codex snapshot + auth resolver
-└── claude-provider.js        Claude snapshot + auth resolver
+├── status-service.js              얇은 진입점: loadConfig + registry 순회
+├── provider-registry.js           PROVIDER_REGISTRY + runProviderSnapshots
+├── auth-source-resolver.js        공통 auth source 우선순위 결정
+├── provider-profile-resolver.js   공통 "store → filter → map → accountFilter" runner
+├── account-filter.js              filterProfilesByAccount (id/email/label 매치)
+├── codex-provider.js              Codex snapshot + provider spec
+└── claude-provider.js             Claude snapshot + provider spec
 ```
+
+### 4.1.1 Account 선택 vs Auth source 선택 흐름
+
+두 가지 "선택"이 존재한다. 혼동하지 말 것.
+
+**Account 선택** — "여러 계정 중 누구를 쓸까?"
+```
+store.providers[id].accounts
+  → filterFn (real 계정만: mock/disabled/토큰 없음 제거)
+  → mapFn (account → profile shape)
+  → filterProfilesByAccount (--account / config default 매치)
+  → resolveDefaultAccount (multi-account 중 기본 계정 결정)
+```
+공통 runner: `provider-profile-resolver.js::resolveProviderProfiles`
+provider는 `filterFn` + `mapFn`만 선언적으로 제공한다.
+
+**Auth source 선택** — "그 토큰을 어디서 읽을까?"
+```
+resolveAuthSource(agentAccounts, [
+  { id: 'openclaw-import', accounts: [...] },
+  { id: 'claude-cli-import', accounts: [...] },
+])
+→ { accounts, authSource: 'agent-store' | '{import-id}' | 'not-found' }
+```
+공통 함수: `auth-source-resolver.js::resolveAuthSource`
+우선순위: agent-store > 첫 번째 비어있지 않은 import source > not-found
 
 ### 4.2 Provider spec (registry용)
 
