@@ -107,7 +107,7 @@ export function buildUsageSnapshot({
   const lastSuccessAt = ok ? capturedAtIso : null;
   const lastFailureAt = ok ? null : capturedAtIso;
 
-  return {
+  const snapshot = {
     schemaVersion: SCHEMA_VERSION,
     snapshotId: `${snapshotIdPrefix}:${profile.id}:${capturedAtIso}`,
     capturedAt: capturedAtIso,
