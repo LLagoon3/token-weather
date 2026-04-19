@@ -1,5 +1,5 @@
-import { selectClaudeAccountsSource } from '../../../provider-adapters/src/claude/claude-imported-account.js';
 import { resolveAccount } from './account-resolver.js';
+import { resolveAuthSource } from '../services/auth-source-resolver.js';
 
 /**
  * Picks the active Claude account from agent-store accounts (priority) or
@@ -15,10 +15,9 @@ export function resolveClaudeAccount(
   importedClaudeAccounts,
   options = {},
 ) {
-  const { accounts, authSource } = selectClaudeAccountsSource(
-    agentClaudeAccounts,
-    importedClaudeAccounts,
-  );
+  const { accounts, authSource } = resolveAuthSource(agentClaudeAccounts, [
+    { id: 'claude-cli-import', accounts: importedClaudeAccounts },
+  ]);
 
   const { account, reason } = resolveAccount(accounts, options);
   return { account, authSource, reason };

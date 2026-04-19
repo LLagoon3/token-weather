@@ -7,6 +7,7 @@ import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/aut
 import { resolveDefaultAccount } from '../auth/account-resolver.js';
 import { filterProfilesByAccount } from './account-filter.js';
 import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
+import { resolveAuthSource } from './auth-source-resolver.js';
 
 const CODEX_PROVIDER_ID = 'openai-codex';
 
@@ -52,14 +53,13 @@ export async function getCodexSnapshot(config, options = {}) {
 export { filterProfilesByAccount } from './account-filter.js';
 
 /**
- * Pure selection: agent-store > openclaw-import.
- * Exported for testing.
+ * @deprecated 공통 resolveAuthSource로 대체됨. 기존 테스트 import 호환용 re-export.
  */
 export function selectCodexAuthSource(agentProfiles, openclawProfiles) {
-  if (agentProfiles.length > 0) {
-    return { profiles: agentProfiles, authSource: 'agent-store' };
-  }
-  return { profiles: openclawProfiles, authSource: 'openclaw-import' };
+  const { accounts, authSource } = resolveAuthSource(agentProfiles, [
+    { id: 'openclaw-import', accounts: openclawProfiles },
+  ]);
+  return { profiles: accounts, authSource };
 }
 
 /**
@@ -78,7 +78,10 @@ export function filterRealCodexAccounts(accounts) {
 async function resolveCodexProfiles() {
   const agentProfiles = await getAgentStoreProfiles();
   const openclawProfiles = agentProfiles.length === 0 ? readCodexAuthProfiles() : [];
-  return selectCodexAuthSource(agentProfiles, openclawProfiles);
+  const { accounts, authSource } = resolveAuthSource(agentProfiles, [
+    { id: 'openclaw-import', accounts: openclawProfiles },
+  ]);
+  return { profiles: accounts, authSource };
 }
 
 async function getAgentStoreProfiles() {

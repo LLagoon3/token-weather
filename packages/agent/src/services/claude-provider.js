@@ -165,10 +165,7 @@ export function resolveClaudeProfileFromSnapshot(snapshot) {
 }
 
 /**
- * Pure: select effective Claude auth source (Codex 쪽 selectCodexAuthSource과 유사).
- * Priority: agent-store > claude-cli-import > not-found.
- *
- * Exported for testing.
+ * @deprecated 공통 resolveAuthSource로 대체됨. 기존 테스트 import 호환용.
  */
 export function selectClaudeAuthSource(agentAccounts, importedCredential) {
   if (agentAccounts && agentAccounts.length > 0) return 'agent-store';

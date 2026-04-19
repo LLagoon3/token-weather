@@ -103,9 +103,9 @@ describe('selectCodexAuthSource', () => {
     assert.deepStrictEqual(result.profiles, [openclawProfile]);
   });
 
-  it('returns openclaw-import with empty profiles when both lists are empty', () => {
+  it('returns not-found when both lists are empty (공통 resolveAuthSource 기준)', () => {
     const result = selectCodexAuthSource([], []);
-    assert.equal(result.authSource, 'openclaw-import');
+    assert.equal(result.authSource, 'not-found');
     assert.equal(result.profiles.length, 0);
   });
 });
