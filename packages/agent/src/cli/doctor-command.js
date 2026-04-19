@@ -1,23 +1,29 @@
 import { resolveAgentConfigPath } from '../config/config-path.js';
-import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
+import { loadAuthStore } from '../auth/auth-store.js';
 import { resolveAccount } from '../auth/account-resolver.js';
 import { getClaudeSnapshot } from '../services/status-service.js';
 import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
 import {
   formatClaudeSection,
-  formatTokenExpiry,
   runRefreshLiveAttempt,
   CODEX_REFRESH_SPEC,
   CLAUDE_REFRESH_SPEC,
 } from './doctor-helpers.js';
+import {
+  isCodexMockAccount,
+  formatCodexAccountSummary,
+  formatCodexMockGuard,
+  formatCodexDryRun,
+} from './doctor-codex-helpers.js';
+import { updateCodexStoreAfterRefresh } from '../auth/codex-refresh-store.js';
+import { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
 
-// formatClaudeSection은 doctor-helpers로 이전했지만 외부(CLI 테스트)에서 같은 모듈
-// 경로로 import하던 이력을 지키기 위해 re-export.
+// 기존 import 경로 호환 re-export.
 export { formatClaudeSection };
+export { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
 
-/**
- * `ai-usage-agent doctor [subcommand] [options]`
- */
+// ─── Dispatcher ────────────────────────────────────────────────────────────
+
 export async function runDoctorCommand(subcommand, args = []) {
   if (subcommand === 'codex') {
     await runDoctorCodex(args);
@@ -86,43 +92,41 @@ async function runDoctorClaudeRefreshLive(snapshot, { accountIdentifier } = {}) 
   if (!refreshToken) {
     console.log('');
     console.log(`대상 계정(${account.accountKey})에서 refreshToken을 찾을 수 없습니다.`);
-    console.log('Claude CLI에서 최신 로그인 상태인지 확인하세요.');
     return;
   }
 
   console.log('');
   console.log(`대상 계정: ${account.accountKey}`);
 
-  // claude-cli-import source는 auth-store에 대응 레코드가 없으므로(원본 파일을 비파괴로
-  // 읽어오는 경로) store 갱신 대신 안내 메시지만 출력한다.
   const isImportSource = account?.source === 'claude-cli-import';
 
   console.log('');
   await runRefreshLiveAttempt(CLAUDE_REFRESH_SPEC, refreshToken, async (tokenResponse) => {
     if (isImportSource) {
       console.log('');
-      console.log('ℹ claude-cli-import 출처 계정입니다 — agent-store에는 대응 레코드가 없어');
-      console.log('  새 토큰을 저장하지 않습니다 (원본 ~/.claude/.credentials.json 비파괴).');
+      console.log('ℹ claude-cli-import 출처 — agent-store에 저장하지 않습니다.');
       console.log('  agent-store에 유지하려면 `auth login claude --live-exchange`로 재로그인하세요.');
       return;
     }
-    await updateClaudeStoreAfterRefresh(account, tokenResponse);
+    const result = await updateClaudeStoreAfterRefresh(account, tokenResponse);
+    console.log('');
+    console.log('store 갱신 완료:');
+    console.log(`  accountKey: ${result.accountKey}`);
+    console.log(`  expiresAt: ${result.expiresAt ?? '(없음)'}`);
   });
 }
 
 /**
- * refresh 대상 계정 선택 규칙. Exported for testing.
+ * refresh 대상 Claude 계정 선택. Exported for testing.
  */
 export async function resolveClaudeRefreshTargetAccount(snapshot, accountIdentifier) {
   if (!accountIdentifier) {
-    const account = snapshot.selectedAccount;
-    if (!account) {
+    if (!snapshot.selectedAccount) {
       console.log('');
       console.log('선택 가능한 Claude 계정이 없습니다.');
-      console.log('`auth login claude --live-exchange` 또는 `auth import claude`로 먼저 저장하세요.');
       return null;
     }
-    return account;
+    return snapshot.selectedAccount;
   }
 
   const store = await loadAuthStore();
@@ -130,7 +134,6 @@ export async function resolveClaudeRefreshTargetAccount(snapshot, accountIdentif
   if (accounts.length === 0) {
     console.log('');
     console.log('agent-store에 저장된 Claude 계정이 없습니다.');
-    console.log('--account 옵션은 agent-store 계정에만 동작합니다.');
     return null;
   }
 
@@ -138,47 +141,9 @@ export async function resolveClaudeRefreshTargetAccount(snapshot, accountIdentif
   if (!account) {
     console.log('');
     console.log(`계정을 찾을 수 없습니다. (reason: ${reason})`);
-    console.log('  email / accountKey / label 중 하나로 지정하세요.');
     return null;
   }
   return account;
-}
-
-/**
- * Claude refresh 성공 후 agent-store 갱신. Exported for testing.
- */
-export async function updateClaudeStoreAfterRefresh(account, tokenResponse) {
-  const now = new Date();
-  const expiresAt = tokenResponse.expiresIn
-    ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
-    : null;
-
-  const updatedAccount = {
-    ...account,
-    tokens: {
-      ...account.tokens,
-      accessToken: tokenResponse.accessToken,
-      refreshToken: tokenResponse.refreshToken,
-    },
-    expiresAt,
-    updatedAt: now.toISOString(),
-    lastUsedAt: now.toISOString(),
-    raw: {
-      ...account.raw,
-      lastRefreshedAt: now.toISOString(),
-      scope: tokenResponse.scope ?? account.raw?.scope ?? null,
-      tokenType: tokenResponse.tokenType ?? account.raw?.tokenType ?? null,
-    },
-  };
-
-  const freshStore = await loadAuthStore();
-  const nextStore = upsertProviderAccount(freshStore, CLAUDE_AUTH.storeProvider, updatedAccount);
-  await saveAuthStore(nextStore);
-
-  console.log('');
-  console.log('store 갱신 완료:');
-  console.log(`  accountKey: ${updatedAccount.accountKey}`);
-  console.log(`  expiresAt: ${expiresAt ?? '(없음)'}`);
 }
 
 export function parseDoctorClaudeOptions(args) {
@@ -189,10 +154,7 @@ export function parseDoctorClaudeOptions(args) {
     if (arg === '--refresh-live') options.refreshLive = true;
     else if (arg === '--account') {
       const value = list[i + 1];
-      if (value) {
-        options.account = value;
-        i += 1;
-      }
+      if (value) { options.account = value; i += 1; }
     }
   }
   return options;
@@ -209,29 +171,34 @@ async function runDoctorCodex(args) {
   const account = await resolveCodexDoctorAccount(options);
   if (!account) return;
 
-  printCodexAccountSummary(account);
+  for (const line of formatCodexAccountSummary(account)) console.log(line);
 
   if (isCodexMockAccount(account)) {
-    printCodexMockGuard(account);
+    for (const line of formatCodexMockGuard(account)) console.log(line);
     return;
   }
   console.log('refreshToken 존재: 예');
 
   if (!options.refreshLive) {
-    printCodexDryRun(account);
+    for (const line of formatCodexDryRun(account)) console.log(line);
     return;
   }
 
   console.log('');
   console.log('⚠ --refresh-live: 실제 token endpoint에 refresh POST를 시도합니다.');
   console.log(`  대상 accountKey: ${account.accountKey}`);
-  console.log('  주의: client_id는 관찰값(observed)이며 성공이 보장되지 않습니다.');
   console.log('');
 
   await runRefreshLiveAttempt(
     CODEX_REFRESH_SPEC,
     account.tokens.refreshToken,
-    (tokenResponse) => updateCodexStoreAfterRefresh(account, tokenResponse),
+    async (tokenResponse) => {
+      const result = await updateCodexStoreAfterRefresh(account, tokenResponse);
+      console.log('');
+      console.log('store 갱신 완료:');
+      console.log(`  accountKey: ${result.accountKey}`);
+      console.log(`  expiresAt: ${result.expiresAt ?? '(없음)'}`);
+    },
   );
 }
 
@@ -239,13 +206,12 @@ async function resolveCodexDoctorAccount(options) {
   const store = await loadAuthStore();
   const provider = store.providers['openai-codex'];
   if (!provider?.accounts?.length) {
-    console.log('openai-codex 계정이 없습니다. `ai-usage-agent auth login codex`로 먼저 로그인하세요.');
+    console.log('openai-codex 계정이 없습니다.');
     return null;
   }
 
   const refreshableAccounts = provider.accounts.filter(
-    (a) =>
-      a.status !== 'disabled' && a.raw?.mock !== true && a.tokens?.refreshToken,
+    (a) => a.status !== 'disabled' && a.raw?.mock !== true && a.tokens?.refreshToken,
   );
   const candidateAccounts = options.account ? provider.accounts : refreshableAccounts;
 
@@ -256,8 +222,6 @@ async function resolveCodexDoctorAccount(options) {
   if (!account) {
     if (!options.account && refreshableAccounts.length === 0) {
       console.log('refresh 가능한 real 계정을 찾지 못했습니다.');
-      console.log('mock 계정만 있거나 refreshToken이 없는 계정만 존재합니다.');
-      console.log('`ai-usage-agent auth login codex --live-exchange`로 real token을 먼저 저장하세요.');
       return null;
     }
     console.log(`계정을 찾을 수 없습니다. (reason: ${reason})`);
@@ -268,64 +232,6 @@ async function resolveCodexDoctorAccount(options) {
   return account;
 }
 
-function isCodexMockAccount(account) {
-  return account.raw?.mock === true || !account.tokens?.refreshToken;
-}
-
-function printCodexAccountSummary(account) {
-  console.log(`대상 계정: ${account.accountKey}`);
-  console.log(`선택 이유: ${account._reason}`);
-  console.log(`email: ${account.email}`);
-  console.log(`authType: ${account.authType}`);
-  console.log(`source: ${account.source}`);
-  console.log(`expiresAt: ${account.expiresAt ?? '(없음)'}`);
-}
-
-function printCodexMockGuard(account) {
-  console.log('');
-  console.log('⚠ 이 계정은 mock이거나 refreshToken이 없습니다.');
-  console.log('  refresh 시도를 건너뜁니다.');
-  if (!account.tokens?.refreshToken) console.log('  (tokens.refreshToken이 존재하지 않음)');
-  if (account.raw?.mock) console.log('  (raw.mock = true)');
-}
-
-function printCodexDryRun(account) {
-  console.log('');
-  console.log('refresh 상태 확인만 수행합니다. (dry-run)');
-  console.log('실제 refresh를 시도하려면 --refresh-live 옵션을 추가하세요.');
-  const expiry = formatTokenExpiry(account.expiresAt);
-  if (expiry) console.log(expiry);
-}
-
-async function updateCodexStoreAfterRefresh(account, tokenResponse) {
-  const now = new Date();
-  const expiresAt = tokenResponse.expiresIn
-    ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
-    : null;
-
-  const updatedAccount = {
-    ...account,
-    tokens: {
-      ...account.tokens,
-      accessToken: tokenResponse.accessToken,
-      refreshToken: tokenResponse.refreshToken,
-    },
-    expiresAt,
-    updatedAt: now.toISOString(),
-    lastUsedAt: now.toISOString(),
-    raw: { ...account.raw, lastRefreshedAt: now.toISOString() },
-  };
-
-  const freshStore = await loadAuthStore();
-  const nextStore = upsertProviderAccount(freshStore, 'openai-codex', updatedAccount);
-  await saveAuthStore(nextStore);
-
-  console.log('');
-  console.log('store 갱신 완료:');
-  console.log(`  accountKey: ${updatedAccount.accountKey}`);
-  console.log(`  expiresAt: ${expiresAt ?? '(없음)'}`);
-}
-
 function parseDoctorCodexOptions(args) {
   const options = { refreshLive: false, account: null };
   for (let i = 0; i < args.length; i += 1) {
@@ -333,10 +239,7 @@ function parseDoctorCodexOptions(args) {
     if (arg === '--refresh-live') options.refreshLive = true;
     if (arg === '--account') {
       const value = args[i + 1];
-      if (value) {
-        options.account = value;
-        i += 1;
-      }
+      if (value) { options.account = value; i += 1; }
     }
   }
   return options;

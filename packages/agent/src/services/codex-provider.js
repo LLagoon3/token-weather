@@ -7,6 +7,7 @@ import { filterProfilesByAccount } from './account-filter.js';
 import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
 import { resolveAuthSource } from './auth-source-resolver.js';
 import { resolveProviderProfiles } from './provider-profile-resolver.js';
+import { filterRealCodexAccounts, codexMapAccountToProfile } from './codex-account-spec.js';
 
 const CODEX_PROVIDER_ID = 'openai-codex';
 
@@ -60,18 +61,8 @@ export function selectCodexAuthSource(agentProfiles, openclawProfiles) {
   return { profiles: accounts, authSource };
 }
 
-/**
- * Pure predicate: keep active, non-mock accounts with a usable access token.
- * Exported for testing.
- */
-export function filterRealCodexAccounts(accounts) {
-  return (accounts ?? []).filter(
-    (a) => a.status !== 'disabled'
-      && a.tokens?.accessToken
-      && !a.raw?.mock
-      && !a.tokens.accessToken.startsWith('mock-'),
-  );
-}
+// Re-export for backward compat (tests/status-service import from here).
+export { filterRealCodexAccounts } from './codex-account-spec.js';
 
 async function resolveCodexProfiles(accountFilter) {
   // Source 선택은 unfiltered 기준으로 먼저 결정한다.
@@ -98,16 +89,7 @@ async function resolveCodexProfiles(accountFilter) {
   return { profiles: accounts, authSource };
 }
 
-function codexMapAccountToProfile(account) {
-  return {
-    id: account.accountKey,
-    accessToken: account.tokens.accessToken,
-    accountId: account.accountId ?? null,
-    email: account.email ?? null,
-    label: account.label ?? null,
-    expires: account.expiresAt ?? null,
-  };
-}
+// codexMapAccountToProfile imported from codex-account-spec.js
 
 function createCodexFailureSnapshot(profile, error) {
   const message = error instanceof Error ? error.message : String(error);
