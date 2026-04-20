@@ -171,9 +171,12 @@ export function resolveClaudeProfileFromSnapshot(snapshot) {
 
   return {
     id: account.accountKey ?? 'claude',
+    accountKey: account.accountKey ?? 'claude',
     accessToken,
     accountId: account.accountId ?? null,
     email: account.email ?? null,
+    displayName: account.displayName ?? null,
+    label: account.label ?? null,
   };
 }
 

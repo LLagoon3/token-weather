@@ -107,11 +107,16 @@ describe('resolveClaudeProfileFromSnapshot (via claude-provider)', () => {
         accountKey: 'claude-cli-import',
         accessToken: 'sk-ant-cli',
         email: 'x@example.com',
+        displayName: 'Claude Import',
+        label: 'personal',
       },
     });
     assert.equal(profile.id, 'claude-cli-import');
+    assert.equal(profile.accountKey, 'claude-cli-import');
     assert.equal(profile.accessToken, 'sk-ant-cli');
     assert.equal(profile.email, 'x@example.com');
+    assert.equal(profile.displayName, 'Claude Import');
+    assert.equal(profile.label, 'personal');
   });
 
   it('extracts accessToken from tokens.accessToken (agent-store)', () => {
