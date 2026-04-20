@@ -88,6 +88,8 @@ ai-usage-agent doctor claude --refresh-live --account <id>  # 특정 계정 지�
 - live usage endpoint 응답 요약
 - `--refresh-live` 시 실제 refresh 호출 + 결과 표시
 
+`doctor --refresh-live`는 수동 진단/검증용 경로다. `status` / `usage`의 자동 refresh와는 별도로 동작한다.
+
 ## Guard 정책 (`allowLiveExchange`)
 
 - `exchangeCodexAuthorizationCode`, `refreshCodexToken`, `exchangeClaudeAuthorizationCode`, `refreshClaudeToken` 모두 기본 guarded
@@ -108,6 +110,15 @@ guard를 해제할 시점:
 - `--port` 명시 시 해당 포트만 시도, 실패 시 에러
 
 Claude는 동일한 `resolveCallbackPort` 로직을 사용하되 callback path가 다르다.
+
+## status / usage 자동 refresh 정책
+
+- 대상은 **agent-store real account**만이다.
+- `expiresAt`이 이미 지난 access token은 provider 호출 전에 preflight refresh를 먼저 시도한다.
+- 첫 provider 응답이 인증성 실패(`status.bucket === 'auth'`)로 정규화되면 refresh 후 1회만 다시 시도한다.
+- refresh 실패는 해당 계정의 usage 실패로 남고, 다른 계정 조회는 계속 진행한다.
+- import source(`openclaw-import`, `claude-cli-import`)는 store 갱신 경로가 없으므로 자동 refresh 대상에서 제외한다.
+- source precedence는 unfiltered 기준으로 먼저 결정하고, 실제 조회 대상은 선택된 source 위에 `--account` / config 필터를 다시 적용한다.
 
 ## Multi-account 정책
 
