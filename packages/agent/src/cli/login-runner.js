@@ -247,7 +247,7 @@ async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label, k
  *
  * Unknown flag는 조용히 무시한다 (provider별 추가 플래그는 필요시 별도 처리).
  */
-async function enrichIdentityFromProviderProfile(spec, tokenResponse, identity) {
+export async function enrichIdentityFromProviderProfile(spec, tokenResponse, identity) {
   if (spec.id !== 'claude') {
     return { identity, profile: null };
   }

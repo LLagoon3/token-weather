@@ -141,6 +141,32 @@ describe('runAuthListCommand — Claude import block', () => {
     assert.ok(flat.includes('true'));
   });
 
+  it('shows displayName as name column when present', async () => {
+    const storeWithClaude = async () => ({
+      providers: {
+        claude: {
+          accounts: [{
+            accountKey: 'anthropic-claude:acct-123',
+            email: 'everdigm.itteam@gmail.com',
+            displayName: '에버다임 IT팀',
+            authType: 'oauth',
+            source: 'agent-store',
+            raw: {},
+            tokens: { refreshToken: 'rt' },
+          }],
+        },
+      },
+    });
+    const lines = await captureOutput(() =>
+      runAuthListCommand('claude', {
+        claudeReadFn: () => null,
+        loadStore: storeWithClaude,
+      })
+    );
+    const flat = lines.join('\n');
+    assert.ok(flat.includes('name       : 에버다임 IT팀'));
+  });
+
   it('authSource reflects agent-store when store has Claude accounts', async () => {
     const storeWithClaude = async () => ({
       providers: {
