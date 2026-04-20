@@ -24,6 +24,24 @@ import { filterProfilesByAccount } from './account-filter.js';
  * @returns {Promise<object[]>} - fetch에 넘길 profile 배열
  */
 export async function resolveProviderProfiles(spec) {
+  const entries = await resolveProviderAccountEntries(spec);
+  return entries.map((entry) => entry.profile);
+}
+
+/**
+ * resolveProviderProfiles와 동일한 흐름이지만 raw account + mapped profile을 함께 반환.
+ * refresh/store-update 같은 후속 처리가 필요한 provider 서비스에서 사용한다.
+ *
+ * @param {{
+ *   providerId: string,
+ *   filterFn: (accounts: object[]) => object[],
+ *   mapFn: (account: object) => object,
+ *   accountFilter?: string|null,
+ *   updateLastUsed?: boolean,
+ * }} spec
+ * @returns {Promise<Array<{ account: object, profile: object }>>}
+ */
+export async function resolveProviderAccountEntries(spec) {
   let store;
   try {
     store = await loadAuthStore();
@@ -52,6 +70,8 @@ export async function resolveProviderProfiles(spec) {
     }
   }
 
-  const profiles = realAccounts.map(spec.mapFn);
-  return filterProfilesByAccount(profiles, spec.accountFilter ?? null);
+  const entries = realAccounts.map((account) => ({ account, profile: spec.mapFn(account) }));
+  return entries.filter((entry) =>
+    filterProfilesByAccount([entry.profile], spec.accountFilter ?? null).length > 0,
+  );
 }
