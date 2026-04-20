@@ -83,7 +83,7 @@ export function formatClaudeSection(claude) {
   lines.push(`인증 소스: ${claude.authSource}`);
   lines.push(`credential 감지: ${claude.detected}`);
   if (claude.selectedAccount && !claude.accountFilter) {
-    lines.push(`기본 계정: ${claude.selectedAccount.accountKey}`);
+    lines.push(`기본 계정: ${formatAccountDisplay(claude.selectedAccount)}`);
   }
 
   const usages = Array.isArray(claude.networkUsages)
@@ -113,8 +113,8 @@ export function formatClaudeNetworkUsages(usages, context = {}) {
     return lines;
   }
 
-  for (const { accountKey, snapshot } of usages) {
-    if (usages.length > 1) lines.push(`  - 계정: ${accountKey ?? '(unknown)'}`);
+  for (const { accountKey, snapshot, account } of usages) {
+    if (usages.length > 1) lines.push(`  - 계정: ${formatAccountDisplay(account ?? { accountKey })}`);
     lines.push(...formatClaudeNetworkUsageBody(snapshot, usages.length > 1));
   }
   return lines;
@@ -167,6 +167,17 @@ export function formatClaudeLocalUsage(usage) {
   lines.push(`  모델별 usage: ${usage.hasModelUsage ? '있음' : '없음'}`);
   lines.push(`  일별 token 통계: ${usage.hasDailyModelTokens ? '있음' : '없음'}`);
   return lines;
+}
+
+function formatAccountDisplay(account) {
+  if (!account) return '(unknown)';
+  const accountKey = account.accountKey ?? '(unknown)';
+  const displayName = account.displayName ?? null;
+  const email = account.email ?? null;
+  if (displayName && email) return `${accountKey} (${displayName} / ${email})`;
+  if (displayName) return `${accountKey} (${displayName})`;
+  if (email) return `${accountKey} (${email})`;
+  return accountKey;
 }
 
 export function formatWindow(window) {

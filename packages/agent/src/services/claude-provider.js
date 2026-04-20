@@ -84,10 +84,11 @@ export async function getClaudeSnapshot(
     profiles.map(async (profile) => {
       try {
         const snapshot = await fetchClaudeUsage(profile);
-        return { accountKey: profile.id, snapshot };
+        return { accountKey: profile.id, account: profile, snapshot };
       } catch (error) {
         return {
           accountKey: profile.id,
+          account: profile,
           snapshot: createClaudeNetworkFailureSnapshot(profile, error),
         };
       }
