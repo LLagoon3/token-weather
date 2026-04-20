@@ -44,6 +44,11 @@ npm run agent:config:init
   - `status --account <email | accountKey | label>`로 필터
   - `config.json defaults.profiles.{provider}`로 기본 필터 지정
 - refresh token rotation 반영
+- usage/status 자동 refresh orchestration
+  - `expiresAt` 기준으로 이미 만료된 agent-store 계정은 provider 호출 전에 preflight refresh 시도
+  - 첫 usage 호출 결과가 `status.bucket === 'auth'`면 refresh 후 1회만 재시도
+  - import/fallback source(`openclaw-import`, `claude-cli-import`)는 자동 refresh 대상에서 제외
+  - refresh 실패는 해당 계정 단위 실패로 남기고 다른 계정 조회는 계속 진행
 - `--live-exchange` guard (실수로 실제 token 호출이 반복되는 것 방지)
 - network 호출 timeout/abort (기본 15초, `fetchWithTimeout`)
 - CLI / status-service / provider adapter 3계층 분리
@@ -73,6 +78,12 @@ ai-usage-agent status --account <email | accountKey | label>  # 특정 계정만
 
 provider별 credential 상태, 선택된 계정, live usage window, 로컬 캐시 요약을 출력한다.
 한 provider에 여러 계정이 저장되어 있으면 기본은 모두 병렬 조회.
+
+자동 refresh 정책:
+- agent-store 계정에서 `expiresAt`이 이미 지난 access token은 provider 호출 전에 먼저 refresh를 시도한다.
+- 첫 provider 응답이 인증성 실패(`status.bucket === 'auth'`)로 분류되면 refresh 후 1회만 다시 시도한다.
+- import source 계정은 store 갱신 경로가 없으므로 자동 refresh하지 않는다.
+- `--account` / config 기반 계정 필터는 source 선택 이후에도 다시 적용된다.
 
 ### auth
 

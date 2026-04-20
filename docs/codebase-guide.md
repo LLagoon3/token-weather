@@ -180,7 +180,8 @@ packages/agent/src/services/
 ├── provider-registry.js           PROVIDER_REGISTRY + runProviderSnapshots
 ├── auth-source-resolver.js        공통 auth source 우선순위 결정
 ├── provider-profile-resolver.js   공통 "store → filter → map → accountFilter" runner
-├── account-filter.js              filterProfilesByAccount (id/email/label 매치)
+├── account-filter.js              filterProfilesByAccount / filterEntriesByAccount
+├── usage-auto-refresh.js          preflight refresh + auth bucket 재시도 orchestration
 ├── codex-provider.js              Codex snapshot + provider spec
 └── claude-provider.js             Claude snapshot + provider spec
 ```
@@ -210,6 +211,12 @@ resolveAuthSource(agentAccounts, [
 ```
 공통 함수: `auth-source-resolver.js::resolveAuthSource`
 우선순위: agent-store > 첫 번째 비어있지 않은 import source > not-found
+
+중요한 규칙:
+- source precedence는 **unfiltered 계정 집합** 기준으로 먼저 결정한다.
+- 실제 usage/status 조회 대상은 **선택된 source 위에 `accountFilter`를 다시 적용한 결과**를 사용한다.
+- agent-store 계정에 대해서만 `usage-auto-refresh.js`가 preflight refresh와 `auth` bucket 재시도를 담당한다.
+- import source는 store를 갱신할 수 없으므로 자동 refresh 대상이 아니다.
 
 ### 4.2 Provider spec (registry용)
 

@@ -74,6 +74,18 @@ provider별 callback path:
 - 로그에 access/refresh token 출력 금지
 - raw provider 응답에서 민감 auth 값 저장 금지
 
+## Usage/status 자동 refresh 흐름
+
+`status` / `usage`는 단순 조회만 하지 않고, agent-store 계정에 대해서는 공통 auto-refresh orchestration을 거친다.
+
+1. provider별 account/source 후보를 수집한다.
+2. auth source 우선순위는 unfiltered 기준으로 결정한다.
+3. 실제 조회 대상은 선택된 source 위에 `--account` / config 필터를 다시 적용한다.
+4. agent-store 계정의 `expiresAt`이 이미 만료되었으면 provider 호출 전에 preflight refresh를 시도한다.
+5. 첫 usage 호출 결과가 인증성 실패(`status.bucket === 'auth'`)면 refresh 후 1회만 재시도한다.
+6. refresh 실패는 해당 계정 단위 실패로 남기고, 다른 계정 조회는 계속 진행한다.
+7. import source(`openclaw-import`, `claude-cli-import`)는 store 갱신 경로가 없으므로 자동 refresh 대상에서 제외한다.
+
 ## Provider adapter 역할
 
 auth broker는 공통이지만, provider별 전략은 adapter가 정의한다:
