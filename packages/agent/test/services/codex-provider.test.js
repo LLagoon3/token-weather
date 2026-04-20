@@ -7,6 +7,7 @@ import {
   filterRealCodexAccounts,
   filterProfilesByAccount,
 } from '../../src/services/codex-provider.js';
+import { filterEntriesByAccount } from '../../src/services/account-filter.js';
 
 // ── pure helpers ─────────────────────────────────────────────────────────────
 // selectCodexAuthSource / filterRealCodexAccounts는 순수 함수로 이미 일부
@@ -100,6 +101,20 @@ describe('filterProfilesByAccount', () => {
 
   it('returns empty array when no match', () => {
     assert.deepEqual(filterProfilesByAccount(profiles, 'nope'), []);
+  });
+});
+
+describe('filterEntriesByAccount', () => {
+  it('filters entry arrays by profile id/email/label', () => {
+    const entries = [
+      { account: { accountKey: 'a' }, profile: { id: 'openai-codex:a', email: 'a@x.com', label: 'work' } },
+      { account: { accountKey: 'b' }, profile: { id: 'openai-codex:b', email: 'b@x.com', label: 'personal' } },
+    ];
+
+    assert.equal(filterEntriesByAccount(entries, 'openai-codex:a').length, 1);
+    assert.equal(filterEntriesByAccount(entries, 'B@X.COM').length, 1);
+    assert.equal(filterEntriesByAccount(entries, 'personal').length, 1);
+    assert.equal(filterEntriesByAccount(entries, 'nope').length, 0);
   });
 });
 

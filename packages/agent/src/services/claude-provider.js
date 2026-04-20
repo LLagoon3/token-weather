@@ -10,8 +10,11 @@ import { fetchClaudeUsage } from '../../../provider-adapters/src/claude/fetch-cl
 import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
 import { loadAuthStore } from '../auth/auth-store.js';
 import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
-import { resolveProviderProfiles } from './provider-profile-resolver.js';
-import { filterProfilesByAccount } from './account-filter.js';
+import { resolveProviderAccountEntries } from './provider-profile-resolver.js';
+import { filterEntriesByAccount, filterProfilesByAccount } from './account-filter.js';
+import { fetchUsageWithAutoRefresh } from './usage-auto-refresh.js';
+import { refreshClaudeToken } from '../../../provider-adapters/src/claude/refresh-claude-token.js';
+import { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
 import {
   filterClaudeRealAccounts,
   claudeMapAccountToProfile,
@@ -47,7 +50,7 @@ export async function getClaudeSnapshot(
 
   // Source 선택은 unfiltered 기준으로 먼저 결정.
   // accountFilter가 source precedence를 바꿔서는 안 된다.
-  const allAgentProfiles = await resolveProviderProfiles({
+  const allAgentEntries = await resolveProviderAccountEntries({
     providerId: CLAUDE_AUTH.storeProvider,
     filterFn: filterClaudeRealAccounts,
     mapFn: claudeMapAccountToProfile,
@@ -55,21 +58,20 @@ export async function getClaudeSnapshot(
     updateLastUsed: false,
   });
 
-  let profiles;
-  if (allAgentProfiles.length > 0) {
-    // agent-store 확정. 그 위에서 accountFilter 적용.
-    profiles = filterProfilesByAccount(allAgentProfiles, options.accountFilter);
+  let entries;
+  if (allAgentEntries.length > 0) {
+    entries = filterEntriesByAccount(allAgentEntries, options.accountFilter);
   } else {
     // cli-import fallback
     const single = resolveClaudeProfileFromSnapshot(base);
     if (single && (!options.accountFilter || matchesFilter(single, options.accountFilter))) {
-      profiles = [single];
+      entries = [{ account: null, profile: single }];
     } else {
-      profiles = [];
+      entries = [];
     }
   }
 
-  if (profiles.length === 0) {
+  if (entries.length === 0) {
     return {
       ...base,
       networkUsages: [],
@@ -81,15 +83,19 @@ export async function getClaudeSnapshot(
 
   // 각 계정에 대해 병렬로 usage 조회. 한 계정이 실패해도 다른 계정은 유지.
   const settled = await Promise.all(
-    profiles.map(async (profile) => {
+    entries.map(async (entry) => {
       try {
-        const snapshot = await fetchClaudeUsage(profile);
-        return { accountKey: profile.id, account: profile, snapshot };
+        return await fetchUsageWithAutoRefresh(entry, {
+          fetchUsage: fetchClaudeUsage,
+          refreshToken: refreshClaudeToken,
+          updateStoreAfterRefresh: updateClaudeStoreAfterRefresh,
+          mapAccountToProfile: claudeMapAccountToProfile,
+        });
       } catch (error) {
         return {
-          accountKey: profile.id,
-          account: profile,
-          snapshot: createClaudeNetworkFailureSnapshot(profile, error),
+          accountKey: entry.profile.id,
+          account: entry.profile,
+          snapshot: createClaudeNetworkFailureSnapshot(entry.profile, error),
         };
       }
     }),
