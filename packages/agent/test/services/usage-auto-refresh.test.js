@@ -140,4 +140,20 @@ describe('fetchUsageWithAutoRefresh', () => {
     assert.deepEqual(calls, ['fetch']);
     assert.equal(result.snapshot.status.bucket, 'auth');
   });
+
+  it('surfaces refresh failure when an expired account cannot be refreshed', async () => {
+    await assert.rejects(
+      () => fetchUsageWithAutoRefresh(
+        makeEntry({
+          account: { expiresAt: '2000-01-01T00:00:00.000Z' },
+        }),
+        makeSpec({
+          refreshToken: async () => {
+            throw new Error('invalid_grant');
+          },
+        }),
+      ),
+      /invalid_grant/,
+    );
+  });
 });
