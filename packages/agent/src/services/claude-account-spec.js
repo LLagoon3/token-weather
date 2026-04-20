@@ -25,9 +25,11 @@ export function filterClaudeRealAccounts(accounts) {
 export function claudeMapAccountToProfile(account) {
   return {
     id: account.accountKey,
+    accountKey: account.accountKey,
     accessToken: account.tokens?.accessToken ?? account.accessToken ?? null,
     accountId: account.accountId ?? null,
     email: account.email ?? null,
+    displayName: account.displayName ?? null,
     label: account.label ?? null,
   };
 }

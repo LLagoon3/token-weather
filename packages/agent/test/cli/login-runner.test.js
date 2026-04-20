@@ -1,7 +1,103 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseLoginOptions } from '../../src/cli/login-runner.js';
+import {
+  enrichIdentityFromProviderProfile,
+  parseLoginOptions,
+} from '../../src/cli/login-runner.js';
+
+describe('enrichIdentityFromProviderProfile', () => {
+  it('returns original identity for non-claude providers', async () => {
+    const identity = {
+      email: 'fallback@example.com',
+      accountId: null,
+      displayName: null,
+      claimSource: 'fallback:code-prefix',
+    };
+
+    const result = await enrichIdentityFromProviderProfile(
+      { id: 'codex' },
+      { accessToken: 'token-123' },
+      identity,
+    );
+
+    assert.equal(result.profile, null);
+    assert.deepEqual(result.identity, identity);
+  });
+
+  it('enriches Claude identity from oauth/profile', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      status: 200,
+      statusText: 'OK',
+      ok: true,
+      async json() {
+        return {
+          account: {
+            uuid: 'acct-123',
+            display_name: '에버다임 IT팀',
+            email: 'everdigm.itteam@gmail.com',
+          },
+          organization: { uuid: 'org-123' },
+          application: { uuid: 'app-123' },
+        };
+      },
+    });
+
+    try {
+      const result = await enrichIdentityFromProviderProfile(
+        { id: 'claude' },
+        { accessToken: 'token-123' },
+        {
+          email: 'live-abc@claude.com',
+          accountId: null,
+          displayName: null,
+          claimSource: 'fallback:code-prefix',
+        },
+      );
+
+      assert.equal(result.identity.email, 'everdigm.itteam@gmail.com');
+      assert.equal(result.identity.accountId, 'acct-123');
+      assert.equal(result.identity.displayName, '에버다임 IT팀');
+      assert.equal(result.identity.claimSource, 'profile');
+      assert.equal(result.profile.organization.uuid, 'org-123');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('keeps fallback identity when profile fetch fails', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      status: 403,
+      statusText: 'Forbidden',
+      ok: false,
+      async json() {
+        return { error: { message: 'missing scope' } };
+      },
+    });
+
+    const identity = {
+      email: 'live-abc@claude.com',
+      accountId: null,
+      displayName: null,
+      claimSource: 'fallback:code-prefix',
+    };
+
+    try {
+      const result = await enrichIdentityFromProviderProfile(
+        { id: 'claude' },
+        { accessToken: 'token-123' },
+        identity,
+      );
+
+      assert.equal(result.profile, null);
+      assert.deepEqual(result.identity, identity);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
 
 describe('parseLoginOptions — defaults & flags', () => {
   it('returns defaults for empty args', () => {

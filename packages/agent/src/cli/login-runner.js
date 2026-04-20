@@ -11,6 +11,7 @@ import {
 import { createAccount } from '../auth/auth-store-schema.js';
 import { extractAccountIdentity } from '../auth/token-claims.js';
 import { findLegacyDuplicates } from '../auth/find-legacy-duplicates.js';
+import { fetchClaudeOauthProfile } from '../../../provider-adapters/src/claude/fetch-claude-oauth-profile.js';
 
 /**
  * Provider spec shape used by runOAuthLoginFlow.
@@ -136,15 +137,16 @@ async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, stat
     console.log(`  expires_in: ${tokenResponse.expiresIn}`);
     console.log(`  scope: ${tokenResponse.scope ?? '(없음)'}`);
 
-    const identity = extractAccountIdentity({
+    const baseIdentity = extractAccountIdentity({
       idToken: tokenResponse.idToken,
       accessToken: tokenResponse.accessToken,
       fallbackCode: code,
       fallbackEmailDomain: spec.fallbackEmailDomain,
     });
+    const { identity, profile } = await enrichIdentityFromProviderProfile(spec, tokenResponse, baseIdentity);
     console.log(`  identity source: ${identity.claimSource}`);
 
-    await saveLiveExchangeAccount(spec, tokenResponse, identity, { label, keepLegacy });
+    await saveLiveExchangeAccount(spec, tokenResponse, identity, { label, keepLegacy, profile });
   } catch (err) {
     console.log('');
     console.log(`❌ live token exchange 실패: ${err.message}`);
@@ -158,7 +160,7 @@ async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, stat
   }
 }
 
-async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label, keepLegacy } = {}) {
+async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label, keepLegacy, profile } = {}) {
   const now = new Date();
   const expiresAt = tokenResponse.expiresIn
     ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
@@ -186,6 +188,13 @@ async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label, k
       idToken: tokenResponse.idToken ?? null,
       exchangedAt: now.toISOString(),
       identityClaimSource: identity.claimSource,
+      ...(profile ? {
+        profile: {
+          account: profile.account,
+          organization: profile.organization,
+          application: profile.application,
+        },
+      } : {}),
       note: 'live token exchange 결과 — observed client_id + S256 PKCE 기반',
     },
   });
@@ -238,6 +247,32 @@ async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label, k
  *
  * Unknown flag는 조용히 무시한다 (provider별 추가 플래그는 필요시 별도 처리).
  */
+export async function enrichIdentityFromProviderProfile(spec, tokenResponse, identity) {
+  if (spec.id !== 'claude') {
+    return { identity, profile: null };
+  }
+
+  try {
+    const profile = await fetchClaudeOauthProfile({
+      accessToken: tokenResponse.accessToken,
+    });
+
+    const enrichedIdentity = {
+      email: profile.email ?? identity.email,
+      accountId: profile.accountId ?? identity.accountId,
+      displayName: profile.displayName ?? identity.displayName,
+      claimSource: profile.accountId || profile.email || profile.displayName
+        ? 'profile'
+        : identity.claimSource,
+    };
+
+    return { identity: enrichedIdentity, profile };
+  } catch (error) {
+    console.log(`  profile enrichment skipped: ${error.message}`);
+    return { identity, profile: null };
+  }
+}
+
 export function parseLoginOptions(args) {
   const options = {
     noOpen: false,

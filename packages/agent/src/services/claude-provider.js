@@ -84,10 +84,11 @@ export async function getClaudeSnapshot(
     profiles.map(async (profile) => {
       try {
         const snapshot = await fetchClaudeUsage(profile);
-        return { accountKey: profile.id, snapshot };
+        return { accountKey: profile.id, account: profile, snapshot };
       } catch (error) {
         return {
           accountKey: profile.id,
+          account: profile,
           snapshot: createClaudeNetworkFailureSnapshot(profile, error),
         };
       }
@@ -170,9 +171,12 @@ export function resolveClaudeProfileFromSnapshot(snapshot) {
 
   return {
     id: account.accountKey ?? 'claude',
+    accountKey: account.accountKey ?? 'claude',
     accessToken,
     accountId: account.accountId ?? null,
     email: account.email ?? null,
+    displayName: account.displayName ?? null,
+    label: account.label ?? null,
   };
 }
 
