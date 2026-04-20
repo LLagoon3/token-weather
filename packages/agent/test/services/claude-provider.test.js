@@ -8,6 +8,7 @@ import {
   getClaudeSnapshot,
   filterProfilesByAccount,
 } from '../../src/services/claude-provider.js';
+import { filterEntriesByAccount } from '../../src/services/account-filter.js';
 
 const FAKE_PATH = '/tmp/fake-claude-credentials.json';
 
@@ -143,6 +144,20 @@ describe('getClaudeSnapshot — disabled config contract', () => {
     assert.equal(snap.networkUsage, null);
     assert.deepEqual(snap.networkUsages, []);
     assert.ok(typeof snap.authSource === 'string');
+  });
+});
+
+describe('filterEntriesByAccount (claude-provider)', () => {
+  it('filters agent-store entry arrays by mapped profile fields', () => {
+    const entries = [
+      { account: { accountKey: 'a' }, profile: { id: 'anthropic-claude:a', email: 'a@x.com', label: 'work' } },
+      { account: { accountKey: 'b' }, profile: { id: 'anthropic-claude:b', email: 'b@x.com', label: 'personal' } },
+    ];
+
+    assert.equal(filterEntriesByAccount(entries, 'anthropic-claude:a').length, 1);
+    assert.equal(filterEntriesByAccount(entries, 'B@X.COM').length, 1);
+    assert.equal(filterEntriesByAccount(entries, 'personal').length, 1);
+    assert.equal(filterEntriesByAccount(entries, 'nope').length, 0);
   });
 });
 

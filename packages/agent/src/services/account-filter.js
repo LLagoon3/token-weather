@@ -19,3 +19,16 @@ export function filterProfilesByAccount(profiles, accountFilter) {
       || (p.label ?? '').toLowerCase() === needle,
   );
 }
+
+/**
+ * `{ account, profile }` entry 배열에 동일한 accountFilter 규칙 적용.
+ *
+ * @template T
+ * @param {{ account: object|null, profile: T }[]} entries
+ * @param {string|null|undefined} accountFilter
+ * @returns {{ account: object|null, profile: T }[]}
+ */
+export function filterEntriesByAccount(entries, accountFilter) {
+  if (!accountFilter) return entries;
+  return entries.filter((entry) => filterProfilesByAccount([entry.profile], accountFilter).length > 0);
+}

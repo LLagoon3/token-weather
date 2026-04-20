@@ -3,7 +3,7 @@ import {
   getDefaultAuthProfilesPath,
   readCodexAuthProfiles,
 } from '../../../provider-adapters/src/codex/index.js';
-import { filterProfilesByAccount } from './account-filter.js';
+import { filterEntriesByAccount, filterProfilesByAccount } from './account-filter.js';
 import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
 import { resolveAuthSource } from './auth-source-resolver.js';
 import { resolveProviderAccountEntries } from './provider-profile-resolver.js';
@@ -85,7 +85,8 @@ async function resolveCodexProfiles(accountFilter) {
   });
 
   if (allAgentEntries.length > 0) {
-    return { entries: allAgentEntries, authSource: 'agent-store' };
+    const filteredEntries = filterEntriesByAccount(allAgentEntries, accountFilter);
+    return { entries: filteredEntries, authSource: 'agent-store' };
   }
 
   // Fallback: OpenClaw import

@@ -11,7 +11,7 @@ import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-c
 import { loadAuthStore } from '../auth/auth-store.js';
 import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
 import { resolveProviderAccountEntries } from './provider-profile-resolver.js';
-import { filterProfilesByAccount } from './account-filter.js';
+import { filterEntriesByAccount, filterProfilesByAccount } from './account-filter.js';
 import { fetchUsageWithAutoRefresh } from './usage-auto-refresh.js';
 import { refreshClaudeToken } from '../../../provider-adapters/src/claude/refresh-claude-token.js';
 import { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
@@ -60,7 +60,7 @@ export async function getClaudeSnapshot(
 
   let entries;
   if (allAgentEntries.length > 0) {
-    entries = allAgentEntries;
+    entries = filterEntriesByAccount(allAgentEntries, options.accountFilter);
   } else {
     // cli-import fallback
     const single = resolveClaudeProfileFromSnapshot(base);
