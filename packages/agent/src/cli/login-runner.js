@@ -12,6 +12,7 @@ import { createAccount } from '../auth/auth-store-schema.js';
 import { extractAccountIdentity } from '../auth/token-claims.js';
 import { findLegacyDuplicates } from '../auth/find-legacy-duplicates.js';
 import { fetchClaudeOauthProfile } from '../../../provider-adapters/src/claude/fetch-claude-oauth-profile.js';
+import { parseCliOptions } from './parse-options.js';
 
 /**
  * Provider spec shape used by runOAuthLoginFlow.
@@ -273,79 +274,48 @@ export async function enrichIdentityFromProviderProfile(spec, tokenResponse, ide
   }
 }
 
+const LOGIN_DEFAULTS = {
+  noOpen: false,
+  manual: false,
+  device: false,
+  liveExchange: false,
+  port: null,
+  timeoutMs: 120_000,
+  label: null,
+  keepLegacy: false,
+};
+
+const LOGIN_FLAGS = {
+  '--no-open': { key: 'noOpen', type: 'boolean' },
+  '--manual': { key: 'manual', type: 'boolean' },
+  '--device': { key: 'device', type: 'boolean' },
+  '--live-exchange': { key: 'liveExchange', type: 'boolean' },
+  '--keep-legacy': { key: 'keepLegacy', type: 'boolean' },
+  '--port': {
+    key: 'port',
+    type: 'int',
+    validate: (n) => n >= 0 && n <= 65535,
+    invalidMessage: '--port 값 "${value}"이(가) 유효하지 않습니다. 정수 0~65535 범위로 지정해 주세요.',
+  },
+  '--timeout': {
+    key: 'timeoutMs',
+    type: 'int',
+    validate: (n) => n > 0,
+    transform: (n) => n * 1000,
+    invalidMessage: '--timeout 값 "${value}"이(가) 유효하지 않습니다. 양의 정수(초)로 지정해 주세요.',
+  },
+  '--label': {
+    key: 'label',
+    type: 'string',
+    trim: true,
+    emptyMessage: '--label 값이 비어 있습니다.',
+  },
+};
+
 export function parseLoginOptions(args) {
-  const options = {
-    noOpen: false,
-    manual: false,
-    device: false,
-    liveExchange: false,
-    port: null,
-    timeoutMs: 120_000,
-    label: null,
-    keepLegacy: false,
-    warnings: [],
-  };
-
-  for (let index = 0; index < (args ?? []).length; index += 1) {
-    const arg = args[index];
-    if (arg === '--no-open') options.noOpen = true;
-    else if (arg === '--manual') options.manual = true;
-    else if (arg === '--device') options.device = true;
-    else if (arg === '--live-exchange') options.liveExchange = true;
-    else if (arg === '--keep-legacy') options.keepLegacy = true;
-    else if (arg === '--port') {
-      const value = args[index + 1];
-      if (value !== undefined) {
-        const parsed = parsePortValue(value);
-        if (parsed === null) {
-          options.warnings.push(
-            `--port 값 "${value}"이(가) 유효하지 않습니다. 정수 0~65535 범위로 지정해 주세요.`,
-          );
-        } else {
-          options.port = parsed;
-        }
-        index += 1;
-      }
-    } else if (arg === '--timeout') {
-      const value = args[index + 1];
-      if (value !== undefined) {
-        const parsed = parseTimeoutSeconds(value);
-        if (parsed === null) {
-          options.warnings.push(
-            `--timeout 값 "${value}"이(가) 유효하지 않습니다. 양의 정수(초)로 지정해 주세요.`,
-          );
-        } else {
-          options.timeoutMs = parsed * 1000;
-        }
-        index += 1;
-      }
-    } else if (arg === '--label') {
-      const value = args[index + 1];
-      if (value !== undefined) {
-        const trimmed = String(value).trim();
-        if (trimmed.length === 0) {
-          options.warnings.push('--label 값이 비어 있습니다.');
-        } else {
-          options.label = trimmed;
-        }
-        index += 1;
-      }
-    }
-  }
-
-  return options;
-}
-
-function parsePortValue(raw) {
-  const n = Number(raw);
-  if (!Number.isInteger(n)) return null;
-  if (n < 0 || n > 65535) return null;
-  return n;
-}
-
-function parseTimeoutSeconds(raw) {
-  const n = Number(raw);
-  if (!Number.isInteger(n)) return null;
-  if (n <= 0) return null;
-  return n;
+  return parseCliOptions(args, {
+    defaults: LOGIN_DEFAULTS,
+    flags: LOGIN_FLAGS,
+    collectWarnings: true,
+  });
 }
