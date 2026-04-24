@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { runAuthImportCommand } from '../../src/cli/auth-import-command.js';
+import { runAuthImportCommand, formatAuthImportHelp } from '../../src/cli/auth-import-command.js';
 import { runCli } from '../../src/cli/run-cli.js';
 import { createEmptyAuthStore } from '../../src/auth/auth-store-schema.js';
 
@@ -16,6 +16,28 @@ async function captureOutput(fn) {
   }
   return lines;
 }
+
+describe('formatAuthImportHelp', () => {
+  it('first line is auth import usage', () => {
+    assert.match(formatAuthImportHelp()[0], /^ai-usage-agent auth import/);
+  });
+
+  it('mentions --help flag', () => {
+    assert.match(formatAuthImportHelp().join('\n'), /-h, --help/);
+  });
+});
+
+describe('runAuthImportCommand — --help', () => {
+  it('prints help when provider is "--help"', async () => {
+    const lines = await captureOutput(() => runAuthImportCommand('--help'));
+    assert.match(lines[0], /^ai-usage-agent auth import/);
+  });
+
+  it('prints help when --help is in args (e.g. after provider)', async () => {
+    const lines = await captureOutput(() => runAuthImportCommand('claude', ['--help']));
+    assert.match(lines[0], /^ai-usage-agent auth import/);
+  });
+});
 
 describe('runAuthImportCommand', () => {
   it('shows guidance and does not save when no selectedAccount exists', async () => {

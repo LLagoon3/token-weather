@@ -3,6 +3,21 @@ import { buildClaudeSnapshot } from '../services/status-service.js';
 import { resolveClaudeCredentialsPath } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
 
 /**
+ * `auth list` --help 출력. Pure function.
+ */
+export function formatAuthListHelp() {
+  return [
+    'ai-usage-agent auth list [provider]',
+    '',
+    '저장된 인증 계정 목록을 출력합니다.',
+    'provider를 지정하면 해당 provider 계정만 출력합니다.',
+    '',
+    'Options:',
+    '  -h, --help   이 도움말 출력',
+  ];
+}
+
+/**
  * `ai-usage-agent auth list [provider]`
  *
  * 저장된 인증 계정 목록을 출력한다.
@@ -10,6 +25,10 @@ import { resolveClaudeCredentialsPath } from '../../../provider-adapters/src/cla
  * options.claudeReadFn 을 주입하면 실제 파일시스템 대신 사용한다 (테스트용).
  */
 export async function runAuthListCommand(provider, options = {}) {
+  if (provider === '--help' || provider === '-h') {
+    for (const line of formatAuthListHelp()) console.log(line);
+    return;
+  }
   const loadStore = options.loadStore ?? loadAuthStore;
   const store = await loadStore();
   const providerIds = provider

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { runAuthLogoutCommand } from '../../src/cli/auth-logout-command.js';
+import { runAuthLogoutCommand, formatAuthLogoutHelp } from '../../src/cli/auth-logout-command.js';
 import { saveAuthStore } from '../../src/auth/auth-store.js';
 import { createEmptyAuthStore } from '../../src/auth/auth-store-schema.js';
 
@@ -43,6 +43,29 @@ async function seedStore(providers = {}) {
   store.providers = providers;
   await saveAuthStore(store);
 }
+
+describe('formatAuthLogoutHelp', () => {
+  it('first line is auth logout usage', () => {
+    assert.match(formatAuthLogoutHelp()[0], /^ai-usage-agent auth logout/);
+  });
+
+  it('lists --account and --help', () => {
+    const body = formatAuthLogoutHelp().join('\n');
+    assert.match(body, /--account/);
+    assert.match(body, /-h, --help/);
+  });
+});
+
+describe('runAuthLogoutCommand — --help', () => {
+  withTmpHome();
+
+  it('prints help before provider validation when --help is in args', async () => {
+    await runAuthLogoutCommand(undefined, ['--help']);
+    assert.ok(logs.some((l) => l.startsWith('ai-usage-agent auth logout')));
+    // --help 경로는 exit 1을 설정하지 않는다.
+    assert.notEqual(process.exitCode, 1);
+  });
+});
 
 describe('runAuthLogoutCommand — usage error', () => {
   withTmpHome();

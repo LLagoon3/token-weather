@@ -4,18 +4,42 @@ import { loadAuthStore, saveAuthStore } from '../auth/auth-store.js';
 import { importClaudeAccountIntoStore } from '../auth/claude-imported-account.js';
 
 /**
+ * `auth import` --help 출력. Pure function.
+ */
+export function formatAuthImportHelp() {
+  return [
+    'ai-usage-agent auth import <provider>',
+    '',
+    'Provider CLI credential을 agent-store에 복사합니다.',
+    '현재 지원: claude (~/.claude/.credentials.json)',
+    '',
+    'Options:',
+    '  -h, --help   이 도움말 출력',
+  ];
+}
+
+/**
  * auth import <provider>
  * 현재 지원: claude
  */
 export async function runAuthImportCommand(
   provider,
-  _args = [],
+  args = [],
   {
     claudeReadFn = readClaudeCredentials,
     loadStore = loadAuthStore,
     saveStore = saveAuthStore,
   } = {},
 ) {
+  const wantsHelp =
+    provider === '--help' ||
+    provider === '-h' ||
+    (args ?? []).some((a) => a === '--help' || a === '-h');
+  if (wantsHelp) {
+    for (const line of formatAuthImportHelp()) console.log(line);
+    return;
+  }
+
   if (!provider) {
     console.log('사용법: ai-usage-agent auth import <provider>');
     console.log('현재 지원 provider: claude');

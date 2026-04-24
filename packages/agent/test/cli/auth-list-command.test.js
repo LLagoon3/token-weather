@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   formatClaudeImportEntry,
+  formatAuthListHelp,
   runAuthListCommand,
 } from '../../src/cli/auth-list-command.js';
 
@@ -17,6 +18,28 @@ async function captureOutput(fn) {
   }
   return lines;
 }
+
+describe('formatAuthListHelp', () => {
+  it('first line is auth list usage', () => {
+    assert.match(formatAuthListHelp()[0], /^ai-usage-agent auth list/);
+  });
+
+  it('mentions --help flag', () => {
+    assert.match(formatAuthListHelp().join('\n'), /-h, --help/);
+  });
+});
+
+describe('runAuthListCommand — --help', () => {
+  it('prints help and exits when provider is "--help"', async () => {
+    const lines = await captureOutput(() => runAuthListCommand('--help'));
+    assert.match(lines[0], /^ai-usage-agent auth list/);
+  });
+
+  it('prints help when provider is "-h"', async () => {
+    const lines = await captureOutput(() => runAuthListCommand('-h'));
+    assert.match(lines[0], /^ai-usage-agent auth list/);
+  });
+});
 
 describe('formatClaudeImportEntry', () => {
   const FAKE_PATH = '/home/user/.claude/.credentials.json';
