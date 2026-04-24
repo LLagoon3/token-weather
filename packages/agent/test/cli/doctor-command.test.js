@@ -259,6 +259,15 @@ describe('parseDoctorClaudeOptions', () => {
       account: null,
     });
   });
+
+  it('treats --account "" as "no value" and lets subsequent flags parse (legacy contract)', () => {
+    // 공통 helper 전환 후에도 빈 문자열은 default 유지하고 consume하지 않아
+    // 이어지는 --refresh-live가 정상 파싱되어야 한다.
+    assert.deepEqual(parseDoctorClaudeOptions(['--account', '', '--refresh-live']), {
+      refreshLive: true,
+      account: null,
+    });
+  });
 });
 
 describe('formatClaudeSection — multi-account networkUsages', () => {

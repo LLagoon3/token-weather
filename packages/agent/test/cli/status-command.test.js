@@ -292,6 +292,11 @@ describe('parseStatusOptions', () => {
     const out = parseStatusOptions(['--unknown', '--account', 'a']);
     assert.equal(out.account, 'a');
   });
+
+  it('treats --account "" as "no value" (legacy contract)', () => {
+    // 공통 helper 전환 후에도 빈 문자열은 default 유지해야 한다.
+    assert.deepEqual(parseStatusOptions(['--account', '']), { account: null });
+  });
 });
 
 describe('formatStatusOutput — accountFilter line', () => {
