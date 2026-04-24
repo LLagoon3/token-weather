@@ -1,7 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { formatClaudeSection, parseDoctorClaudeOptions } from '../../src/cli/doctor-command.js';
+import {
+  formatClaudeSection,
+  parseDoctorClaudeOptions,
+  formatDoctorHelp,
+  formatDoctorCodexHelp,
+  formatDoctorClaudeHelp,
+} from '../../src/cli/doctor-command.js';
 
 // ---------------------------------------------------------------------------
 // formatClaudeSection — pure display helper
@@ -218,6 +224,7 @@ describe('parseDoctorClaudeOptions', () => {
     assert.deepEqual(parseDoctorClaudeOptions([]), {
       refreshLive: false,
       account: null,
+      help: false,
     });
   });
 
@@ -225,6 +232,7 @@ describe('parseDoctorClaudeOptions', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--refresh-live']), {
       refreshLive: true,
       account: null,
+      help: false,
     });
   });
 
@@ -232,6 +240,7 @@ describe('parseDoctorClaudeOptions', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--foo', '--refresh-live', 'bar']), {
       refreshLive: true,
       account: null,
+      help: false,
     });
   });
 
@@ -239,10 +248,12 @@ describe('parseDoctorClaudeOptions', () => {
     assert.deepEqual(parseDoctorClaudeOptions(undefined), {
       refreshLive: false,
       account: null,
+      help: false,
     });
     assert.deepEqual(parseDoctorClaudeOptions(null), {
       refreshLive: false,
       account: null,
+      help: false,
     });
   });
 
@@ -250,6 +261,7 @@ describe('parseDoctorClaudeOptions', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--refresh-live', '--account', 'work']), {
       refreshLive: true,
       account: 'work',
+      help: false,
     });
   });
 
@@ -257,6 +269,7 @@ describe('parseDoctorClaudeOptions', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--account']), {
       refreshLive: false,
       account: null,
+      help: false,
     });
   });
 
@@ -266,7 +279,50 @@ describe('parseDoctorClaudeOptions', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--account', '', '--refresh-live']), {
       refreshLive: true,
       account: null,
+      help: false,
     });
+  });
+
+  it('recognizes --help and -h', () => {
+    assert.equal(parseDoctorClaudeOptions(['--help']).help, true);
+    assert.equal(parseDoctorClaudeOptions(['-h']).help, true);
+  });
+});
+
+describe('formatDoctorHelp', () => {
+  it('first line covers doctor with subcommand placeholder', () => {
+    const lines = formatDoctorHelp();
+    assert.match(lines[0], /^ai-usage-agent doctor \[subcommand\]/);
+  });
+
+  it('lists codex and claude subcommands', () => {
+    const body = formatDoctorHelp().join('\n');
+    assert.match(body, /codex/);
+    assert.match(body, /claude/);
+  });
+});
+
+describe('formatDoctorCodexHelp', () => {
+  it('first line targets codex', () => {
+    assert.match(formatDoctorCodexHelp()[0], /^ai-usage-agent doctor codex/);
+  });
+
+  it('lists --refresh-live and --account', () => {
+    const body = formatDoctorCodexHelp().join('\n');
+    assert.match(body, /--refresh-live/);
+    assert.match(body, /--account <id>/);
+  });
+});
+
+describe('formatDoctorClaudeHelp', () => {
+  it('first line targets claude', () => {
+    assert.match(formatDoctorClaudeHelp()[0], /^ai-usage-agent doctor claude/);
+  });
+
+  it('lists --refresh-live and --account', () => {
+    const body = formatDoctorClaudeHelp().join('\n');
+    assert.match(body, /--refresh-live/);
+    assert.match(body, /--account <id>/);
   });
 });
 
