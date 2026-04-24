@@ -1,4 +1,5 @@
 import { getStatusSnapshot } from '../services/status-service.js';
+import { parseCliOptions } from './parse-options.js';
 
 // 포맷터는 status-formatters.js에서 관리. 기존 import 경로 호환을 위해 re-export.
 export {
@@ -32,16 +33,10 @@ export async function runStatusCommand(command, args = []) {
  * `status` / `usage` 옵션 파서.
  */
 export function parseStatusOptions(args) {
-  const options = { account: null };
-  for (let i = 0; i < (args ?? []).length; i += 1) {
-    const arg = args[i];
-    if (arg === '--account') {
-      const value = args[i + 1];
-      if (value) {
-        options.account = value;
-        i += 1;
-      }
-    }
-  }
-  return options;
+  return parseCliOptions(args, {
+    defaults: { account: null },
+    flags: {
+      '--account': { key: 'account', type: 'string' },
+    },
+  });
 }

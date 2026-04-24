@@ -1,5 +1,6 @@
 import { loadAuthStore, saveAuthStore, removeProviderAccount } from '../auth/auth-store.js';
 import { resolveAccount } from '../auth/account-resolver.js';
+import { parseCliOptions } from './parse-options.js';
 
 /**
  * `ai-usage-agent auth logout <provider> [--account <id>]`
@@ -61,12 +62,10 @@ export async function runAuthLogoutCommand(provider, args) {
 }
 
 function parseLogoutOptions(args) {
-  const options = { account: null };
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--account' && args[i + 1]) {
-      options.account = args[i + 1];
-      i += 1;
-    }
-  }
-  return options;
+  return parseCliOptions(args, {
+    defaults: { account: null },
+    flags: {
+      '--account': { key: 'account', type: 'string' },
+    },
+  });
 }
