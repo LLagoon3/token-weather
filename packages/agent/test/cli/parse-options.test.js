@@ -66,6 +66,28 @@ describe('parseCliOptions — string flags', () => {
     assert.equal(out.account, null);
   });
 
+  it('treats empty string as "no value" for non-trim string flag (legacy contract)', () => {
+    // 레거시 파서(`if (value)`) 호환: ''가 들어와도 default 유지.
+    const out = parseCliOptions(['--account', ''], {
+      defaults: { account: null },
+      flags: { '--account': { key: 'account', type: 'string' } },
+    });
+    assert.equal(out.account, null);
+  });
+
+  it('does not consume empty string so following flags still parse', () => {
+    // ['--account', '', '--refresh-live'] → refreshLive가 여전히 true여야 한다.
+    const out = parseCliOptions(['--account', '', '--refresh-live'], {
+      defaults: { account: null, refreshLive: false },
+      flags: {
+        '--account': { key: 'account', type: 'string' },
+        '--refresh-live': { key: 'refreshLive', type: 'boolean' },
+      },
+    });
+    assert.equal(out.account, null);
+    assert.equal(out.refreshLive, true);
+  });
+
   it('trims and ignores empty trimmed value when trim=true', () => {
     const out = parseCliOptions(['--label', '   '], {
       defaults: { label: null },

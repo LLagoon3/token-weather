@@ -48,6 +48,12 @@ export function parseCliOptions(args, spec) {
 
     const value = list[i + 1];
     if (value === undefined) continue;
+
+    // 레거시 파서(status/logout/doctor) 호환: `type:'string'` + `trim` 미지정이면
+    // 빈 문자열("")은 "값 없음"으로 간주하여 assign/consume 모두 하지 않는다.
+    // trim=true 쪽은 빈 값에도 emptyMessage warning을 push할 수 있으므로 consume한다.
+    if (flagSpec.type === 'string' && !flagSpec.trim && value === '') continue;
+
     i += 1;
 
     if (flagSpec.type === 'string') {
