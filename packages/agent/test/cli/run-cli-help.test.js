@@ -53,3 +53,15 @@ describe('runCli — global --help', () => {
     assert.equal(lines[0], 'ai-usage-agent');
   });
 });
+
+describe('runCli — doctor --help at subcommand position', () => {
+  it('prints doctor root help when subcommand is --help', async () => {
+    const lines = await captureOutput(() => runCli(['doctor', '--help']));
+    assert.match(lines[0], /^ai-usage-agent doctor \[subcommand\]/);
+  });
+
+  it('also honors -h at subcommand position', async () => {
+    const lines = await captureOutput(() => runCli(['doctor', '-h']));
+    assert.match(lines[0], /^ai-usage-agent doctor \[subcommand\]/);
+  });
+});

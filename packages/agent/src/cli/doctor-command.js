@@ -91,6 +91,12 @@ export { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
 // ─── Dispatcher ────────────────────────────────────────────────────────────
 
 export async function runDoctorCommand(subcommand, args = []) {
+  // `doctor --help` 같이 subcommand 자리에 help 토큰이 오는 경우를 처리.
+  // (subcommand가 'codex'/'claude'가 아니라 '--help'/'-h'일 때)
+  if (subcommand === '--help' || subcommand === '-h') {
+    for (const line of formatDoctorHelp()) console.log(line);
+    return;
+  }
   if (subcommand === 'codex') {
     await runDoctorCodex(args);
     return;
