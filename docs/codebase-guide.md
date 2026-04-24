@@ -291,6 +291,40 @@ Provider spec shape(`LoginProviderSpec`):
 
 호출자는 `options.warnings.length > 0`이면 stderr로 출력 후 조기 리턴한다 (`auth-login-command.js::reportAndGuardOptionWarnings` 참고).
 
+### 5.3 공통 option parser
+
+모든 CLI 파서(`parseLoginOptions`, `parseStatusOptions`, `parseLogoutOptions`,
+`parseDoctorClaudeOptions`, `parseDoctorCodexOptions`)는 스펙 기반 공통 헬퍼
+`cli/parse-options.js::parseCliOptions`를 사용한다. 각 커맨드는 `defaults` 객체와
+`flags` 스펙 맵만 선언하면 된다.
+
+```js
+import { parseCliOptions } from './parse-options.js';
+
+export function parseStatusOptions(args) {
+  return parseCliOptions(args, {
+    defaults: { account: null },
+    flags: { '--account': { key: 'account', type: 'string' } },
+  });
+}
+```
+
+플래그 타입: `boolean` / `string` / `int`. 부가 속성:
+- `trim` (string): 값을 trim하고 빈 문자열이면 skip. `emptyMessage` 있으면 warning.
+- `validate` (int): 범위/부호 검증. 실패 시 default 유지.
+- `transform` (int): 유효 값을 다른 단위로 변환 (e.g. `(n) => n * 1000`).
+- `invalidMessage` (int): 실패 시 warnings에 push. `${value}`는 입력 원문으로 치환.
+
+규약:
+- unknown flag는 silent skip (호출자 관점에서 기존 동작 유지).
+- `collectWarnings: true`일 때만 반환 객체에 `warnings: []`가 추가된다.
+  warnings가 필요 없는 파서(`status`, `logout`, `doctor`)는 이 플래그를 생략한다.
+- 값이 뒤따르지 않는 value flag(`--account` 뒤에 값 없음)도 silent skip — warning을 쌓지 않는다.
+
+새 플래그를 추가할 때는 가능한 이 헬퍼의 스펙으로 표현하고, 표현이 어려우면
+헬퍼를 확장(타입/옵션 추가)하는 쪽으로 결정한다. 커맨드별 임시 switch 문으로
+되돌리지 말 것.
+
 ---
 
 ## 6. Auth store / credential 처리
