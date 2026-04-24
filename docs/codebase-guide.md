@@ -320,6 +320,10 @@ export function parseStatusOptions(args) {
 - `collectWarnings: true`일 때만 반환 객체에 `warnings: []`가 추가된다.
   warnings가 필요 없는 파서(`status`, `logout`, `doctor`)는 이 플래그를 생략한다.
 - 값이 뒤따르지 않는 value flag(`--account` 뒤에 값 없음)도 silent skip — warning을 쌓지 않는다.
+- `type:'string'` + `trim` 미지정인 플래그에서 값이 빈 문자열("")이면
+  레거시 파서(`if (value)`)와 동일하게 "값 없음"으로 간주해 assign/consume을
+  모두 하지 않는다. 반대로 `trim:true`는 emptyMessage warning을 쌓을 수 있으므로
+  consume한다 (예: `--label`).
 
 새 플래그를 추가할 때는 가능한 이 헬퍼의 스펙으로 표현하고, 표현이 어려우면
 헬퍼를 확장(타입/옵션 추가)하는 쪽으로 결정한다. 커맨드별 임시 switch 문으로
