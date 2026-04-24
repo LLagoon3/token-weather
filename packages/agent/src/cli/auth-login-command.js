@@ -40,8 +40,12 @@ export function formatAuthLoginHelp() {
  * Entry point: dispatch `auth login <provider>` to the provider branch.
  */
 export async function runAuthLoginCommand(provider, args = []) {
-  // provider 없을 때도 --help는 먼저 존중한다.
-  const wantsHelp = (args ?? []).some((a) => a === '--help' || a === '-h');
+  // `auth login --help` (provider 자리에 help 토큰) 또는
+  // `auth login <provider> --help` (args 자리에 help 토큰) 모두 먼저 처리.
+  const wantsHelp =
+    provider === '--help' ||
+    provider === '-h' ||
+    (args ?? []).some((a) => a === '--help' || a === '-h');
   if (wantsHelp) {
     for (const line of formatAuthLoginHelp()) console.log(line);
     return;

@@ -28,6 +28,12 @@ export function formatAuthLogoutHelp() {
  * 참고: revoke endpoint 호출은 아직 미구현이다. 로컬 저장소 제거만 수행한다.
  */
 export async function runAuthLogoutCommand(provider, args) {
+  // `auth logout --help` (provider 자리) 또는 `auth logout <p> --help` (args 자리) 모두 먼저 처리.
+  if (provider === '--help' || provider === '-h') {
+    for (const line of formatAuthLogoutHelp()) console.log(line);
+    return;
+  }
+
   const options = parseLogoutOptions(args);
   if (options.help) {
     for (const line of formatAuthLogoutHelp()) console.log(line);

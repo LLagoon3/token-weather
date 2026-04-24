@@ -65,6 +65,23 @@ describe('runAuthLogoutCommand — --help', () => {
     // --help 경로는 exit 1을 설정하지 않는다.
     assert.notEqual(process.exitCode, 1);
   });
+
+  it('prints help when --help is in the provider slot (auth logout --help)', async () => {
+    // runCli가 provider='--help', args=[]로 전달하는 경로.
+    logs.length = 0;
+    process.exitCode = 0;
+    await runAuthLogoutCommand('--help', []);
+    assert.ok(logs.some((l) => l.startsWith('ai-usage-agent auth logout')));
+    assert.notEqual(process.exitCode, 1);
+  });
+
+  it('also honors -h in the provider slot', async () => {
+    logs.length = 0;
+    process.exitCode = 0;
+    await runAuthLogoutCommand('-h', []);
+    assert.ok(logs.some((l) => l.startsWith('ai-usage-agent auth logout')));
+    assert.notEqual(process.exitCode, 1);
+  });
 });
 
 describe('runAuthLogoutCommand — usage error', () => {

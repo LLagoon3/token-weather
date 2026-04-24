@@ -42,4 +42,15 @@ describe('runAuthLoginCommand — --help', () => {
     const lines = await captureOutput(() => runAuthLoginCommand('codex', ['--help']));
     assert.match(lines[0], /^ai-usage-agent auth login/);
   });
+
+  it('prints help when --help is in the provider slot (auth login --help)', async () => {
+    // runCli가 provider='--help', args=[]로 전달하는 경로.
+    const lines = await captureOutput(() => runAuthLoginCommand('--help', []));
+    assert.match(lines[0], /^ai-usage-agent auth login/);
+  });
+
+  it('also honors -h in the provider slot', async () => {
+    const lines = await captureOutput(() => runAuthLoginCommand('-h', []));
+    assert.match(lines[0], /^ai-usage-agent auth login/);
+  });
 });
