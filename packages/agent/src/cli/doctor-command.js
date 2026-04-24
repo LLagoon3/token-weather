@@ -17,6 +17,13 @@ import {
 } from './doctor-codex-helpers.js';
 import { updateCodexStoreAfterRefresh } from '../auth/codex-refresh-store.js';
 import { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
+import { parseCliOptions } from './parse-options.js';
+
+const DOCTOR_FLAGS = {
+  '--refresh-live': { key: 'refreshLive', type: 'boolean' },
+  '--account': { key: 'account', type: 'string' },
+};
+const DOCTOR_DEFAULTS = { refreshLive: false, account: null };
 
 // 기존 import 경로 호환 re-export.
 export { formatClaudeSection };
@@ -147,17 +154,7 @@ export async function resolveClaudeRefreshTargetAccount(snapshot, accountIdentif
 }
 
 export function parseDoctorClaudeOptions(args) {
-  const options = { refreshLive: false, account: null };
-  const list = args ?? [];
-  for (let i = 0; i < list.length; i += 1) {
-    const arg = list[i];
-    if (arg === '--refresh-live') options.refreshLive = true;
-    else if (arg === '--account') {
-      const value = list[i + 1];
-      if (value) { options.account = value; i += 1; }
-    }
-  }
-  return options;
+  return parseCliOptions(args, { defaults: DOCTOR_DEFAULTS, flags: DOCTOR_FLAGS });
 }
 
 // ─── Codex ─────────────────────────────────────────────────────────────────
@@ -233,14 +230,5 @@ async function resolveCodexDoctorAccount(options) {
 }
 
 function parseDoctorCodexOptions(args) {
-  const options = { refreshLive: false, account: null };
-  for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i];
-    if (arg === '--refresh-live') options.refreshLive = true;
-    if (arg === '--account') {
-      const value = args[i + 1];
-      if (value) { options.account = value; i += 1; }
-    }
-  }
-  return options;
+  return parseCliOptions(args, { defaults: DOCTOR_DEFAULTS, flags: DOCTOR_FLAGS });
 }
