@@ -21,9 +21,9 @@ export async function runCli(argv) {
   }
 
   if (command === 'config') {
-    const [subcommand] = rest;
+    const [subcommand, ...args] = rest;
     if (subcommand === 'init') {
-      await runConfigInitCommand();
+      await runConfigInitCommand(args);
       return;
     }
   }

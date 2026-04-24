@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { runConfigInitCommand } from '../../src/cli/config-init-command.js';
+import { runConfigInitCommand, formatConfigInitHelp } from '../../src/cli/config-init-command.js';
 
 let tmpHome;
 let originalHome;
@@ -27,6 +27,29 @@ function withTmpHome() {
     fs.rmSync(tmpHome, { recursive: true, force: true });
   });
 }
+
+describe('formatConfigInitHelp', () => {
+  it('first line is config init usage', () => {
+    assert.match(formatConfigInitHelp()[0], /^ai-usage-agent config init/);
+  });
+
+  it('mentions --help flag', () => {
+    assert.match(formatConfigInitHelp().join('\n'), /-h, --help/);
+  });
+});
+
+describe('runConfigInitCommand — --help', () => {
+  withTmpHome();
+
+  it('prints help and does not create config file', async () => {
+    logged.length = 0;
+    await runConfigInitCommand(['--help']);
+    assert.ok(logged.some((l) => l.startsWith('ai-usage-agent config init')));
+    // --help 경로는 파일을 쓰지 않는다.
+    const configPath = path.join(tmpHome, '.config', 'ai-usage-agent', 'config.json');
+    assert.equal(fs.existsSync(configPath), false);
+  });
+});
 
 describe('runConfigInitCommand — fresh init', () => {
   withTmpHome();
