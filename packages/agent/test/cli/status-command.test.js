@@ -277,11 +277,11 @@ describe('formatClaudeSection — networkUsages array support', () => {
 
 describe('parseStatusOptions', () => {
   it('returns { account: null } for empty args', () => {
-    assert.deepEqual(parseStatusOptions([]), { account: null, help: false });
+    assert.deepEqual(parseStatusOptions([]), { account: null, provider: null, help: false });
   });
 
   it('handles null/undefined args', () => {
-    assert.deepEqual(parseStatusOptions(undefined), { account: null, help: false });
+    assert.deepEqual(parseStatusOptions(undefined), { account: null, provider: null, help: false });
   });
 
   it('parses --account <value>', () => {
@@ -296,13 +296,24 @@ describe('parseStatusOptions', () => {
 
   it('treats --account "" as "no value" (legacy contract)', () => {
     // 공통 helper 전환 후에도 빈 문자열은 default 유지해야 한다.
-    assert.deepEqual(parseStatusOptions(['--account', '']), { account: null, help: false });
+    assert.deepEqual(parseStatusOptions(['--account', '']), { account: null, provider: null, help: false });
   });
 
   it('recognizes --help and -h', () => {
     assert.equal(parseStatusOptions(['--help']).help, true);
     assert.equal(parseStatusOptions(['-h']).help, true);
     assert.equal(parseStatusOptions([]).help, false);
+  });
+
+  it('parses --provider <id>', () => {
+    assert.equal(parseStatusOptions(['--provider', 'codex']).provider, 'codex');
+    assert.equal(parseStatusOptions(['--provider', 'claude']).provider, 'claude');
+  });
+
+  it('--provider and --account can coexist', () => {
+    const out = parseStatusOptions(['--provider', 'codex', '--account', 'work']);
+    assert.equal(out.provider, 'codex');
+    assert.equal(out.account, 'work');
   });
 });
 
@@ -317,10 +328,17 @@ describe('formatStatusHelp', () => {
     assert.match(lines[0], /ai-usage-agent status/);
   });
 
-  it('lists --account and --help in Options section', () => {
+  it('lists --account, --provider and --help in Options section', () => {
     const body = formatStatusHelp('usage').join('\n');
     assert.match(body, /--account/);
+    assert.match(body, /--provider <id>/);
     assert.match(body, /-h, --help/);
+  });
+
+  it('shows registered provider ids in --provider hint', () => {
+    const body = formatStatusHelp().join('\n');
+    assert.match(body, /codex/);
+    assert.match(body, /claude/);
   });
 });
 
