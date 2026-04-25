@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { PROVIDER_REGISTRY, runProviderSnapshots } from '../../src/services/provider-registry.js';
+import { PROVIDER_REGISTRY, PROVIDER_IDS, runProviderSnapshots } from '../../src/services/provider-registry.js';
 
 describe('PROVIDER_REGISTRY', () => {
   it('is frozen (cannot be mutated)', () => {
@@ -57,5 +57,44 @@ describe('runProviderSnapshots', () => {
       providers: { codex: { enabled: false } },
       defaults: { profiles: { codex: 'config-default' } },
     });
+  });
+
+  it('runs only the matching provider when providerFilter=codex', async () => {
+    const out = await runProviderSnapshots(
+      { providers: { codex: { enabled: false }, claude: { enabled: false } } },
+      { providerFilter: 'codex' },
+    );
+    assert.ok('codex' in out);
+    assert.equal('claude' in out, false);
+  });
+
+  it('runs only the matching provider when providerFilter=claude', async () => {
+    const out = await runProviderSnapshots(
+      { providers: { codex: { enabled: false }, claude: { enabled: false } } },
+      { providerFilter: 'claude' },
+    );
+    assert.ok('claude' in out);
+    assert.equal('codex' in out, false);
+  });
+
+  it('returns empty object when providerFilter does not match any registered id', async () => {
+    const out = await runProviderSnapshots(
+      { providers: {} },
+      { providerFilter: 'unknown' },
+    );
+    assert.deepEqual(out, {});
+  });
+});
+
+describe('PROVIDER_IDS', () => {
+  it('mirrors PROVIDER_REGISTRY ids in declaration order', () => {
+    assert.deepEqual(
+      [...PROVIDER_IDS],
+      PROVIDER_REGISTRY.map((p) => p.id),
+    );
+  });
+
+  it('is frozen', () => {
+    assert.throws(() => PROVIDER_IDS.push('extra'));
   });
 });
