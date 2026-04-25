@@ -22,7 +22,8 @@ export {
  * Build the top-level status snapshot by loading config and calling every
  * registered provider. New providers go through provider-registry.js, not here.
  *
- * @param {{ accountFilter?: string }} [options]
+ * @param {{ accountFilter?: string, providerFilter?: string }} [options]
+ *   `providerFilter`가 지정되면 해당 provider 한 곳의 snapshot만 포함된다.
  */
 export async function getStatusSnapshot(options = {}) {
   const configPath = resolveAgentConfigPath();
@@ -35,6 +36,7 @@ export async function getStatusSnapshot(options = {}) {
     providers: config.providers,
     sync: config.sync,
     accountFilter: options.accountFilter ?? null,
+    providerFilter: options.providerFilter ?? null,
     ...providerSnapshots,
   };
 }

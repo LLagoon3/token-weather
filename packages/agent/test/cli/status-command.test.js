@@ -11,6 +11,7 @@ import {
   formatWindow,
   formatStatusHelp,
   parseStatusOptions,
+  normalizeProviderFilter,
   STATUS_COMMANDS,
 } from '../../src/cli/status-command.js';
 
@@ -277,11 +278,11 @@ describe('formatClaudeSection — networkUsages array support', () => {
 
 describe('parseStatusOptions', () => {
   it('returns { account: null } for empty args', () => {
-    assert.deepEqual(parseStatusOptions([]), { account: null, help: false });
+    assert.deepEqual(parseStatusOptions([]), { account: null, provider: null, help: false });
   });
 
   it('handles null/undefined args', () => {
-    assert.deepEqual(parseStatusOptions(undefined), { account: null, help: false });
+    assert.deepEqual(parseStatusOptions(undefined), { account: null, provider: null, help: false });
   });
 
   it('parses --account <value>', () => {
@@ -296,13 +297,56 @@ describe('parseStatusOptions', () => {
 
   it('treats --account "" as "no value" (legacy contract)', () => {
     // 공통 helper 전환 후에도 빈 문자열은 default 유지해야 한다.
-    assert.deepEqual(parseStatusOptions(['--account', '']), { account: null, help: false });
+    assert.deepEqual(parseStatusOptions(['--account', '']), { account: null, provider: null, help: false });
   });
 
   it('recognizes --help and -h', () => {
     assert.equal(parseStatusOptions(['--help']).help, true);
     assert.equal(parseStatusOptions(['-h']).help, true);
     assert.equal(parseStatusOptions([]).help, false);
+  });
+
+  it('parses --provider <id>', () => {
+    assert.equal(parseStatusOptions(['--provider', 'codex']).provider, 'codex');
+    assert.equal(parseStatusOptions(['--provider', 'claude']).provider, 'claude');
+  });
+
+  it('--provider and --account can coexist', () => {
+    const out = parseStatusOptions(['--provider', 'codex', '--account', 'work']);
+    assert.equal(out.provider, 'codex');
+    assert.equal(out.account, 'work');
+  });
+});
+
+describe('normalizeProviderFilter', () => {
+  it('returns null for null/undefined/empty input', () => {
+    assert.equal(normalizeProviderFilter(null), null);
+    assert.equal(normalizeProviderFilter(undefined), null);
+    assert.equal(normalizeProviderFilter(''), null);
+    assert.equal(normalizeProviderFilter('   '), null);
+  });
+
+  it('passes registered ids through unchanged', () => {
+    assert.equal(normalizeProviderFilter('codex'), 'codex');
+    assert.equal(normalizeProviderFilter('claude'), 'claude');
+  });
+
+  it('matches case-insensitively (Codex / CLAUDE / cLaUdE)', () => {
+    assert.equal(normalizeProviderFilter('Codex'), 'codex');
+    assert.equal(normalizeProviderFilter('CLAUDE'), 'claude');
+    assert.equal(normalizeProviderFilter('cLaUdE'), 'claude');
+  });
+
+  it('trims whitespace before lookup', () => {
+    assert.equal(normalizeProviderFilter('  codex  '), 'codex');
+    assert.equal(normalizeProviderFilter('\tclaude\n'), 'claude');
+  });
+
+  it('returns null when normalized value is not a registered id', () => {
+    assert.equal(normalizeProviderFilter('gemini'), null);
+    // accountKey-prefix 변형은 의도적으로 받지 않는다 (별도 결정 사안).
+    assert.equal(normalizeProviderFilter('openai-codex'), null);
+    assert.equal(normalizeProviderFilter('anthropic-claude'), null);
   });
 });
 
@@ -317,10 +361,21 @@ describe('formatStatusHelp', () => {
     assert.match(lines[0], /ai-usage-agent status/);
   });
 
-  it('lists --account and --help in Options section', () => {
+  it('lists --account, --provider and --help in Options section', () => {
     const body = formatStatusHelp('usage').join('\n');
     assert.match(body, /--account/);
+    assert.match(body, /--provider <id>/);
     assert.match(body, /-h, --help/);
+  });
+
+  it('shows registered provider ids in --provider hint', () => {
+    const body = formatStatusHelp().join('\n');
+    assert.match(body, /codex/);
+    assert.match(body, /claude/);
+  });
+
+  it('mentions case-insensitive matching for --provider', () => {
+    assert.match(formatStatusHelp().join('\n'), /case-insensitive/);
   });
 });
 
@@ -358,6 +413,53 @@ describe('formatStatusOutput — accountFilter line', () => {
       },
     });
     assert.ok(lines.includes('계정 필터: alice@x.com'));
+  });
+});
+
+describe('formatStatusOutput — providerFilter scope', () => {
+  const baseSnapshot = {
+    configPath: '/x',
+    providers: { codex: { enabled: true }, claude: { enabled: true } },
+    sync: { enabled: false },
+  };
+  const codexSnap = { enabled: false };
+  const claudeSnap = {
+    authSource: 'not-found',
+    detected: false,
+    selectedAccount: null,
+    networkUsages: [],
+    usage: { source: 'not-found' },
+  };
+
+  it('renders only Codex usage section when providerFilter=codex (no claude key)', () => {
+    const lines = formatStatusOutput('status', {
+      ...baseSnapshot,
+      providerFilter: 'codex',
+      codex: codexSnap,
+    });
+    assert.ok(lines.includes('provider 필터: codex'));
+    assert.ok(lines.some((l) => l === 'Codex usage'));
+    assert.ok(!lines.some((l) => l === 'Claude usage'));
+  });
+
+  it('renders only Claude usage section when providerFilter=claude (no codex key)', () => {
+    const lines = formatStatusOutput('usage', {
+      ...baseSnapshot,
+      providerFilter: 'claude',
+      claude: claudeSnap,
+    });
+    assert.ok(lines.includes('provider 필터: claude'));
+    assert.ok(lines.some((l) => l === 'Claude usage'));
+    assert.ok(!lines.some((l) => l === 'Codex usage'));
+  });
+
+  it('omits "provider 필터" line when not set', () => {
+    const lines = formatStatusOutput('status', {
+      ...baseSnapshot,
+      codex: codexSnap,
+      claude: claudeSnap,
+    });
+    assert.ok(!lines.some((l) => l.startsWith('provider 필터:')));
   });
 });
 

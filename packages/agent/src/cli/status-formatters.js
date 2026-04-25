@@ -7,6 +7,10 @@
 
 /**
  * 전체 status 출력 라인 배열.
+ *
+ * `snapshot.providerFilter`가 지정되어 있으면 매칭되지 않는 provider 섹션은
+ * 출력하지 않는다 (해당 provider snapshot 자체가 없으므로 안전하게 skip).
+ * 헤더의 "Codex 사용 / Claude 사용" 라인은 config 기반이라 그대로 노출한다.
  */
 export function formatStatusOutput(command, snapshot) {
   const lines = [
@@ -21,12 +25,15 @@ export function formatStatusOutput(command, snapshot) {
   if (snapshot.accountFilter) {
     lines.push(`계정 필터: ${snapshot.accountFilter}`);
   }
-  lines.push(
-    '',
-    ...formatCodexSection(snapshot.codex),
-    '',
-    ...formatClaudeSection(snapshot.claude),
-  );
+  if (snapshot.providerFilter) {
+    lines.push(`provider 필터: ${snapshot.providerFilter}`);
+  }
+  if (snapshot.codex) {
+    lines.push('', ...formatCodexSection(snapshot.codex));
+  }
+  if (snapshot.claude) {
+    lines.push('', ...formatClaudeSection(snapshot.claude));
+  }
   return lines;
 }
 
