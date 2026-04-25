@@ -54,13 +54,26 @@ ai-usage-agent status --json --account work@example.com --provider claude
 
 ### 제거되는 민감 키 (redaction)
 
-다음 key가 객체 / 배열 어느 깊이에 있든 출력에서 빠진다 (전체 subtree 제거):
+다음 key가 객체 / 배열 어느 깊이에 있든 출력에서 빠진다 (전체 subtree 제거).
+매칭은 **case-insensitive** (`AccessToken` / `ACCESSTOKEN` 모두 동일하게 차단).
 
-- `accessToken`, `refreshToken`, `idToken`, `tokens`
-- `sessionKey`, `sessionCookie`
-- `codeVerifier`, `client_secret`
+- OAuth tokens (camelCase + snake_case): `accessToken`, `refreshToken`, `idToken`, `tokens`, `access_token`, `refresh_token`, `id_token`
+- OAuth client secret / verifier: `client_secret`, `clientSecret`, `codeVerifier`, `code_verifier`
+- Session / cookie 자료: `sessionKey`, `sessionCookie`, `session_key`, `session_cookie`
+- HTTP credential 헤더: `authorization`, `cookie`
+- 일반 API key / password: `apiKey`, `api_key`, `password`
 
-추가되는 토큰성 필드는 `packages/agent/src/cli/status-json.js::SENSITIVE_KEYS`에 등록한다. 신규 provider 추가 시 토큰 필드 명을 이 목록과 맞춰야 자동으로 redact된다.
+신규 provider/스키마가 새 토큰 필드를 도입할 때는 `packages/agent/src/cli/status-json.js::SENSITIVE_KEYS`에 함께 등록한다.
+
+### 한계 (key-name match list, value detector 아님)
+
+본 redaction은 **정확한 key 이름**을 기준으로 동작한다(case-insensitive 비교는 하지만 정규식이나 값 패턴 검사는 하지 않는다). 즉:
+
+- 위 목록에 없는 이름으로 토큰성 데이터가 들어오면 자동으로 걸러지지 **않는다** (예: `bearer`, `access-key`, `secretToken` 등 신규 식별자).
+- 객체의 `raw` / `meta` 같은 자유 형식 subtree에 토큰을 직렬로 넣지 말 것 — 또는 SENSITIVE_KEYS에 해당 이름을 등록할 것.
+- JWT 같은 값 패턴이 `notes`나 `description` 같은 임의 키에 박혀 들어오면 redact되지 않는다 — provider adapter 단에서 토큰 값을 그런 자유 필드에 복사하지 않도록 책임이 있다.
+
+이 한계는 `--json` contract가 *값 검사기*가 아닌 *명시적 명시 누출 차단기*라는 설계상의 결정이다. 새 식별자가 발견되면 PR로 SENSITIVE_KEYS를 갱신하면 된다.
 
 ## 안정성
 
