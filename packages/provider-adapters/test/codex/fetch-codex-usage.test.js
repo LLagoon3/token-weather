@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { fetchCodexUsage } from '../../src/codex/fetch-codex-usage.js';
-import { validateUsageSnapshot } from '../../../schemas/src/validate.js';
+import { validateUsageSnapshot } from '@token-weather/schemas/src/validate.js';
 
 function mockResponse({ status = 200, body = {}, asText = null } = {}) {
   const text = asText !== null ? asText : JSON.stringify(body);

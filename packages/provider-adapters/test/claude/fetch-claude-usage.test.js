@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { fetchClaudeUsage } from '../../src/claude/fetch-claude-usage.js';
-import { validateUsageSnapshot } from '../../../schemas/src/validate.js';
+import { validateUsageSnapshot } from '@token-weather/schemas/src/validate.js';
 
 function createMockResponse({ status = 200, body = {}, asText = null } = {}) {
   const text = asText !== null ? asText : JSON.stringify(body);

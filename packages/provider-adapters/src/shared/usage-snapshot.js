@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION, validateUsageSnapshot } from '../../../schemas/src/index.js';
+import { SCHEMA_VERSION, validateUsageSnapshot } from '@token-weather/schemas/src/index.js';
 
 /**
  * Provider-중립 usage snapshot 헬퍼.
