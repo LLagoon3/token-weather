@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "ai-usage-agent": "./bin/ai-usage-agent.js"
+    "token-weather": "./bin/token-weather.js"
   },
   "main": "./src/index.js",
   "files": [
@@ -14,8 +14,8 @@
     "src"
   ],
   "scripts": {
-    "dev": "node ./bin/ai-usage-agent.js status",
-    "status": "node ./bin/ai-usage-agent.js status",
-    "doctor": "node ./bin/ai-usage-agent.js doctor"
+    "dev": "node ./bin/token-weather.js status",
+    "status": "node ./bin/token-weather.js status",
+    "doctor": "node ./bin/token-weather.js doctor"
   }
 }
