@@ -1,9 +1,33 @@
 {
   "name": "@token-weather/schemas",
   "version": "0.1.0",
-  "private": true,
   "description": "Token Weather 공통 데이터 계약 (usage snapshot / usage event JSON Schema)",
   "license": "Apache-2.0",
   "type": "module",
-  "main": "./src/index.js"
+  "main": "./src/index.js",
+  "files": [
+    "src",
+    "usage-event.schema.json",
+    "usage-snapshot.schema.json",
+    "examples"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LLagoon3/ai-usage-agent.git",
+    "directory": "packages/schemas"
+  },
+  "homepage": "https://github.com/LLagoon3/ai-usage-agent#readme",
+  "bugs": {
+    "url": "https://github.com/LLagoon3/ai-usage-agent/issues"
+  },
+  "keywords": [
+    "token-weather",
+    "json-schema",
+    "ai",
+    "usage",
+    "schema"
+  ]
 }

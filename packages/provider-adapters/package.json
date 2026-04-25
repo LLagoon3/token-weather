@@ -1,9 +1,34 @@
 {
   "name": "@token-weather/provider-adapters",
   "version": "0.1.0",
-  "private": true,
   "description": "Token Weather provider별 인증/endpoint 연결 및 usage 정규화 어댑터",
   "license": "Apache-2.0",
   "type": "module",
-  "main": "./src/index.js"
+  "main": "./src/index.js",
+  "files": [
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LLagoon3/ai-usage-agent.git",
+    "directory": "packages/provider-adapters"
+  },
+  "homepage": "https://github.com/LLagoon3/ai-usage-agent#readme",
+  "bugs": {
+    "url": "https://github.com/LLagoon3/ai-usage-agent/issues"
+  },
+  "keywords": [
+    "token-weather",
+    "ai",
+    "oauth",
+    "usage",
+    "claude",
+    "codex"
+  ],
+  "dependencies": {
+    "@token-weather/schemas": "^0.1.0"
+  }
 }
