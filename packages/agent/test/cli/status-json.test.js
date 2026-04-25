@@ -4,11 +4,12 @@ import assert from 'node:assert/strict';
 import {
   redactSensitive,
   formatStatusJson,
+  isSensitiveKey,
   SENSITIVE_KEYS,
 } from '../../src/cli/status-json.js';
 
 describe('SENSITIVE_KEYS', () => {
-  it('contains the expected token fields', () => {
+  it('contains the expected camelCase token fields', () => {
     assert.ok(SENSITIVE_KEYS.has('accessToken'));
     assert.ok(SENSITIVE_KEYS.has('refreshToken'));
     assert.ok(SENSITIVE_KEYS.has('idToken'));
@@ -16,7 +17,46 @@ describe('SENSITIVE_KEYS', () => {
     assert.ok(SENSITIVE_KEYS.has('sessionKey'));
     assert.ok(SENSITIVE_KEYS.has('sessionCookie'));
     assert.ok(SENSITIVE_KEYS.has('codeVerifier'));
+    assert.ok(SENSITIVE_KEYS.has('clientSecret'));
+  });
+
+  it('also contains snake_case variants (OAuth-style)', () => {
+    assert.ok(SENSITIVE_KEYS.has('access_token'));
+    assert.ok(SENSITIVE_KEYS.has('refresh_token'));
+    assert.ok(SENSITIVE_KEYS.has('id_token'));
     assert.ok(SENSITIVE_KEYS.has('client_secret'));
+    assert.ok(SENSITIVE_KEYS.has('code_verifier'));
+    assert.ok(SENSITIVE_KEYS.has('session_key'));
+    assert.ok(SENSITIVE_KEYS.has('session_cookie'));
+  });
+
+  it('contains HTTP credential headers and generic API keys', () => {
+    assert.ok(SENSITIVE_KEYS.has('authorization'));
+    assert.ok(SENSITIVE_KEYS.has('cookie'));
+    assert.ok(SENSITIVE_KEYS.has('apiKey'));
+    assert.ok(SENSITIVE_KEYS.has('api_key'));
+    assert.ok(SENSITIVE_KEYS.has('password'));
+  });
+});
+
+describe('isSensitiveKey — case-insensitive matching', () => {
+  it('matches the canonical camelCase form', () => {
+    assert.equal(isSensitiveKey('accessToken'), true);
+    assert.equal(isSensitiveKey('refreshToken'), true);
+  });
+
+  it('matches different casings (AccessToken / ACCESSTOKEN / accesstoken)', () => {
+    assert.equal(isSensitiveKey('AccessToken'), true);
+    assert.equal(isSensitiveKey('ACCESSTOKEN'), true);
+    assert.equal(isSensitiveKey('accesstoken'), true);
+    assert.equal(isSensitiveKey('Refresh_Token'), true);
+    assert.equal(isSensitiveKey('AUTHORIZATION'), true);
+  });
+
+  it('returns false for unrelated keys', () => {
+    assert.equal(isSensitiveKey('email'), false);
+    assert.equal(isSensitiveKey('accountKey'), false);
+    assert.equal(isSensitiveKey('label'), false);
   });
 });
 
@@ -79,6 +119,39 @@ describe('redactSensitive — objects', () => {
       ],
     });
     assert.deepEqual(out, { accounts: [{ id: 1 }, { id: 2 }] });
+  });
+
+  it('removes snake_case variants (refresh_token / access_token / id_token)', () => {
+    const out = redactSensitive({
+      accountKey: 'k',
+      access_token: 'A',
+      refresh_token: 'R',
+      id_token: 'I',
+    });
+    assert.deepEqual(out, { accountKey: 'k' });
+  });
+
+  it('removes generic credential headers (authorization / cookie / apiKey)', () => {
+    const out = redactSensitive({
+      label: 'work',
+      authorization: 'Bearer xyz',
+      cookie: 'session=abc',
+      apiKey: 'k123',
+      api_key: 'k456',
+      password: 'p1',
+    });
+    assert.deepEqual(out, { label: 'work' });
+  });
+
+  it('matches keys case-insensitively (AccessToken / Refresh-Token style stays caught)', () => {
+    const out = redactSensitive({
+      accountKey: 'k',
+      AccessToken: 'A',
+      Refresh_Token: 'R',
+      ID_TOKEN: 'I',
+      Authorization: 'Bearer xyz',
+    });
+    assert.deepEqual(out, { accountKey: 'k' });
   });
 
   it('does not mutate the original input', () => {

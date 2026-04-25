@@ -16,20 +16,59 @@ import { PROVIDER_IDS } from '../services/provider-registry.js';
 
 /**
  * JSON 출력에서 제거할 민감 키 목록.
- * 신규 토큰 필드가 추가되면 여기에 등록한다.
+ * 신규 토큰/credential 필드가 추가되면 여기에 등록한다.
+ *
+ * 매칭은 `isSensitiveKey`에서 **case-insensitive**로 수행한다. 즉
+ * `accessToken` 한 항목으로 `AccessToken`/`accesstoken`도 같이 걸린다. 단,
+ * snake_case와 camelCase는 lowercase 후에도 다른 문자열이므로(`access_token` vs
+ * `accesstoken`) 두 변종은 모두 명시적으로 등록한다.
+ *
+ * 한계: 이 모듈은 **key-name 정확 매치(case-insensitive)** 기반이며 값
+ * 패턴(JWT 같은 형태) 감지는 하지 않는다. 새 provider/스키마가 본 목록에 없는
+ * 이름으로 토큰성 데이터를 도입하면 자동으로 걸러지지 않는다. `raw` 같은 자유
+ * 형식 subtree에 토큰을 넣지 말 것 — 또는 본 목록을 갱신할 것.
  */
 export const SENSITIVE_KEYS = Object.freeze(
   new Set([
+    // OAuth tokens (camelCase + snake_case)
     'accessToken',
     'refreshToken',
     'idToken',
     'tokens',
+    'access_token',
+    'refresh_token',
+    'id_token',
+    // OAuth client secret / verifier
+    'client_secret',
+    'clientSecret',
+    'codeVerifier',
+    'code_verifier',
+    // Session / cookie material
     'sessionKey',
     'sessionCookie',
-    'codeVerifier',
-    'client_secret',
+    'session_key',
+    'session_cookie',
+    // HTTP header / cookie value (raw passthrough 사고 방지)
+    'authorization',
+    'cookie',
+    // Generic API key / password
+    'apiKey',
+    'api_key',
+    'password',
   ]),
 );
+
+const SENSITIVE_KEYS_LC = new Set([...SENSITIVE_KEYS].map((k) => k.toLowerCase()));
+
+/**
+ * 주어진 키가 SENSITIVE_KEYS와 case-insensitive로 매치되는지 검사.
+ *
+ * @param {string} key
+ * @returns {boolean}
+ */
+export function isSensitiveKey(key) {
+  return SENSITIVE_KEYS_LC.has(String(key).toLowerCase());
+}
 
 /**
  * 객체를 재귀 순회하며 SENSITIVE_KEYS 항목을 빼고 deep clone을 반환한다.
@@ -45,7 +84,7 @@ export function redactSensitive(value) {
   if (Array.isArray(value)) return value.map(redactSensitive);
   const out = {};
   for (const [k, v] of Object.entries(value)) {
-    if (SENSITIVE_KEYS.has(k)) continue;
+    if (isSensitiveKey(k)) continue;
     out[k] = redactSensitive(v);
   }
   return out;
