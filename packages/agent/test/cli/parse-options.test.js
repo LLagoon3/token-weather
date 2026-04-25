@@ -223,6 +223,56 @@ describe('parseCliOptions — unknown flags', () => {
   });
 });
 
+describe('parseCliOptions — includeHelp', () => {
+  it('recognizes --help as options.help=true when includeHelp is set', () => {
+    const out = parseCliOptions(['--help'], {
+      defaults: { account: null },
+      flags: { '--account': { key: 'account', type: 'string' } },
+      includeHelp: true,
+    });
+    assert.equal(out.help, true);
+    assert.equal(out.account, null);
+  });
+
+  it('also recognizes -h alias', () => {
+    const out = parseCliOptions(['-h'], {
+      defaults: {},
+      flags: {},
+      includeHelp: true,
+    });
+    assert.equal(out.help, true);
+  });
+
+  it('leaves help=false by default when includeHelp is set but flag absent', () => {
+    const out = parseCliOptions([], {
+      defaults: { account: null },
+      flags: {},
+      includeHelp: true,
+    });
+    assert.equal(out.help, false);
+    assert.equal(out.account, null);
+  });
+
+  it('does not add help key when includeHelp is not set', () => {
+    const out = parseCliOptions(['--help'], {
+      defaults: { account: null },
+      flags: {},
+    });
+    assert.equal('help' in out, false);
+    assert.equal(out.account, null);
+  });
+
+  it('preserves caller-supplied help default when already in defaults', () => {
+    const out = parseCliOptions([], {
+      defaults: { help: 'custom' },
+      flags: {},
+      includeHelp: true,
+    });
+    // defaults에 이미 help가 있으면 덮어쓰지 않는다.
+    assert.equal(out.help, 'custom');
+  });
+});
+
 describe('parseCliOptions — combined', () => {
   it('collects multiple warnings independently', () => {
     const out = parseCliOptions(['--port', 'x', '--timeout', 'y'], {

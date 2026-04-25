@@ -317,5 +317,6 @@ export function parseLoginOptions(args) {
     defaults: LOGIN_DEFAULTS,
     flags: LOGIN_FLAGS,
     collectWarnings: true,
+    includeHelp: true,
   });
 }

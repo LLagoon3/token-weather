@@ -25,6 +25,65 @@ const DOCTOR_FLAGS = {
 };
 const DOCTOR_DEFAULTS = { refreshLive: false, account: null };
 
+function parseDoctorOptions(args) {
+  return parseCliOptions(args, { defaults: DOCTOR_DEFAULTS, flags: DOCTOR_FLAGS, includeHelp: true });
+}
+
+/**
+ * `doctor` root 서브커맨드의 --help 출력. Pure function.
+ */
+export function formatDoctorHelp() {
+  return [
+    'ai-usage-agent doctor [subcommand] [options]',
+    '',
+    '공통 환경 점검 또는 provider별 상세 진단.',
+    '',
+    'Subcommands:',
+    '  codex     Codex 계정·refresh 가능성 점검',
+    '  claude    Claude credential·live usage 점검',
+    '',
+    'Options:',
+    '  -h, --help   이 도움말 출력',
+    '',
+    '예시:',
+    '  ai-usage-agent doctor',
+    '  ai-usage-agent doctor codex --refresh-live',
+    '  ai-usage-agent doctor claude --account work',
+  ];
+}
+
+/**
+ * `doctor codex` 서브커맨드의 --help 출력. Pure function.
+ */
+export function formatDoctorCodexHelp() {
+  return [
+    'ai-usage-agent doctor codex [options]',
+    '',
+    'Codex 계정 상태와 refresh 가능성을 점검합니다.',
+    '',
+    'Options:',
+    '  --refresh-live        실제 token endpoint에 refresh POST 시도',
+    '  --account <id>        특정 계정 지정 (email / accountKey / label)',
+    '  -h, --help            이 도움말 출력',
+  ];
+}
+
+/**
+ * `doctor claude` 서브커맨드의 --help 출력. Pure function.
+ */
+export function formatDoctorClaudeHelp() {
+  return [
+    'ai-usage-agent doctor claude [options]',
+    '',
+    'Claude credential 상태와 live usage를 점검합니다.',
+    '',
+    'Options:',
+    '  --refresh-live        Claude OAuth refresh token으로 실제 재발급 시도',
+    '  --account <id>        특정 계정 지정 (email / accountKey / label)',
+    '  -h, --help            이 도움말 출력',
+  ];
+}
+
 // 기존 import 경로 호환 re-export.
 export { formatClaudeSection };
 export { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
@@ -32,6 +91,12 @@ export { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
 // ─── Dispatcher ────────────────────────────────────────────────────────────
 
 export async function runDoctorCommand(subcommand, args = []) {
+  // `doctor --help` 같이 subcommand 자리에 help 토큰이 오는 경우를 처리.
+  // (subcommand가 'codex'/'claude'가 아니라 '--help'/'-h'일 때)
+  if (subcommand === '--help' || subcommand === '-h') {
+    for (const line of formatDoctorHelp()) console.log(line);
+    return;
+  }
   if (subcommand === 'codex') {
     await runDoctorCodex(args);
     return;
@@ -40,10 +105,15 @@ export async function runDoctorCommand(subcommand, args = []) {
     await runDoctorClaude(args);
     return;
   }
-  await runDoctorRoot();
+  await runDoctorRoot(args);
 }
 
-async function runDoctorRoot() {
+async function runDoctorRoot(args = []) {
+  const options = parseDoctorOptions(args);
+  if (options.help) {
+    for (const line of formatDoctorHelp()) console.log(line);
+    return;
+  }
   const claudeSnapshot = await getClaudeSnapshot();
   console.log('ai-usage-agent doctor');
   console.log('---------------------');
@@ -67,6 +137,10 @@ async function runDoctorRoot() {
 
 async function runDoctorClaude(args = []) {
   const options = parseDoctorClaudeOptions(args);
+  if (options.help) {
+    for (const line of formatDoctorClaudeHelp()) console.log(line);
+    return;
+  }
   const snapshot = await getClaudeSnapshot();
 
   console.log('ai-usage-agent doctor claude');
@@ -154,13 +228,17 @@ export async function resolveClaudeRefreshTargetAccount(snapshot, accountIdentif
 }
 
 export function parseDoctorClaudeOptions(args) {
-  return parseCliOptions(args, { defaults: DOCTOR_DEFAULTS, flags: DOCTOR_FLAGS });
+  return parseCliOptions(args, { defaults: DOCTOR_DEFAULTS, flags: DOCTOR_FLAGS, includeHelp: true });
 }
 
 // ─── Codex ─────────────────────────────────────────────────────────────────
 
 async function runDoctorCodex(args) {
   const options = parseDoctorCodexOptions(args);
+  if (options.help) {
+    for (const line of formatDoctorCodexHelp()) console.log(line);
+    return;
+  }
 
   console.log('ai-usage-agent doctor codex');
   console.log('---------------------------');
@@ -230,5 +308,5 @@ async function resolveCodexDoctorAccount(options) {
 }
 
 function parseDoctorCodexOptions(args) {
-  return parseCliOptions(args, { defaults: DOCTOR_DEFAULTS, flags: DOCTOR_FLAGS });
+  return parseCliOptions(args, { defaults: DOCTOR_DEFAULTS, flags: DOCTOR_FLAGS, includeHelp: true });
 }

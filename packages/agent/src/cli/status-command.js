@@ -23,6 +23,10 @@ export const STATUS_COMMANDS = ['status', 'usage'];
  */
 export async function runStatusCommand(command, args = []) {
   const options = parseStatusOptions(args);
+  if (options.help) {
+    for (const line of formatStatusHelp(command)) console.log(line);
+    return;
+  }
   const snapshot = await getStatusSnapshot({ accountFilter: options.account });
   for (const line of formatStatusOutput(command, snapshot)) {
     console.log(line);
@@ -38,5 +42,22 @@ export function parseStatusOptions(args) {
     flags: {
       '--account': { key: 'account', type: 'string' },
     },
+    includeHelp: true,
   });
+}
+
+/**
+ * `status` / `usage` 커맨드의 --help 출력 줄을 반환한다. Pure function.
+ */
+export function formatStatusHelp(command = 'status') {
+  return [
+    `ai-usage-agent ${command} [options]`,
+    '',
+    'provider별 credential 상태와 live usage window를 출력합니다.',
+    '여러 계정이 저장되어 있으면 기본적으로 모두 병렬 조회합니다.',
+    '',
+    'Options:',
+    '  --account <id>   특정 계정만 조회 (email / accountKey / label, case-insensitive)',
+    '  -h, --help       이 도움말 출력',
+  ];
 }

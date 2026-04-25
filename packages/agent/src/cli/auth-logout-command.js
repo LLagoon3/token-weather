@@ -3,6 +3,22 @@ import { resolveAccount } from '../auth/account-resolver.js';
 import { parseCliOptions } from './parse-options.js';
 
 /**
+ * `auth logout` --help 출력. Pure function.
+ */
+export function formatAuthLogoutHelp() {
+  return [
+    'ai-usage-agent auth logout <provider> [options]',
+    '',
+    '지정 provider의 계정을 로컬 auth store에서 제거합니다.',
+    '참고: provider 측 revoke 호출은 아직 미구현(로컬 제거만 수행).',
+    '',
+    'Options:',
+    '  --account <id>    제거 대상 계정 (email / accountKey / label)',
+    '  -h, --help        이 도움말 출력',
+  ];
+}
+
+/**
  * `ai-usage-agent auth logout <provider> [--account <id>]`
  *
  * 지정된 provider의 계정을 auth store에서 제거한다.
@@ -12,6 +28,18 @@ import { parseCliOptions } from './parse-options.js';
  * 참고: revoke endpoint 호출은 아직 미구현이다. 로컬 저장소 제거만 수행한다.
  */
 export async function runAuthLogoutCommand(provider, args) {
+  // `auth logout --help` (provider 자리) 또는 `auth logout <p> --help` (args 자리) 모두 먼저 처리.
+  if (provider === '--help' || provider === '-h') {
+    for (const line of formatAuthLogoutHelp()) console.log(line);
+    return;
+  }
+
+  const options = parseLogoutOptions(args);
+  if (options.help) {
+    for (const line of formatAuthLogoutHelp()) console.log(line);
+    return;
+  }
+
   if (!provider) {
     console.error(
       '사용법: ai-usage-agent auth logout <provider> [--account <email | accountKey | label>]',
@@ -19,8 +47,6 @@ export async function runAuthLogoutCommand(provider, args) {
     process.exitCode = 1;
     return;
   }
-
-  const options = parseLogoutOptions(args);
   const store = await loadAuthStore();
 
   const providerEntry = store.providers?.[provider];
@@ -67,5 +93,6 @@ function parseLogoutOptions(args) {
     flags: {
       '--account': { key: 'account', type: 'string' },
     },
+    includeHelp: true,
   });
 }

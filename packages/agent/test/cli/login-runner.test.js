@@ -111,7 +111,13 @@ describe('parseLoginOptions — defaults & flags', () => {
       label: null,
       keepLegacy: false,
       warnings: [],
+      help: false,
     });
+  });
+
+  it('recognizes --help and -h', () => {
+    assert.equal(parseLoginOptions(['--help']).help, true);
+    assert.equal(parseLoginOptions(['-h']).help, true);
   });
 
   it('handles null/undefined args', () => {

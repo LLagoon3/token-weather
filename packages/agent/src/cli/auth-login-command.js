@@ -15,9 +15,42 @@ import { runOAuthLoginFlow, parseLoginOptions } from './login-runner.js';
 const CODEX_STORE_KEY = 'openai-codex';
 
 /**
+ * `auth login` --help 출력. Pure function.
+ */
+export function formatAuthLoginHelp() {
+  return [
+    'ai-usage-agent auth login <provider> [options]',
+    '',
+    'Provider: codex, claude',
+    '',
+    'Options:',
+    '  --live-exchange       실제 token exchange를 수행 (기본: mock 저장)',
+    '  --port <number>       localhost callback port 지정 (0~65535)',
+    '  --timeout <seconds>   callback 대기 시간 (기본 120)',
+    '  --label <name>        계정 라벨 지정',
+    '  --manual              브라우저 자동 실행 없이 수동 붙여넣기',
+    '  --no-open             브라우저 자동 실행 안함',
+    '  --device              device code flow (미구현)',
+    '  --keep-legacy         legacy 중복 계정을 정리하지 않음',
+    '  -h, --help            이 도움말 출력',
+  ];
+}
+
+/**
  * Entry point: dispatch `auth login <provider>` to the provider branch.
  */
 export async function runAuthLoginCommand(provider, args = []) {
+  // `auth login --help` (provider 자리에 help 토큰) 또는
+  // `auth login <provider> --help` (args 자리에 help 토큰) 모두 먼저 처리.
+  const wantsHelp =
+    provider === '--help' ||
+    provider === '-h' ||
+    (args ?? []).some((a) => a === '--help' || a === '-h');
+  if (wantsHelp) {
+    for (const line of formatAuthLoginHelp()) console.log(line);
+    return;
+  }
+
   if (!provider) {
     console.log(
       '사용법: ai-usage-agent auth login <provider> [--manual] [--no-open] [--port <number>] [--timeout <seconds>] [--live-exchange] [--label <name>] [--keep-legacy]',
@@ -42,6 +75,10 @@ export async function runAuthLoginCommand(provider, args = []) {
 
 async function runCodexLogin(args) {
   const options = parseLoginOptions(args);
+  if (options.help) {
+    for (const line of formatAuthLoginHelp()) console.log(line);
+    return;
+  }
   if (!reportAndGuardOptionWarnings(options)) return;
 
   if (options.device) {
@@ -124,6 +161,10 @@ async function runCodexManualPasteFlow() {
 
 async function runClaudeLogin(args) {
   const options = parseLoginOptions(args);
+  if (options.help) {
+    for (const line of formatAuthLoginHelp()) console.log(line);
+    return;
+  }
   if (!reportAndGuardOptionWarnings(options)) return;
 
   if (options.device) {

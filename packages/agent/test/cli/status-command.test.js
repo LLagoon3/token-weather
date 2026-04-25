@@ -9,6 +9,7 @@ import {
   formatClaudeNetworkUsages,
   formatClaudeLocalUsage,
   formatWindow,
+  formatStatusHelp,
   parseStatusOptions,
   STATUS_COMMANDS,
 } from '../../src/cli/status-command.js';
@@ -276,11 +277,11 @@ describe('formatClaudeSection — networkUsages array support', () => {
 
 describe('parseStatusOptions', () => {
   it('returns { account: null } for empty args', () => {
-    assert.deepEqual(parseStatusOptions([]), { account: null });
+    assert.deepEqual(parseStatusOptions([]), { account: null, help: false });
   });
 
   it('handles null/undefined args', () => {
-    assert.deepEqual(parseStatusOptions(undefined), { account: null });
+    assert.deepEqual(parseStatusOptions(undefined), { account: null, help: false });
   });
 
   it('parses --account <value>', () => {
@@ -295,7 +296,31 @@ describe('parseStatusOptions', () => {
 
   it('treats --account "" as "no value" (legacy contract)', () => {
     // 공통 helper 전환 후에도 빈 문자열은 default 유지해야 한다.
-    assert.deepEqual(parseStatusOptions(['--account', '']), { account: null });
+    assert.deepEqual(parseStatusOptions(['--account', '']), { account: null, help: false });
+  });
+
+  it('recognizes --help and -h', () => {
+    assert.equal(parseStatusOptions(['--help']).help, true);
+    assert.equal(parseStatusOptions(['-h']).help, true);
+    assert.equal(parseStatusOptions([]).help, false);
+  });
+});
+
+describe('formatStatusHelp', () => {
+  it('returns first line with command name and [options]', () => {
+    const lines = formatStatusHelp('status');
+    assert.match(lines[0], /^ai-usage-agent status \[options\]$/);
+  });
+
+  it('defaults command to "status" when not provided', () => {
+    const lines = formatStatusHelp();
+    assert.match(lines[0], /ai-usage-agent status/);
+  });
+
+  it('lists --account and --help in Options section', () => {
+    const body = formatStatusHelp('usage').join('\n');
+    assert.match(body, /--account/);
+    assert.match(body, /-h, --help/);
   });
 });
 

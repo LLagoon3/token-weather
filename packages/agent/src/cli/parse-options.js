@@ -28,17 +28,30 @@
  *   defaults: Record<string, unknown>,
  *   flags: Record<string, FlagSpec>,
  *   collectWarnings?: boolean,
+ *   includeHelp?: boolean,
  * }} spec
+ *   `includeHelp: true`이면 `--help` / `-h`를 자동으로 boolean 플래그로 인식해
+ *   `options.help`에 저장한다 (defaults에 별도 선언 불필요).
  * @returns {Record<string, unknown>}
  */
 export function parseCliOptions(args, spec) {
   const options = { ...spec.defaults };
   if (spec.collectWarnings) options.warnings = [];
 
+  let flagMap = spec.flags;
+  if (spec.includeHelp) {
+    flagMap = {
+      ...spec.flags,
+      '--help': { key: 'help', type: 'boolean' },
+      '-h': { key: 'help', type: 'boolean' },
+    };
+    if (!('help' in options)) options.help = false;
+  }
+
   const list = args ?? [];
   for (let i = 0; i < list.length; i += 1) {
     const arg = list[i];
-    const flagSpec = spec.flags[arg];
+    const flagSpec = flagMap[arg];
     if (!flagSpec) continue;
 
     if (flagSpec.type === 'boolean') {
