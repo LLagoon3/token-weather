@@ -4,12 +4,12 @@ import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/aut
 import {
   buildCodexAuthorizationUrl,
   exchangeCodexAuthorizationCode,
-} from '../../../provider-adapters/src/codex/index.js';
+} from '@token-weather/provider-adapters/src/codex/index.js';
 import {
   buildClaudeAuthorizationUrl,
   exchangeClaudeAuthorizationCode,
   CLAUDE_AUTH,
-} from '../../../provider-adapters/src/claude/index.js';
+} from '@token-weather/provider-adapters/src/claude/index.js';
 import { runOAuthLoginFlow, parseLoginOptions } from './login-runner.js';
 
 const CODEX_STORE_KEY = 'openai-codex';

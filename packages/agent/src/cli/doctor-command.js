@@ -2,7 +2,7 @@ import { resolveAgentConfigPath } from '../config/config-path.js';
 import { loadAuthStore } from '../auth/auth-store.js';
 import { resolveAccount } from '../auth/account-resolver.js';
 import { getClaudeSnapshot } from '../services/status-service.js';
-import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
+import { CLAUDE_AUTH } from '@token-weather/provider-adapters/src/claude/claude-auth-constants.js';
 import {
   formatClaudeSection,
   runRefreshLiveAttempt,

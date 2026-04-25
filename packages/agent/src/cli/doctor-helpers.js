@@ -5,8 +5,8 @@
  * 문자열 배열을 반환한다. 실제 출력은 doctor-command에서 처리.
  */
 
-import { refreshClaudeToken } from '../../../provider-adapters/src/claude/refresh-claude-token.js';
-import { refreshCodexToken } from '../../../provider-adapters/src/codex/index.js';
+import { refreshClaudeToken } from '@token-weather/provider-adapters/src/claude/refresh-claude-token.js';
+import { refreshCodexToken } from '@token-weather/provider-adapters/src/codex/index.js';
 
 /**
  * Claude credential snapshot을 한글 출력 라인 배열로 변환.

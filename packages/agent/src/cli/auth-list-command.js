@@ -1,6 +1,6 @@
 import { loadAuthStore } from '../auth/auth-store.js';
 import { buildClaudeSnapshot } from '../services/status-service.js';
-import { resolveClaudeCredentialsPath } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
+import { resolveClaudeCredentialsPath } from '@token-weather/provider-adapters/src/claude/read-claude-credentials.js';
 
 /**
  * `auth list` --help 출력. Pure function.

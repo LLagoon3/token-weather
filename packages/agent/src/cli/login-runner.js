@@ -11,7 +11,7 @@ import {
 import { createAccount } from '../auth/auth-store-schema.js';
 import { extractAccountIdentity } from '../auth/token-claims.js';
 import { findLegacyDuplicates } from '../auth/find-legacy-duplicates.js';
-import { fetchClaudeOauthProfile } from '../../../provider-adapters/src/claude/fetch-claude-oauth-profile.js';
+import { fetchClaudeOauthProfile } from '@token-weather/provider-adapters/src/claude/fetch-claude-oauth-profile.js';
 import { parseCliOptions } from './parse-options.js';
 
 /**

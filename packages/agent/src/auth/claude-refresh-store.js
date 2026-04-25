@@ -1,5 +1,5 @@
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from './auth-store.js';
-import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
+import { CLAUDE_AUTH } from '@token-weather/provider-adapters/src/claude/claude-auth-constants.js';
 
 /**
  * Claude refresh 성공 후 agent-store 갱신.

@@ -1,19 +1,19 @@
 import {
   resolveClaudeCredentialsPath,
   readClaudeCredentials,
-} from '../../../provider-adapters/src/claude/read-claude-credentials.js';
-import { resolveImportedClaudeSnapshot } from '../../../provider-adapters/src/claude/claude-imported-account.js';
+} from '@token-weather/provider-adapters/src/claude/read-claude-credentials.js';
+import { resolveImportedClaudeSnapshot } from '@token-weather/provider-adapters/src/claude/claude-imported-account.js';
 import { resolveClaudeAccount } from '../auth/resolve-claude-account.js';
-import { resolveClaudeUsageSourcePath } from '../../../provider-adapters/src/claude/resolve-claude-usage-source.js';
-import { readClaudeStatsCache } from '../../../provider-adapters/src/claude/read-claude-stats-cache.js';
-import { fetchClaudeUsage } from '../../../provider-adapters/src/claude/fetch-claude-usage.js';
-import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
+import { resolveClaudeUsageSourcePath } from '@token-weather/provider-adapters/src/claude/resolve-claude-usage-source.js';
+import { readClaudeStatsCache } from '@token-weather/provider-adapters/src/claude/read-claude-stats-cache.js';
+import { fetchClaudeUsage } from '@token-weather/provider-adapters/src/claude/fetch-claude-usage.js';
+import { CLAUDE_AUTH } from '@token-weather/provider-adapters/src/claude/claude-auth-constants.js';
 import { loadAuthStore } from '../auth/auth-store.js';
-import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
+import { buildUsageSnapshot } from '@token-weather/provider-adapters/src/shared/usage-snapshot.js';
 import { resolveProviderAccountEntries } from './provider-profile-resolver.js';
 import { filterEntriesByAccount, filterProfilesByAccount } from './account-filter.js';
 import { fetchUsageWithAutoRefresh } from './usage-auto-refresh.js';
-import { refreshClaudeToken } from '../../../provider-adapters/src/claude/refresh-claude-token.js';
+import { refreshClaudeToken } from '@token-weather/provider-adapters/src/claude/refresh-claude-token.js';
 import { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
 import {
   filterClaudeRealAccounts,
