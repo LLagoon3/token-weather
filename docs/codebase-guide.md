@@ -218,6 +218,15 @@ resolveAuthSource(agentAccounts, [
 - agent-store 계정에 대해서만 `usage-auto-refresh.js`가 preflight refresh와 `auth` bucket 재시도를 담당한다.
 - import source는 store를 갱신할 수 없으므로 자동 refresh 대상이 아니다.
 
+### 4.1.2 RunOptions
+
+`runProviderSnapshots(config, options)` / `getStatusSnapshot(options)`가 받는 옵션:
+
+- `accountFilter` — `--account <id>` 결과. provider 내부에서 `filterProfilesByAccount`를 통해 매치된 real 계정만 사용한다.
+- `providerFilter` — `--provider <id>` 결과. registry의 `id`(`'codex'` | `'claude'`)와 정확히 일치하면 해당 provider만 실행, 그 외 id는 빈 결과(`{}`)를 반환한다. 사용자 노출 검증은 CLI 레이어(`status-command.js`)가 `PROVIDER_IDS`로 미리 수행한다.
+
+이 두 필터는 독립적이며 동시 사용 가능 (`--provider codex --account work`).
+
 ### 4.2 Provider spec (registry용)
 
 ```js
