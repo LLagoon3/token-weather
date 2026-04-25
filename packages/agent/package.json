@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "로컬 AI 사용량 수집 및 확인용 CLI 에이전트",
+  "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "ai-usage-agent": "./bin/ai-usage-agent.js"

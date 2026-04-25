@@ -206,4 +206,6 @@ OAuth access/refresh/id token 같은 자격증명을 다루는 도구이므로, 
 
 ## 라이선스
 
-추후 결정.
+[Apache License 2.0](./LICENSE) — 자세한 내용은 LICENSE 파일을 참고하세요.
+
+기여하신 내용은 동일 라이선스로 제공됨에 동의한 것으로 간주됩니다 (자세한 내용은 [CONTRIBUTING.md §8](./CONTRIBUTING.md)).
