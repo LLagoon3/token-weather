@@ -26,7 +26,7 @@ npm run agent:config:init
 
 | Provider | Auth (독립 OAuth) | Auth (credential import) | Usage 조회 | Refresh | Status |
 | --- | --- | --- | --- | --- | --- |
-| Codex (OpenAI) | ✓ `auth login codex --live-exchange` | `auth import openclaw` | ✓ `wham/usage` live | ✓ `doctor codex --refresh-live` | 운영 중 |
+| Codex (OpenAI) | ✓ `auth login codex --live-exchange` | `openclaw-import` (status snapshot fallback, `auth import` 명령은 미구현) | ✓ `wham/usage` live | ✓ `doctor codex --refresh-live` | 운영 중 |
 | Claude (Anthropic) | ✓ `auth login claude --live-exchange` | `auth import claude` (CLI 재사용) | ✓ `oauth/usage` live | ✓ `doctor claude --refresh-live` | 운영 중 |
 
 ### 검증된 endpoint
@@ -92,8 +92,7 @@ token-weather auth login codex   [--live-exchange] [--port N] [--timeout SEC] [-
 token-weather auth login claude  [--live-exchange] [--port N] [--timeout SEC] [--label NAME]
 token-weather auth list
 token-weather auth logout <provider> [--account <id>]
-token-weather auth import openclaw    # 기존 OpenClaw auth-profiles 흡수
-token-weather auth import claude      # ~/.claude/.credentials.json 흡수
+token-weather auth import claude      # ~/.claude/.credentials.json 흡수 (현재 지원되는 유일한 import 경로)
 ```
 
 `--live-exchange` 없이 호출하면 mock 저장만 수행한다.

@@ -61,12 +61,13 @@ token-weather auth logout <provider> --account <email | accountKey | label>
 ## import
 
 ```bash
-token-weather auth import openclaw   # OpenClaw auth-profiles.json → agent-store
 token-weather auth import claude     # ~/.claude/.credentials.json → agent-store
 ```
 
+- 현재 지원되는 import provider는 `claude` 한 가지. 다른 provider 입력 시 `import는 현재 claude만 지원합니다`로 종료한다.
 - runtime 기본 경로가 아닌 **migration/흡수** 용도
 - Claude import는 CLI credential을 그대로 복사하는 빠른 경로 (네트워크 호출 없음)
+- OpenClaw auth-profiles 데이터는 `auth import` 명령으로는 흡수되지 않지만, status snapshot이 `agent-store`에 Codex 계정이 없을 때 자동으로 `openclaw-import` source로 fallback해 read-only로 노출된다 (`docs/auth-architecture.md` Credential source 우선순위).
 
 ## doctor
 
@@ -166,4 +167,4 @@ token-weather auth login codex --manual --no-open
 - revoke endpoint 지원 범위 (logout 시 서버측 무효화)
 - device code flow 도입 여부
 - keychain 연동
-- `auth import openclaw` 기본 노출 여부 (현재는 보조 명령으로 유지)
+- `auth import openclaw` 명령 복구 여부 — 현재 미구현(claude만 지원). status snapshot은 fallback source로 OpenClaw 데이터를 read만 하고 있고, 명령형 import 경로는 후속 결정 사항.
