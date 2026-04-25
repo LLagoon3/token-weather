@@ -379,6 +379,53 @@ describe('formatStatusOutput — accountFilter line', () => {
   });
 });
 
+describe('formatStatusOutput — providerFilter scope', () => {
+  const baseSnapshot = {
+    configPath: '/x',
+    providers: { codex: { enabled: true }, claude: { enabled: true } },
+    sync: { enabled: false },
+  };
+  const codexSnap = { enabled: false };
+  const claudeSnap = {
+    authSource: 'not-found',
+    detected: false,
+    selectedAccount: null,
+    networkUsages: [],
+    usage: { source: 'not-found' },
+  };
+
+  it('renders only Codex usage section when providerFilter=codex (no claude key)', () => {
+    const lines = formatStatusOutput('status', {
+      ...baseSnapshot,
+      providerFilter: 'codex',
+      codex: codexSnap,
+    });
+    assert.ok(lines.includes('provider 필터: codex'));
+    assert.ok(lines.some((l) => l === 'Codex usage'));
+    assert.ok(!lines.some((l) => l === 'Claude usage'));
+  });
+
+  it('renders only Claude usage section when providerFilter=claude (no codex key)', () => {
+    const lines = formatStatusOutput('usage', {
+      ...baseSnapshot,
+      providerFilter: 'claude',
+      claude: claudeSnap,
+    });
+    assert.ok(lines.includes('provider 필터: claude'));
+    assert.ok(lines.some((l) => l === 'Claude usage'));
+    assert.ok(!lines.some((l) => l === 'Codex usage'));
+  });
+
+  it('omits "provider 필터" line when not set', () => {
+    const lines = formatStatusOutput('status', {
+      ...baseSnapshot,
+      codex: codexSnap,
+      claude: claudeSnap,
+    });
+    assert.ok(!lines.some((l) => l.startsWith('provider 필터:')));
+  });
+});
+
 describe('formatCodexSection — accountFilter empty result', () => {
   it('shows filter-specific message when filteredOut=true and snapshots empty', () => {
     const lines = formatCodexSection({
