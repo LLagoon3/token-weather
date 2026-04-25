@@ -198,6 +198,12 @@ CI(`.github/workflows/ci.yml`):
 - code-base 구조 리팩터 (중복되는 provider adapter shape 통합)
 - keychain 연동 / device code flow / revoke endpoint 조사
 
+## 보안 신고
+
+OAuth access/refresh/id token 같은 자격증명을 다루는 도구이므로, 보안 이슈는 공개 이슈에 작성하지 말고 [SECURITY.md](./SECURITY.md)에 안내된 비공개 채널로 신고해 주세요. 토큰을 실수로 노출했을 때 즉시 revoke하는 절차도 같은 문서에 정리되어 있습니다.
+
+행동 강령은 [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)를 따릅니다.
+
 ## 라이선스
 
 추후 결정.
