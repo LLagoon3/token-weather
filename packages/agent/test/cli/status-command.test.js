@@ -11,6 +11,7 @@ import {
   formatWindow,
   formatStatusHelp,
   parseStatusOptions,
+  normalizeProviderFilter,
   STATUS_COMMANDS,
 } from '../../src/cli/status-command.js';
 
@@ -317,6 +318,38 @@ describe('parseStatusOptions', () => {
   });
 });
 
+describe('normalizeProviderFilter', () => {
+  it('returns null for null/undefined/empty input', () => {
+    assert.equal(normalizeProviderFilter(null), null);
+    assert.equal(normalizeProviderFilter(undefined), null);
+    assert.equal(normalizeProviderFilter(''), null);
+    assert.equal(normalizeProviderFilter('   '), null);
+  });
+
+  it('passes registered ids through unchanged', () => {
+    assert.equal(normalizeProviderFilter('codex'), 'codex');
+    assert.equal(normalizeProviderFilter('claude'), 'claude');
+  });
+
+  it('matches case-insensitively (Codex / CLAUDE / cLaUdE)', () => {
+    assert.equal(normalizeProviderFilter('Codex'), 'codex');
+    assert.equal(normalizeProviderFilter('CLAUDE'), 'claude');
+    assert.equal(normalizeProviderFilter('cLaUdE'), 'claude');
+  });
+
+  it('trims whitespace before lookup', () => {
+    assert.equal(normalizeProviderFilter('  codex  '), 'codex');
+    assert.equal(normalizeProviderFilter('\tclaude\n'), 'claude');
+  });
+
+  it('returns null when normalized value is not a registered id', () => {
+    assert.equal(normalizeProviderFilter('gemini'), null);
+    // accountKey-prefix 변형은 의도적으로 받지 않는다 (별도 결정 사안).
+    assert.equal(normalizeProviderFilter('openai-codex'), null);
+    assert.equal(normalizeProviderFilter('anthropic-claude'), null);
+  });
+});
+
 describe('formatStatusHelp', () => {
   it('returns first line with command name and [options]', () => {
     const lines = formatStatusHelp('status');
@@ -339,6 +372,10 @@ describe('formatStatusHelp', () => {
     const body = formatStatusHelp().join('\n');
     assert.match(body, /codex/);
     assert.match(body, /claude/);
+  });
+
+  it('mentions case-insensitive matching for --provider', () => {
+    assert.match(formatStatusHelp().join('\n'), /case-insensitive/);
   });
 });
 
