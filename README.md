@@ -157,6 +157,7 @@ ai-usage-agent config init
 - `docs/codebase-guide.md` — 다른 Claude 세션 / 기여자가 구조적 일관성을 유지하며 작업할 수 있도록 정리한 상세 가이드 (패키지 레이아웃, shared/ 헬퍼 사용법, provider adapter 패턴, 네이밍 / 테스트 / 커밋 규칙, anti-patterns, 새 기능 체크리스트).
 - `docs/architecture.md` — 고수준 구조 요약.
 - `docs/auth-cli.md` — CLI 명령 / 정책.
+- `docs/cli-json-output.md` — `status` / `usage` `--json` 출력 contract와 redaction 규약.
 - `docs/provider-notes.md` — provider별 observed endpoint / client_id.
 - `CONTRIBUTING.md` — 브랜치 / 커밋 / PR 규칙.
 
