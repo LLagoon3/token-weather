@@ -7,7 +7,7 @@ import { resolveAgentConfigDir, resolveAgentConfigPath } from '../config/config-
  */
 export function formatConfigInitHelp() {
   return [
-    'ai-usage-agent config init',
+    'token-weather config init',
     '',
     '~/.config/ai-usage-agent/config.json에 기본 설정 파일을 생성합니다.',
     '',

@@ -365,12 +365,12 @@ describe('normalizeProviderFilter', () => {
 describe('formatStatusHelp', () => {
   it('returns first line with command name and [options]', () => {
     const lines = formatStatusHelp('status');
-    assert.match(lines[0], /^ai-usage-agent status \[options\]$/);
+    assert.match(lines[0], /^token-weather status \[options\]$/);
   });
 
   it('defaults command to "status" when not provided', () => {
     const lines = formatStatusHelp();
-    assert.match(lines[0], /ai-usage-agent status/);
+    assert.match(lines[0], /token-weather status/);
   });
 
   it('lists --account, --provider, --json and --help in Options section', () => {

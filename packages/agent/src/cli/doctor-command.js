@@ -34,7 +34,7 @@ function parseDoctorOptions(args) {
  */
 export function formatDoctorHelp() {
   return [
-    'ai-usage-agent doctor [subcommand] [options]',
+    'token-weather doctor [subcommand] [options]',
     '',
     '공통 환경 점검 또는 provider별 상세 진단.',
     '',
@@ -46,9 +46,9 @@ export function formatDoctorHelp() {
     '  -h, --help   이 도움말 출력',
     '',
     '예시:',
-    '  ai-usage-agent doctor',
-    '  ai-usage-agent doctor codex --refresh-live',
-    '  ai-usage-agent doctor claude --account work',
+    '  token-weather doctor',
+    '  token-weather doctor codex --refresh-live',
+    '  token-weather doctor claude --account work',
   ];
 }
 
@@ -57,7 +57,7 @@ export function formatDoctorHelp() {
  */
 export function formatDoctorCodexHelp() {
   return [
-    'ai-usage-agent doctor codex [options]',
+    'token-weather doctor codex [options]',
     '',
     'Codex 계정 상태와 refresh 가능성을 점검합니다.',
     '',
@@ -73,7 +73,7 @@ export function formatDoctorCodexHelp() {
  */
 export function formatDoctorClaudeHelp() {
   return [
-    'ai-usage-agent doctor claude [options]',
+    'token-weather doctor claude [options]',
     '',
     'Claude credential 상태와 live usage를 점검합니다.',
     '',
@@ -115,7 +115,7 @@ async function runDoctorRoot(args = []) {
     return;
   }
   const claudeSnapshot = await getClaudeSnapshot();
-  console.log('ai-usage-agent doctor');
+  console.log('token-weather doctor');
   console.log('---------------------');
   console.log(`예상 설정 파일 경로: ${resolveAgentConfigPath()}`);
   console.log('');
@@ -124,12 +124,12 @@ async function runDoctorRoot(args = []) {
   }
   console.log('');
   console.log('서브커맨드:');
-  console.log('  ai-usage-agent doctor codex                 codex 계정 상태 점검');
-  console.log('  ai-usage-agent doctor codex --refresh-live  실제 refresh token 재발급 시도');
-  console.log('  ai-usage-agent doctor codex --account <id>  특정 계정 지정');
-  console.log('  ai-usage-agent doctor claude                   claude credential 상태 점검');
-  console.log('  ai-usage-agent doctor claude --refresh-live    Claude OAuth refresh token으로 실제 재발급');
-  console.log('  ai-usage-agent doctor claude --refresh-live --account <id>');
+  console.log('  token-weather doctor codex                 codex 계정 상태 점검');
+  console.log('  token-weather doctor codex --refresh-live  실제 refresh token 재발급 시도');
+  console.log('  token-weather doctor codex --account <id>  특정 계정 지정');
+  console.log('  token-weather doctor claude                   claude credential 상태 점검');
+  console.log('  token-weather doctor claude --refresh-live    Claude OAuth refresh token으로 실제 재발급');
+  console.log('  token-weather doctor claude --refresh-live --account <id>');
   console.log('                                                 특정 계정 지정 (email / accountKey / label)');
 }
 
@@ -143,7 +143,7 @@ async function runDoctorClaude(args = []) {
   }
   const snapshot = await getClaudeSnapshot();
 
-  console.log('ai-usage-agent doctor claude');
+  console.log('token-weather doctor claude');
   console.log('----------------------------');
   for (const line of formatClaudeSection(snapshot)) {
     console.log(line);
@@ -240,7 +240,7 @@ async function runDoctorCodex(args) {
     return;
   }
 
-  console.log('ai-usage-agent doctor codex');
+  console.log('token-weather doctor codex');
   console.log('---------------------------');
 
   const account = await resolveCodexDoctorAccount(options);

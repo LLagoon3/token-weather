@@ -2,7 +2,7 @@
 
 ## 목표
 
-`ai-usage-agent` 전용 credential store의 구조를 정의한다.
+`token-weather` 전용 credential store의 구조를 정의한다.
 
 이 스키마는 OpenClaw auth store와 분리된 독립 저장소를 전제로 한다.
 

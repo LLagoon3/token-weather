@@ -7,7 +7,7 @@ import path from 'node:path';
 import url from 'node:url';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const BIN = path.resolve(__dirname, '../../bin/ai-usage-agent.js');
+const BIN = path.resolve(__dirname, '../../bin/token-weather.js');
 
 /**
  * Run the CLI in a clean tmp HOME so it never touches the real auth.json /
@@ -29,13 +29,13 @@ function runCli(args, { timeoutMs = 20_000 } = {}) {
   }
 }
 
-describe('bin/ai-usage-agent — smoke', () => {
+describe('bin/token-weather — smoke', () => {
   it('exits 0 with usage-like output when called without args', () => {
     const result = runCli([]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     // stdout 또는 stderr 어디든 사용법 안내가 있어야 함
     const all = result.stdout + result.stderr;
-    assert.match(all, /ai-usage-agent|usage|status|doctor/i);
+    assert.match(all, /token-weather|usage|status|doctor/i);
   });
 
   it('config init creates default config in HOME', () => {

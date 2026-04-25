@@ -30,7 +30,7 @@ function withTmpHome() {
 
 describe('formatConfigInitHelp', () => {
   it('first line is config init usage', () => {
-    assert.match(formatConfigInitHelp()[0], /^ai-usage-agent config init/);
+    assert.match(formatConfigInitHelp()[0], /^token-weather config init/);
   });
 
   it('mentions --help flag', () => {
@@ -44,7 +44,7 @@ describe('runConfigInitCommand — --help', () => {
   it('prints help and does not create config file', async () => {
     logged.length = 0;
     await runConfigInitCommand(['--help']);
-    assert.ok(logged.some((l) => l.startsWith('ai-usage-agent config init')));
+    assert.ok(logged.some((l) => l.startsWith('token-weather config init')));
     // --help 경로는 파일을 쓰지 않는다.
     const configPath = path.join(tmpHome, '.config', 'ai-usage-agent', 'config.json');
     assert.equal(fs.existsSync(configPath), false);

@@ -153,7 +153,7 @@ export const CODEX_REFRESH_SPEC = {
   providerLabel: 'Codex',
   refreshFn: refreshCodexToken,
   failureNote:
-    '저장된 토큰을 변경하지 않았습니다.\n계정 상태를 확인하거나 `ai-usage-agent auth login codex --live-exchange`로 재인증하세요.',
+    '저장된 토큰을 변경하지 않았습니다.\n계정 상태를 확인하거나 `token-weather auth login codex --live-exchange`로 재인증하세요.',
 };
 
 export const CLAUDE_REFRESH_SPEC = {

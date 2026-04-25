@@ -19,7 +19,7 @@ async function captureOutput(fn) {
 
 describe('formatAuthImportHelp', () => {
   it('first line is auth import usage', () => {
-    assert.match(formatAuthImportHelp()[0], /^ai-usage-agent auth import/);
+    assert.match(formatAuthImportHelp()[0], /^token-weather auth import/);
   });
 
   it('mentions --help flag', () => {
@@ -30,12 +30,12 @@ describe('formatAuthImportHelp', () => {
 describe('runAuthImportCommand — --help', () => {
   it('prints help when provider is "--help"', async () => {
     const lines = await captureOutput(() => runAuthImportCommand('--help'));
-    assert.match(lines[0], /^ai-usage-agent auth import/);
+    assert.match(lines[0], /^token-weather auth import/);
   });
 
   it('prints help when --help is in args (e.g. after provider)', async () => {
     const lines = await captureOutput(() => runAuthImportCommand('claude', ['--help']));
-    assert.match(lines[0], /^ai-usage-agent auth import/);
+    assert.match(lines[0], /^token-weather auth import/);
   });
 });
 
@@ -86,7 +86,7 @@ describe('runCli auth import wiring', () => {
   it('routes auth import command and shows usage/provider guidance when provider missing', async () => {
     const lines = await captureOutput(() => runCli(['auth', 'import']));
     const flat = lines.join('\n');
-    assert.ok(flat.includes('사용법: ai-usage-agent auth import <provider>'));
+    assert.ok(flat.includes('사용법: token-weather auth import <provider>'));
     assert.ok(flat.includes('현재 지원 provider: claude'));
   });
 });

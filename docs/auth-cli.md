@@ -1,19 +1,19 @@
 # Auth CLI 인터페이스
 
-`ai-usage-agent`의 인증 관련 CLI 명령 집합과 운영 정책을 정리한다.
+`token-weather`의 인증 관련 CLI 명령 집합과 운영 정책을 정리한다.
 
 ## 명령 구조
 
 ```text
-ai-usage-agent auth <subcommand> [provider] [options]
-ai-usage-agent doctor [provider] [options]
+token-weather auth <subcommand> [provider] [options]
+token-weather doctor [provider] [options]
 ```
 
 ## login
 
 ```bash
-ai-usage-agent auth login codex   [--live-exchange] [--manual] [--no-open] [--port N] [--timeout SEC]
-ai-usage-agent auth login claude  [--live-exchange] [--port N] [--timeout SEC]
+token-weather auth login codex   [--live-exchange] [--manual] [--no-open] [--port N] [--timeout SEC]
+token-weather auth login claude  [--live-exchange] [--port N] [--timeout SEC]
 ```
 
 동작:
@@ -38,9 +38,9 @@ provider별 callback 경로:
 ## list
 
 ```bash
-ai-usage-agent auth list
-ai-usage-agent auth list openai-codex
-ai-usage-agent auth list claude
+token-weather auth list
+token-weather auth list openai-codex
+token-weather auth list claude
 ```
 
 출력 필드: provider, accountKey, email, label, source, authType, status, mock 여부, liveToken 여부, refresh 가능 여부, expiresAt, createdAt, updatedAt.
@@ -50,8 +50,8 @@ Claude는 agent-store에 저장된 계정과 `~/.claude/.credentials.json` impor
 ## logout
 
 ```bash
-ai-usage-agent auth logout <provider>
-ai-usage-agent auth logout <provider> --account <email | accountKey | label>
+token-weather auth logout <provider>
+token-weather auth logout <provider> --account <email | accountKey | label>
 ```
 
 - 로컬 auth store에서 해당 계정 제거
@@ -61,8 +61,8 @@ ai-usage-agent auth logout <provider> --account <email | accountKey | label>
 ## import
 
 ```bash
-ai-usage-agent auth import openclaw   # OpenClaw auth-profiles.json → agent-store
-ai-usage-agent auth import claude     # ~/.claude/.credentials.json → agent-store
+token-weather auth import openclaw   # OpenClaw auth-profiles.json → agent-store
+token-weather auth import claude     # ~/.claude/.credentials.json → agent-store
 ```
 
 - runtime 기본 경로가 아닌 **migration/흡수** 용도
@@ -71,13 +71,13 @@ ai-usage-agent auth import claude     # ~/.claude/.credentials.json → agent-st
 ## doctor
 
 ```bash
-ai-usage-agent doctor                        # 공통 상태 점검
-ai-usage-agent doctor codex                  # Codex 계정/refresh 가능성 점검
-ai-usage-agent doctor codex  --refresh-live  # 실제 refresh POST
-ai-usage-agent doctor codex  --account <id>  # 특정 계정 지정
-ai-usage-agent doctor claude                 # Claude credential + live usage 점검
-ai-usage-agent doctor claude --refresh-live  # Claude refresh POST
-ai-usage-agent doctor claude --refresh-live --account <id>  # 특정 계정 지정
+token-weather doctor                        # 공통 상태 점검
+token-weather doctor codex                  # Codex 계정/refresh 가능성 점검
+token-weather doctor codex  --refresh-live  # 실제 refresh POST
+token-weather doctor codex  --account <id>  # 특정 계정 지정
+token-weather doctor claude                 # Claude credential + live usage 점검
+token-weather doctor claude --refresh-live  # Claude refresh POST
+token-weather doctor claude --refresh-live --account <id>  # 특정 계정 지정
 ```
 
 점검 항목:
@@ -139,24 +139,24 @@ Claude는 동일한 `resolveCallbackPort` 로직을 사용하되 callback path�
 ### 데스크톱: Claude 독립 OAuth
 
 ```bash
-ai-usage-agent auth login claude --live-exchange
+token-weather auth login claude --live-exchange
 # authorize URL 출력 → 브라우저에서 직접 열기
 # 로그인 완료 → localhost callback 수신 → token 저장
-ai-usage-agent status
+token-weather status
 ```
 
 ### 데스크톱: Claude 빠른 import
 
 ```bash
 # Claude CLI로 이미 로그인된 상태에서
-ai-usage-agent auth import claude
-ai-usage-agent status
+token-weather auth import claude
+token-weather status
 ```
 
 ### SSH/원격: Codex manual
 
 ```bash
-ai-usage-agent auth login codex --manual --no-open
+token-weather auth login codex --manual --no-open
 # 안내에 따라 brower로 URL 수동 오픈 → 반환 URL 전체 붙여넣기
 ```
 

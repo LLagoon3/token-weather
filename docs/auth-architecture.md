@@ -7,7 +7,7 @@ CLI agent가 외부 auth store(OpenClaw 등)에 의존하지 않고 독립적으
 ## 현재 구성
 
 ```text
-[ai-usage-agent CLI]
+[token-weather CLI]
   ├─ Auth Commands (login / list / logout / import)
   ├─ Auth Broker
   │   ├─ OAuth localhost callback flow (Codex / Claude 공통)
@@ -24,7 +24,7 @@ runtime 기본 경로는 agent 자체 store이며, OpenClaw 의존은 제거되�
 
 ### 1. Localhost callback OAuth (기본)
 
-1. `ai-usage-agent auth login <codex|claude>`
+1. `token-weather auth login <codex|claude>`
 2. 로컬 임시 서버 실행 (`127.0.0.1:<port>`)
 3. PKCE(S256) / state 생성
 4. 브라우저용 authorize URL 출력 (자동 오픈은 하지 않음)
@@ -44,7 +44,7 @@ provider별 callback path:
 
 ### 3. Claude CLI credential import (Claude 전용)
 
-`ai-usage-agent auth import claude`로 `~/.claude/.credentials.json`의 OAuth 토큰을 agent-store에 복사한다. 네트워크 호출 없이 사용 가능한 빠른 경로.
+`token-weather auth import claude`로 `~/.claude/.credentials.json`의 OAuth 토큰을 agent-store에 복사한다. 네트워크 호출 없이 사용 가능한 빠른 경로.
 
 ### 4. Device code flow (미구현, 후순위)
 
@@ -100,14 +100,14 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다:
 ## CLI
 
 ```text
-ai-usage-agent auth login <codex|claude> [--live-exchange] [--port N] [--timeout SEC] [--manual] [--no-open]
-ai-usage-agent auth list
-ai-usage-agent auth logout <provider> [--account <id>]
-ai-usage-agent auth import <openclaw|claude>
-ai-usage-agent doctor
-ai-usage-agent doctor codex [--refresh-live] [--account <id>]
-ai-usage-agent doctor claude [--refresh-live]
-ai-usage-agent status | usage
+token-weather auth login <codex|claude> [--live-exchange] [--port N] [--timeout SEC] [--manual] [--no-open]
+token-weather auth list
+token-weather auth logout <provider> [--account <id>]
+token-weather auth import <openclaw|claude>
+token-weather doctor
+token-weather doctor codex [--refresh-live] [--account <id>]
+token-weather doctor claude [--refresh-live]
+token-weather status | usage
 ```
 
 ## Codex OAuth endpoint 검증 현황

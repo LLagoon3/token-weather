@@ -7,7 +7,7 @@ import { parseCliOptions } from './parse-options.js';
  */
 export function formatAuthLogoutHelp() {
   return [
-    'ai-usage-agent auth logout <provider> [options]',
+    'token-weather auth logout <provider> [options]',
     '',
     '지정 provider의 계정을 로컬 auth store에서 제거합니다.',
     '참고: provider 측 revoke 호출은 아직 미구현(로컬 제거만 수행).',
@@ -19,7 +19,7 @@ export function formatAuthLogoutHelp() {
 }
 
 /**
- * `ai-usage-agent auth logout <provider> [--account <id>]`
+ * `token-weather auth logout <provider> [--account <id>]`
  *
  * 지정된 provider의 계정을 auth store에서 제거한다.
  * --account 옵션은 email / accountKey / label 중 하나로 지정 가능 (case-insensitive).
@@ -42,7 +42,7 @@ export async function runAuthLogoutCommand(provider, args) {
 
   if (!provider) {
     console.error(
-      '사용법: ai-usage-agent auth logout <provider> [--account <email | accountKey | label>]',
+      '사용법: token-weather auth logout <provider> [--account <email | accountKey | label>]',
     );
     process.exitCode = 1;
     return;

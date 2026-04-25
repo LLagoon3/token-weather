@@ -74,12 +74,12 @@ export function formatGlobalHelp() {
     formatAuthLogoutHelp()[0],
   ];
   return [
-    'ai-usage-agent',
+    'token-weather',
     '',
     '사용법:',
     ...subcommands.map((line) => `  ${line}`),
-    '  ai-usage-agent inspect <provider>    # 예정',
-    '  ai-usage-agent sync                  # 예정',
+    '  token-weather inspect <provider>    # 예정',
+    '  token-weather sync                  # 예정',
     '',
     '각 커맨드의 상세 옵션은 `<command> --help`로 확인하세요.',
   ];
