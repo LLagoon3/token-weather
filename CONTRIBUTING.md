@@ -135,3 +135,10 @@ PR 본문에는 최소한 아래 내용을 포함한다.
 - PR 본문도 한글 기준
 - `dev`를 통합 브랜치로 우선 사용
 - `main`은 비교적 안정적인 상태만 반영
+
+## 7. 행동 강령 / 보안
+
+- 모든 기여자는 [Code of Conduct](./CODE_OF_CONDUCT.md)를 준수한다.
+- 보안 이슈(토큰 유출, 자격증명 처리 결함 등)는 GitHub Issue에 직접 작성하지 말고 [SECURITY.md](./SECURITY.md)에 안내된 비공개 신고 채널을 사용한다.
+- PR / issue 본문에 access token / refresh token / id token / session cookie / accountKey 같은 민감값을 절대 첨부하지 않는다. 실수로 노출한 경우 즉시 revoke 후 재발급한다(절차는 SECURITY.md).
+- 새로운 토큰성 필드를 provider adapter / auth schema에 도입하는 PR은 동일 PR 안에서 `packages/agent/src/cli/status-json.js::SENSITIVE_KEYS`를 갱신하고 redaction 회귀 테스트를 추가한다 (`docs/cli-json-output.md` §한계 참고).
