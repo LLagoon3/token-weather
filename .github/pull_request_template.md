@@ -36,6 +36,7 @@
 - [ ] 관련 스크립트 또는 기능을 로컬에서 확인
 - [ ] 필요한 문서 업데이트 반영
 - [ ] schema / provider / CLI 영향 범위를 직접 점검
+- [ ] PR 본문 / 디프 / 출력 예시에 access token / refresh token / id token / accountKey 같은 **민감값을 redact** 했음
 
 ## 리뷰 포인트
 
