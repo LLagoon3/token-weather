@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { createDefaultConfig } from '../config/default-config.js';
 import { resolveAgentConfigPath } from '../config/config-path.js';
-import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
+import { SCHEMA_VERSION } from '@token-weather/schemas/src/index.js';
 import { runProviderSnapshots } from './provider-registry.js';
 
 // Provider-specific helpers are imported from provider modules.

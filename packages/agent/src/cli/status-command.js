@@ -89,7 +89,7 @@ export function parseStatusOptions(args) {
 export function formatStatusHelp(command = 'status') {
   const providerList = PROVIDER_IDS.join(', ');
   return [
-    `ai-usage-agent ${command} [options]`,
+    `token-weather ${command} [options]`,
     '',
     'provider별 credential 상태와 live usage window를 출력합니다.',
     '여러 계정이 저장되어 있으면 기본적으로 모두 병렬 조회합니다.',

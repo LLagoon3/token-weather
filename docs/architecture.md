@@ -7,7 +7,7 @@ Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구�
 로컬 CLI agent 중심 구조. 외부 auth store(OpenClaw 등) 의존 없이 독립적으로 인증, 토큰 저장·갱신·사용량 조회를 수행한다.
 
 ```
-[ai-usage-agent CLI]
+[token-weather CLI]
   ├─ Auth Commands (login / list / logout / import)
   ├─ Auth Broker (OAuth localhost callback, manual paste fallback, PKCE S256)
   ├─ Credential Store (auth.json, 0600)

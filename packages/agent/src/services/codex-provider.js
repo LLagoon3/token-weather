@@ -2,14 +2,14 @@ import {
   fetchCodexUsage,
   getDefaultAuthProfilesPath,
   readCodexAuthProfiles,
-} from '../../../provider-adapters/src/codex/index.js';
+} from '@token-weather/provider-adapters/src/codex/index.js';
 import { filterEntriesByAccount, filterProfilesByAccount } from './account-filter.js';
-import { buildUsageSnapshot } from '../../../provider-adapters/src/shared/usage-snapshot.js';
+import { buildUsageSnapshot } from '@token-weather/provider-adapters/src/shared/usage-snapshot.js';
 import { resolveAuthSource } from './auth-source-resolver.js';
 import { resolveProviderAccountEntries } from './provider-profile-resolver.js';
 import { filterRealCodexAccounts, codexMapAccountToProfile } from './codex-account-spec.js';
 import { fetchUsageWithAutoRefresh } from './usage-auto-refresh.js';
-import { refreshCodexToken } from '../../../provider-adapters/src/codex/index.js';
+import { refreshCodexToken } from '@token-weather/provider-adapters/src/codex/index.js';
 import { updateCodexStoreAfterRefresh } from '../auth/codex-refresh-store.js';
 
 const CODEX_PROVIDER_ID = 'openai-codex';

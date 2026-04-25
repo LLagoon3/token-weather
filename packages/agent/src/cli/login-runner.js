@@ -11,7 +11,7 @@ import {
 import { createAccount } from '../auth/auth-store-schema.js';
 import { extractAccountIdentity } from '../auth/token-claims.js';
 import { findLegacyDuplicates } from '../auth/find-legacy-duplicates.js';
-import { fetchClaudeOauthProfile } from '../../../provider-adapters/src/claude/fetch-claude-oauth-profile.js';
+import { fetchClaudeOauthProfile } from '@token-weather/provider-adapters/src/claude/fetch-claude-oauth-profile.js';
 import { parseCliOptions } from './parse-options.js';
 
 /**
@@ -47,8 +47,8 @@ export async function runOAuthLoginFlow(spec, options) {
     callbackPath: spec.callbackPath,
   });
 
-  console.log(`ai-usage-agent auth login ${spec.id}`);
-  console.log('-'.repeat(`ai-usage-agent auth login ${spec.id}`.length));
+  console.log(`token-weather auth login ${spec.id}`);
+  console.log('-'.repeat(`token-weather auth login ${spec.id}`.length));
 
   if (!prepared.ready) {
     console.log(prepared.reason);
@@ -57,7 +57,7 @@ export async function runOAuthLoginFlow(spec, options) {
       console.log('모든 포트 후보가 사용 중이어서 localhost callback을 시작할 수 없습니다.');
       console.log('manual paste 모드로 다시 실행해 주세요:');
       console.log('');
-      console.log(`  ai-usage-agent auth login ${spec.id} --manual`);
+      console.log(`  token-weather auth login ${spec.id} --manual`);
     }
     return;
   }

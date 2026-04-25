@@ -1,4 +1,4 @@
-# ai-usage-agent
+# token-weather
 
 여러 AI 서비스의 사용량과 인증 상태를 로컬에서 관리하는 CLI agent + provider adapter + schema 패키지 모음.
 
@@ -26,7 +26,7 @@ npm run agent:config:init
 
 | Provider | Auth (독립 OAuth) | Auth (credential import) | Usage 조회 | Refresh | Status |
 | --- | --- | --- | --- | --- | --- |
-| Codex (OpenAI) | ✓ `auth login codex --live-exchange` | `auth import openclaw` | ✓ `wham/usage` live | ✓ `doctor codex --refresh-live` | 운영 중 |
+| Codex (OpenAI) | ✓ `auth login codex --live-exchange` | `openclaw-import` (status snapshot fallback, `auth import` 명령은 미구현) | ✓ `wham/usage` live | ✓ `doctor codex --refresh-live` | 운영 중 |
 | Claude (Anthropic) | ✓ `auth login claude --live-exchange` | `auth import claude` (CLI 재사용) | ✓ `oauth/usage` live | ✓ `doctor claude --refresh-live` | 운영 중 |
 
 ### 검증된 endpoint
@@ -71,9 +71,9 @@ scripts/poc/           experimental scripts (저위험 실험)
 ### status / usage
 
 ```bash
-ai-usage-agent status
-ai-usage-agent usage
-ai-usage-agent status --account <email | accountKey | label>  # 특정 계정만
+token-weather status
+token-weather usage
+token-weather status --account <email | accountKey | label>  # 특정 계정만
 ```
 
 provider별 credential 상태, 선택된 계정, live usage window, 로컬 캐시 요약을 출력한다.
@@ -88,12 +88,11 @@ provider별 credential 상태, 선택된 계정, live usage window, 로컬 캐�
 ### auth
 
 ```bash
-ai-usage-agent auth login codex   [--live-exchange] [--port N] [--timeout SEC] [--label NAME] [--manual] [--no-open]
-ai-usage-agent auth login claude  [--live-exchange] [--port N] [--timeout SEC] [--label NAME]
-ai-usage-agent auth list
-ai-usage-agent auth logout <provider> [--account <id>]
-ai-usage-agent auth import openclaw    # 기존 OpenClaw auth-profiles 흡수
-ai-usage-agent auth import claude      # ~/.claude/.credentials.json 흡수
+token-weather auth login codex   [--live-exchange] [--port N] [--timeout SEC] [--label NAME] [--manual] [--no-open]
+token-weather auth login claude  [--live-exchange] [--port N] [--timeout SEC] [--label NAME]
+token-weather auth list
+token-weather auth logout <provider> [--account <id>]
+token-weather auth import claude      # ~/.claude/.credentials.json 흡수 (현재 지원되는 유일한 import 경로)
 ```
 
 `--live-exchange` 없이 호출하면 mock 저장만 수행한다.
@@ -102,19 +101,19 @@ ai-usage-agent auth import claude      # ~/.claude/.credentials.json 흡수
 ### doctor
 
 ```bash
-ai-usage-agent doctor                        # 공통 환경 점검
-ai-usage-agent doctor codex                  # Codex 계정·refresh 가능성 점검
-ai-usage-agent doctor codex  --refresh-live  # 실제 refresh POST
-ai-usage-agent doctor codex  --account <id>
-ai-usage-agent doctor claude                 # Claude credential·live usage 점검
-ai-usage-agent doctor claude --refresh-live  # 실제 refresh POST
-ai-usage-agent doctor claude --refresh-live --account <id>  # 특정 계정 지정
+token-weather doctor                        # 공통 환경 점검
+token-weather doctor codex                  # Codex 계정·refresh 가능성 점검
+token-weather doctor codex  --refresh-live  # 실제 refresh POST
+token-weather doctor codex  --account <id>
+token-weather doctor claude                 # Claude credential·live usage 점검
+token-weather doctor claude --refresh-live  # 실제 refresh POST
+token-weather doctor claude --refresh-live --account <id>  # 특정 계정 지정
 ```
 
 ### config
 
 ```bash
-ai-usage-agent config init
+token-weather config init
 ```
 
 `~/.config/ai-usage-agent/config.json`에 기본 설정을 생성한다.

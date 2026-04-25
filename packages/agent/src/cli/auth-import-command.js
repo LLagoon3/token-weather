@@ -1,4 +1,4 @@
-import { resolveClaudeCredentialsPath, readClaudeCredentials } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
+import { resolveClaudeCredentialsPath, readClaudeCredentials } from '@token-weather/provider-adapters/src/claude/read-claude-credentials.js';
 import { buildClaudeSnapshot } from '../services/status-service.js';
 import { loadAuthStore, saveAuthStore } from '../auth/auth-store.js';
 import { importClaudeAccountIntoStore } from '../auth/claude-imported-account.js';
@@ -8,7 +8,7 @@ import { importClaudeAccountIntoStore } from '../auth/claude-imported-account.js
  */
 export function formatAuthImportHelp() {
   return [
-    'ai-usage-agent auth import <provider>',
+    'token-weather auth import <provider>',
     '',
     'Provider CLI credential을 agent-store에 복사합니다.',
     '현재 지원: claude (~/.claude/.credentials.json)',
@@ -41,7 +41,7 @@ export async function runAuthImportCommand(
   }
 
   if (!provider) {
-    console.log('사용법: ai-usage-agent auth import <provider>');
+    console.log('사용법: token-weather auth import <provider>');
     console.log('현재 지원 provider: claude');
     return;
   }

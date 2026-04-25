@@ -7,10 +7,10 @@
 ## 사용
 
 ```bash
-ai-usage-agent status --json
-ai-usage-agent usage  --json
-ai-usage-agent status --json --provider codex
-ai-usage-agent status --json --account work@example.com --provider claude
+token-weather status --json
+token-weather usage  --json
+token-weather status --json --provider codex
+token-weather status --json --account work@example.com --provider claude
 ```
 
 - stdout에는 **JSON 한 줄**만 흐른다 (개행 1개로 종료).

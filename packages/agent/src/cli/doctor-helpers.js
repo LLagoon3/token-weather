@@ -5,8 +5,8 @@
  * 문자열 배열을 반환한다. 실제 출력은 doctor-command에서 처리.
  */
 
-import { refreshClaudeToken } from '../../../provider-adapters/src/claude/refresh-claude-token.js';
-import { refreshCodexToken } from '../../../provider-adapters/src/codex/index.js';
+import { refreshClaudeToken } from '@token-weather/provider-adapters/src/claude/refresh-claude-token.js';
+import { refreshCodexToken } from '@token-weather/provider-adapters/src/codex/index.js';
 
 /**
  * Claude credential snapshot을 한글 출력 라인 배열로 변환.
@@ -153,7 +153,7 @@ export const CODEX_REFRESH_SPEC = {
   providerLabel: 'Codex',
   refreshFn: refreshCodexToken,
   failureNote:
-    '저장된 토큰을 변경하지 않았습니다.\n계정 상태를 확인하거나 `ai-usage-agent auth login codex --live-exchange`로 재인증하세요.',
+    '저장된 토큰을 변경하지 않았습니다.\n계정 상태를 확인하거나 `token-weather auth login codex --live-exchange`로 재인증하세요.',
 };
 
 export const CLAUDE_REFRESH_SPEC = {

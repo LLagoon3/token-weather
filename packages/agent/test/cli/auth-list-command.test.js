@@ -21,7 +21,7 @@ async function captureOutput(fn) {
 
 describe('formatAuthListHelp', () => {
   it('first line is auth list usage', () => {
-    assert.match(formatAuthListHelp()[0], /^ai-usage-agent auth list/);
+    assert.match(formatAuthListHelp()[0], /^token-weather auth list/);
   });
 
   it('mentions --help flag', () => {
@@ -32,12 +32,12 @@ describe('formatAuthListHelp', () => {
 describe('runAuthListCommand — --help', () => {
   it('prints help and exits when provider is "--help"', async () => {
     const lines = await captureOutput(() => runAuthListCommand('--help'));
-    assert.match(lines[0], /^ai-usage-agent auth list/);
+    assert.match(lines[0], /^token-weather auth list/);
   });
 
   it('prints help when provider is "-h"', async () => {
     const lines = await captureOutput(() => runAuthListCommand('-h'));
-    assert.match(lines[0], /^ai-usage-agent auth list/);
+    assert.match(lines[0], /^token-weather auth list/);
   });
 });
 

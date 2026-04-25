@@ -4,12 +4,12 @@ import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/aut
 import {
   buildCodexAuthorizationUrl,
   exchangeCodexAuthorizationCode,
-} from '../../../provider-adapters/src/codex/index.js';
+} from '@token-weather/provider-adapters/src/codex/index.js';
 import {
   buildClaudeAuthorizationUrl,
   exchangeClaudeAuthorizationCode,
   CLAUDE_AUTH,
-} from '../../../provider-adapters/src/claude/index.js';
+} from '@token-weather/provider-adapters/src/claude/index.js';
 import { runOAuthLoginFlow, parseLoginOptions } from './login-runner.js';
 
 const CODEX_STORE_KEY = 'openai-codex';
@@ -19,7 +19,7 @@ const CODEX_STORE_KEY = 'openai-codex';
  */
 export function formatAuthLoginHelp() {
   return [
-    'ai-usage-agent auth login <provider> [options]',
+    'token-weather auth login <provider> [options]',
     '',
     'Provider: codex, claude',
     '',
@@ -53,7 +53,7 @@ export async function runAuthLoginCommand(provider, args = []) {
 
   if (!provider) {
     console.log(
-      '사용법: ai-usage-agent auth login <provider> [--manual] [--no-open] [--port <number>] [--timeout <seconds>] [--live-exchange] [--label <name>] [--keep-legacy]',
+      '사용법: token-weather auth login <provider> [--manual] [--no-open] [--port <number>] [--timeout <seconds>] [--live-exchange] [--label <name>] [--keep-legacy]',
     );
     return;
   }
@@ -131,7 +131,7 @@ const CODEX_LOGIN_SPEC = {
 };
 
 async function runCodexManualPasteFlow() {
-  console.log('ai-usage-agent auth login codex --manual');
+  console.log('token-weather auth login codex --manual');
   console.log('-----------------------------------------');
   console.log('주의: manual 경로는 token exchange 없이 mock 저장만 수행해.');
 
@@ -174,7 +174,7 @@ async function runClaudeLogin(args) {
 
   if (options.manual) {
     console.log('claude manual paste 경로는 아직 제공하지 않습니다.');
-    console.log('대신 로컬 callback 경로를 사용하세요: ai-usage-agent auth login claude');
+    console.log('대신 로컬 callback 경로를 사용하세요: token-weather auth login claude');
     return;
   }
 

@@ -292,7 +292,7 @@ describe('parseDoctorClaudeOptions', () => {
 describe('formatDoctorHelp', () => {
   it('first line covers doctor with subcommand placeholder', () => {
     const lines = formatDoctorHelp();
-    assert.match(lines[0], /^ai-usage-agent doctor \[subcommand\]/);
+    assert.match(lines[0], /^token-weather doctor \[subcommand\]/);
   });
 
   it('lists codex and claude subcommands', () => {
@@ -304,7 +304,7 @@ describe('formatDoctorHelp', () => {
 
 describe('formatDoctorCodexHelp', () => {
   it('first line targets codex', () => {
-    assert.match(formatDoctorCodexHelp()[0], /^ai-usage-agent doctor codex/);
+    assert.match(formatDoctorCodexHelp()[0], /^token-weather doctor codex/);
   });
 
   it('lists --refresh-live and --account', () => {
@@ -316,7 +316,7 @@ describe('formatDoctorCodexHelp', () => {
 
 describe('formatDoctorClaudeHelp', () => {
   it('first line targets claude', () => {
-    assert.match(formatDoctorClaudeHelp()[0], /^ai-usage-agent doctor claude/);
+    assert.match(formatDoctorClaudeHelp()[0], /^token-weather doctor claude/);
   });
 
   it('lists --refresh-live and --account', () => {

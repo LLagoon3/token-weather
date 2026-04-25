@@ -16,7 +16,7 @@
 ```
 packages/
 ├── agent/                     CLI 진입점 + runtime orchestration
-│   ├── bin/ai-usage-agent.js
+│   ├── bin/token-weather.js
 │   └── src/
 │       ├── auth/              인증·토큰·account 관련 pure/io 헬퍼
 │       ├── cli/               커맨드별 실행 함수 + login-runner

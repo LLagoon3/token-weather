@@ -1,6 +1,6 @@
 /**
  * Maps raw claudeAiOauth object (from ~/.claude/.credentials.json)
- * to a normalized credential shape usable by ai-usage-agent.
+ * to a normalized credential shape usable by token-weather.
  *
  * Fields are based on verified/observed structure only.
  */

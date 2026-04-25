@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { validateUsageSnapshot } from '../../../schemas/src/validate.js';
+import { validateUsageSnapshot } from '@token-weather/schemas/src/validate.js';
 import {
   resolveStatusBucket,
   safeErrorMessage,

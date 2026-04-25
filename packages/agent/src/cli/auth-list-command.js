@@ -1,13 +1,13 @@
 import { loadAuthStore } from '../auth/auth-store.js';
 import { buildClaudeSnapshot } from '../services/status-service.js';
-import { resolveClaudeCredentialsPath } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
+import { resolveClaudeCredentialsPath } from '@token-weather/provider-adapters/src/claude/read-claude-credentials.js';
 
 /**
  * `auth list` --help 출력. Pure function.
  */
 export function formatAuthListHelp() {
   return [
-    'ai-usage-agent auth list [provider]',
+    'token-weather auth list [provider]',
     '',
     '저장된 인증 계정 목록을 출력합니다.',
     'provider를 지정하면 해당 provider 계정만 출력합니다.',
@@ -18,7 +18,7 @@ export function formatAuthListHelp() {
 }
 
 /**
- * `ai-usage-agent auth list [provider]`
+ * `token-weather auth list [provider]`
  *
  * 저장된 인증 계정 목록을 출력한다.
  * provider를 지정하면 해당 provider 계정만 출력한다.
