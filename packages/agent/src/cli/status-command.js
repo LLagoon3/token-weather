@@ -1,6 +1,7 @@
 import { getStatusSnapshot } from '../services/status-service.js';
 import { PROVIDER_IDS } from '../services/provider-registry.js';
 import { parseCliOptions } from './parse-options.js';
+import { formatStatusJson } from './status-json.js';
 
 // 포맷터는 status-formatters.js에서 관리. 기존 import 경로 호환을 위해 re-export.
 export {
@@ -42,6 +43,13 @@ export async function runStatusCommand(command, args = []) {
     accountFilter: options.account,
     providerFilter,
   });
+
+  if (options.json) {
+    // 자동화 친화: stdout에는 JSON 한 줄만, 안내·경고는 stderr로.
+    console.log(formatStatusJson(snapshot, { command }));
+    return;
+  }
+
   for (const line of formatStatusOutput(command, snapshot)) {
     console.log(line);
   }
@@ -65,10 +73,11 @@ export function normalizeProviderFilter(raw) {
  */
 export function parseStatusOptions(args) {
   return parseCliOptions(args, {
-    defaults: { account: null, provider: null },
+    defaults: { account: null, provider: null, json: false },
     flags: {
       '--account': { key: 'account', type: 'string' },
       '--provider': { key: 'provider', type: 'string' },
+      '--json': { key: 'json', type: 'boolean' },
     },
     includeHelp: true,
   });
@@ -88,6 +97,7 @@ export function formatStatusHelp(command = 'status') {
     'Options:',
     '  --account <id>     특정 계정만 조회 (email / accountKey / label, case-insensitive)',
     `  --provider <id>    특정 provider만 조회 (사용 가능: ${providerList}, case-insensitive)`,
+    '  --json             정규화된 JSON 한 줄을 stdout에 출력 (자동화/대시보드용)',
     '  -h, --help         이 도움말 출력',
   ];
 }

@@ -300,6 +300,17 @@ Provider spec shape(`LoginProviderSpec`):
 
 호출자는 `options.warnings.length > 0`이면 stderr로 출력 후 조기 리턴한다 (`auth-login-command.js::reportAndGuardOptionWarnings` 참고).
 
+### 5.2.1 status --json 모드
+
+`status` / `usage`는 `--json`으로 정규화된 JSON 한 줄을 stdout에 출력할 수 있다.
+출력 shape와 redaction 규약은 `docs/cli-json-output.md`에 stable contract로 정리되어 있다.
+
+구현 위치: `cli/status-json.js`
+- `redactSensitive(value)` — 토큰성 키(SENSITIVE_KEYS) 제거 deep clone, Date 통과
+- `formatStatusJson(snapshot, { command, generatedAt })` — single-line JSON 직렬화
+
+신규 토큰 필드를 provider adapter / auth schema에 추가할 때는 이 모듈의 `SENSITIVE_KEYS`에도 동시에 등록할 것. 누락되면 `--json` 출력에 그대로 노출된다.
+
 ### 5.3 공통 option parser
 
 모든 CLI 파서(`parseLoginOptions`, `parseStatusOptions`, `parseLogoutOptions`,
