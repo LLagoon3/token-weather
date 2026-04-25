@@ -142,3 +142,11 @@ PR 본문에는 최소한 아래 내용을 포함한다.
 - 보안 이슈(토큰 유출, 자격증명 처리 결함 등)는 GitHub Issue에 직접 작성하지 말고 [SECURITY.md](./SECURITY.md)에 안내된 비공개 신고 채널을 사용한다.
 - PR / issue 본문에 access token / refresh token / id token / session cookie / accountKey 같은 민감값을 절대 첨부하지 않는다. 실수로 노출한 경우 즉시 revoke 후 재발급한다(절차는 SECURITY.md).
 - 새로운 토큰성 필드를 provider adapter / auth schema에 도입하는 PR은 동일 PR 안에서 `packages/agent/src/cli/status-json.js::SENSITIVE_KEYS`를 갱신하고 redaction 회귀 테스트를 추가한다 (`docs/cli-json-output.md` §한계 참고).
+
+## 8. 기여자 라이선스
+
+이 저장소는 [Apache License 2.0](./LICENSE)으로 배포됩니다.
+
+PR을 제출하시면 본인의 기여(코드, 문서, 설정 등)가 동일하게 Apache-2.0 조건으로 라이선스됨에 동의한 것으로 간주됩니다. 별도의 CLA / DCO 절차는 운영하지 않습니다 — Apache-2.0 §5(Submission of Contributions)에 따른 묵시적 grant를 그대로 따릅니다.
+
+다른 라이선스로 기여하고자 하는 경우, PR 본문에 명시해 주시면 별도로 검토합니다.
