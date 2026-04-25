@@ -1,6 +1,7 @@
 import { getStatusSnapshot } from '../services/status-service.js';
 import { PROVIDER_IDS } from '../services/provider-registry.js';
 import { parseCliOptions } from './parse-options.js';
+import { formatStatusJson } from './status-json.js';
 
 // 포맷터는 status-formatters.js에서 관리. 기존 import 경로 호환을 위해 re-export.
 export {
@@ -42,6 +43,13 @@ export async function runStatusCommand(command, args = []) {
     accountFilter: options.account,
     providerFilter,
   });
+
+  if (options.json) {
+    // 자동화 친화: stdout에는 JSON 한 줄만, 안내·경고는 stderr로.
+    console.log(formatStatusJson(snapshot, { command }));
+    return;
+  }
+
   for (const line of formatStatusOutput(command, snapshot)) {
     console.log(line);
   }
