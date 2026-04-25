@@ -1,8 +1,8 @@
 {
-  "name": "@llagoon3/provider-adapters",
+  "name": "@token-weather/provider-adapters",
   "version": "0.1.0",
   "private": true,
-  "description": "provider별 인증/endpoint 연결 및 usage 정규화 어댑터",
+  "description": "Token Weather provider별 인증/endpoint 연결 및 usage 정규화 어댑터",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./src/index.js"

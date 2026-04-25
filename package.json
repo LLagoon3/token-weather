@@ -1,8 +1,8 @@
 {
-  "name": "ai-usage-agent",
+  "name": "token-weather",
   "private": true,
   "version": "0.1.0",
-  "description": "CLI agent and packages for monitoring AI service usage and auth status",
+  "description": "Token Weather — local AI usage and auth dashboard CLI (monorepo)",
   "license": "Apache-2.0",
   "packageManager": "npm@11.6.2",
   "workspaces": [

@@ -1,8 +1,8 @@
 {
-  "name": "@llagoon3/ai-usage-agent",
+  "name": "@token-weather/cli",
   "version": "0.1.0",
   "private": true,
-  "description": "로컬 AI 사용량 수집 및 확인용 CLI 에이전트",
+  "description": "Token Weather — 로컬 AI 사용량 / 인증 상태 확인 CLI",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
