@@ -1,24 +1,42 @@
-# token-weather
+# Token Weather
 
-여러 AI 서비스의 사용량과 인증 상태를 로컬에서 관리하는 CLI agent + provider adapter + schema 패키지 모음.
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/%40token-weather%2Fcli.svg)](https://www.npmjs.com/package/@token-weather/cli)
+[![CI](https://github.com/LLagoon3/ai-usage-agent/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/LLagoon3/ai-usage-agent/actions/workflows/ci.yml)
+[![Node](https://img.shields.io/node/v/%40token-weather%2Fcli.svg)](https://nodejs.org/)
 
-외부 auth store(OpenClaw 등)에 의존하지 않고 자체 auth broker / credential store를 사용한다.
+> **Local CLI dashboard for AI service usage and OAuth credentials.**
+> 로컬에서 여러 AI 서비스(Codex / Claude)의 사용량과 인증 상태를 한 번에 확인하는 CLI. 토큰을 외부 서버로 보내지 않습니다.
 
-## 빠른 시작
+## Install
 
 ```bash
-# 상태 확인 (설정 / provider별 인증 / usage)
-npm run agent:status
+# 한 번 실행 (설치 없이)
+npx @token-weather/cli status
 
-# usage만 집중해서 보기
-npm run agent:usage
-
-# 환경 점검 (credential 경로, token 상태, refresh 가능 여부)
-npm run agent:doctor
-
-# 최초 설정 파일 생성
-npm run agent:config:init
+# 글로벌 설치 후 사용
+npm install -g @token-weather/cli
+token-weather --help
 ```
+
+첫 명령:
+
+```bash
+token-weather config init                # ~/.config/ai-usage-agent/config.json 생성
+token-weather auth login claude          # OAuth 로그인 (PKCE + localhost callback)
+token-weather status                     # 인증 / 사용량 / 만료까지 한 번에
+token-weather status --json | jq         # 자동화/대시보드용 정규화 JSON
+```
+
+## What & Why
+
+- **무엇**: AI 도구의 OAuth credential과 사용량 window를 로컬에서 통합 조회하는 CLI. Codex(OpenAI) / Claude(Anthropic) 두 provider 운영 중.
+- **왜**: 다른 대시보드들은 토큰을 외부 서버로 보내거나 별도 auth 서비스에 의존. Token Weather는 **자체 broker + 로컬 credential store**로 동작 — 토큰이 머신을 떠나지 않습니다.
+- **어떤 점이 다른가**:
+  - **Multi-account**: 한 provider에 여러 계정 저장, 병렬 조회, label 부여
+  - **자동 refresh**: 만료된 access token은 provider 호출 전 preflight refresh, auth 실패 시 1회 재시도
+  - **`status --json` stable contract**: 토큰 redaction 보장된 정규화 출력 — 외부 대시보드/수집기가 직접 소비 가능 ([docs/cli-json-output.md](./docs/cli-json-output.md))
+  - **observed vs verified 구분**: provider 바이너리 관찰값에 의존하는 endpoint는 `--live-exchange` guard 뒤에서만 호출 — 실수로 실 토큰 호출이 반복되지 않도록
 
 ## 현재 지원 범위
 
