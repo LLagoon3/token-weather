@@ -22,11 +22,19 @@ token-weather --help
 첫 명령:
 
 ```bash
-token-weather config init                # ~/.config/ai-usage-agent/config.json 생성
-token-weather auth login claude          # OAuth 로그인 (PKCE + localhost callback)
-token-weather status                     # 인증 / 사용량 / 만료까지 한 번에
-token-weather status --json | jq         # 자동화/대시보드용 정규화 JSON
+token-weather config init                              # ~/.config/ai-usage-agent/config.json 생성
+token-weather auth login claude --live-exchange        # 브라우저 → localhost callback (PKCE + state 검증)
+token-weather status                                   # 인증 / 사용량 / 만료까지 한 번에
+token-weather status --json | jq                       # 자동화/대시보드용 정규화 JSON
 ```
+
+브라우저 자동 callback이 어려운 환경(SSH, 컨테이너, 포트 충돌)에서는 `--manual`을 사용하면 콘솔에 노출된 OAuth URL을 다른 머신에서 열고 callback URL을 paste하는 흐름이 됩니다:
+
+```bash
+token-weather auth login claude --manual --live-exchange
+```
+
+`--live-exchange`를 빼면 mock/생략 경로로 동작 (실 토큰 저장 안 함).
 
 ## Demo
 
