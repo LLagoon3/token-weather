@@ -83,60 +83,32 @@ shape / redaction 규약 / 한계: [docs/cli-json-output.md](./docs/cli-json-out
 
 상세: [docs/auth-architecture.md](./docs/auth-architecture.md), [SECURITY.md](./SECURITY.md).
 
-## 기여자용 참고 문서
-
-- `docs/codebase-guide.md` — 다른 Claude 세션 / 기여자가 구조적 일관성을 유지하며 작업할 수 있도록 정리한 상세 가이드 (패키지 레이아웃, shared/ 헬퍼 사용법, provider adapter 패턴, 네이밍 / 테스트 / 커밋 규칙, anti-patterns, 새 기능 체크리스트).
-- `docs/architecture.md` — 고수준 구조 요약.
-- `docs/auth-cli.md` — CLI 명령 / 정책.
-- `docs/cli-json-output.md` — `status` / `usage` `--json` 출력 contract와 redaction 규약.
-- `docs/provider-notes.md` — provider별 observed endpoint / client_id.
-- `CONTRIBUTING.md` — 브랜치 / 커밋 / PR 규칙.
-
-## 개발 / 테스트
-
-```bash
-npm test              # 전체 테스트 (현재 482개)
-npm run test:agent    # agent 패키지만
-npm run test:adapters # provider adapters만
-```
-
-테스트 레이아웃:
-- `packages/provider-adapters/test/shared/` — 공용 OAuth / usage snapshot / fetch helper
-- `packages/provider-adapters/test/{codex,claude}/` — provider adapter
-- `packages/agent/test/auth/` — auth store / token claims / callback / imported-account 등
-- `packages/agent/test/cli/` — CLI 명령별 pure formatter / parser
-- `packages/agent/test/services/` — registry + provider snapshot 빌더
-- `packages/agent/test/integration/` — bin spawn smoke
-
-CI(`.github/workflows/ci.yml`):
-- pull_request에서는 항상 실행
-- push는 main / dev 브랜치에서만 (feature 브랜치 push는 PR이 열리면 한 번만 실행)
-- concurrency 그룹으로 같은 브랜치에 연속 push 시 이전 run 자동 취소
-
-## 작업 / 협업 규칙
-
-- 브랜치 흐름: `작업 브랜치 → dev → main`
-- 커밋: `type(scope): 한글 설명` (type: feat / fix / refactor / docs / chore / ci / test / perf)
-- PR 제목: `[type] 한글 요약`
-- PR 본문: 요약 / 변경 내용 / 이유 / 영향 범위 / 테스트 / 리뷰 포인트
-
-상세: `CONTRIBUTING.md` 참고.
-
-## 다음 작업 후보
-
-- Codex/Claude 네트워크 호출 timeout/abort (이슈 #7)
-- Claude Phase 4 — session cookie fallback (이슈 #14, 옵션)
-- code-base 구조 리팩터 (중복되는 provider adapter shape 통합)
-- keychain 연동 / device code flow / revoke endpoint 조사
-
 ## 보안 신고
 
-OAuth access/refresh/id token 같은 자격증명을 다루는 도구이므로, 보안 이슈는 공개 이슈에 작성하지 말고 [SECURITY.md](./SECURITY.md)에 안내된 비공개 채널로 신고해 주세요. 토큰을 실수로 노출했을 때 즉시 revoke하는 절차도 같은 문서에 정리되어 있습니다.
-
-행동 강령은 [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)를 따릅니다.
+OAuth token 같은 자격증명을 다루는 도구이므로, 보안 이슈는 공개 이슈에 작성하지 말고 [SECURITY.md](./SECURITY.md)에 안내된 비공개 채널로 신고해 주세요. 행동 강령은 [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)를 따릅니다.
 
 ## 라이선스
 
-[Apache License 2.0](./LICENSE) — 자세한 내용은 LICENSE 파일을 참고하세요.
+[Apache License 2.0](./LICENSE). PR을 제출하시면 본인의 기여가 동일 라이선스로 제공됨에 동의한 것으로 간주됩니다 (자세한 내용은 [CONTRIBUTING.md §8](./CONTRIBUTING.md)).
 
-기여하신 내용은 동일 라이선스로 제공됨에 동의한 것으로 간주됩니다 (자세한 내용은 [CONTRIBUTING.md §8](./CONTRIBUTING.md)).
+## Contributing
+
+기여 환영합니다. PR 작성 / 브랜치 / 커밋 규칙은 [CONTRIBUTING.md](./CONTRIBUTING.md), 코드 패턴 / 네이밍 / 테스트 / anti-patterns는 [docs/codebase-guide.md](./docs/codebase-guide.md)를 참고해 주세요.
+
+```bash
+npm test              # 전체 테스트 (node:test 내장 러너)
+npm run test:agent    # agent 패키지만
+npm run test:adapters # provider adapters만
+npm run test:schemas  # schemas 패키지만
+```
+
+진행 중인 작업은 [Issues](https://github.com/LLagoon3/ai-usage-agent/issues)에서 추적합니다.
+
+### 추가 문서
+
+- [docs/architecture.md](./docs/architecture.md) — 고수준 구조 요약
+- [docs/auth-architecture.md](./docs/auth-architecture.md) — 인증 / token / source 우선순위 상세
+- [docs/auth-cli.md](./docs/auth-cli.md) — auth CLI 명령 / 정책
+- [docs/cli-json-output.md](./docs/cli-json-output.md) — `--json` stable contract + redaction 규약
+- [docs/provider-notes.md](./docs/provider-notes.md) — provider별 observed endpoint / client_id
+- [docs/codebase-guide.md](./docs/codebase-guide.md) — 기여자용 상세 가이드 (패키지 레이아웃, shared 헬퍼, 새 기능 체크리스트)
