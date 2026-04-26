@@ -38,136 +38,50 @@ token-weather status --json | jq         # 자동화/대시보드용 정규화 J
   - **`status --json` stable contract**: 토큰 redaction 보장된 정규화 출력 — 외부 대시보드/수집기가 직접 소비 가능 ([docs/cli-json-output.md](./docs/cli-json-output.md))
   - **observed vs verified 구분**: provider 바이너리 관찰값에 의존하는 endpoint는 `--live-exchange` guard 뒤에서만 호출 — 실수로 실 토큰 호출이 반복되지 않도록
 
-## 현재 지원 범위
+## 지원 provider
 
-### Provider
+| Provider | OAuth 로그인 | Usage endpoint | Refresh | Status |
+| --- | --- | --- | --- | --- |
+| Codex (OpenAI) | ✓ `auth login codex --live-exchange` | `wham/usage` | ✓ | 운영 중 |
+| Claude (Anthropic) | ✓ `auth login claude --live-exchange` | `oauth/usage` | ✓ | 운영 중 |
 
-| Provider | Auth (독립 OAuth) | Auth (credential import) | Usage 조회 | Refresh | Status |
-| --- | --- | --- | --- | --- | --- |
-| Codex (OpenAI) | ✓ `auth login codex --live-exchange` | `openclaw-import` (status snapshot fallback, `auth import` 명령은 미구현) | ✓ `wham/usage` live | ✓ `doctor codex --refresh-live` | 운영 중 |
-| Claude (Anthropic) | ✓ `auth login claude --live-exchange` | `auth import claude` (CLI 재사용) | ✓ `oauth/usage` live | ✓ `doctor claude --refresh-live` | 운영 중 |
+provider별 observed endpoint / client_id 상세는 [docs/provider-notes.md](./docs/provider-notes.md).
 
-### 검증된 endpoint
+## 명령
 
-- Codex: `https://chatgpt.com/backend-api/wham/usage`
-- Claude OAuth: `https://api.anthropic.com/api/oauth/usage`
-- Claude web fallback (옵션, 미구현): `https://claude.ai/api/organizations/{orgId}/usage`
-
-### 공통 기능
-
-- PKCE S256 + state 검증 localhost OAuth callback
-- multi-account 지원
-  - 한 provider에 여러 계정 저장/조회 (한 번의 `status`가 모든 live 계정 병렬 조회)
-  - `auth login <provider> --label <name>`으로 계정에 label 부여
-  - `status --account <email | accountKey | label>`로 필터
-  - `config.json defaults.profiles.{provider}`로 기본 필터 지정
-- refresh token rotation 반영
-- usage/status 자동 refresh orchestration
-  - `expiresAt` 기준으로 이미 만료된 agent-store 계정은 provider 호출 전에 preflight refresh 시도
-  - 첫 usage 호출 결과가 `status.bucket === 'auth'`면 refresh 후 1회만 재시도
-  - import/fallback source(`openclaw-import`, `claude-cli-import`)는 자동 refresh 대상에서 제외
-  - refresh 실패는 해당 계정 단위 실패로 남기고 다른 계정 조회는 계속 진행
-- `--live-exchange` guard (실수로 실제 token 호출이 반복되는 것 방지)
-- network 호출 timeout/abort (기본 15초, `fetchWithTimeout`)
-- CLI / status-service / provider adapter 3계층 분리
-
-## 패키지 구조
-
-```text
-packages/
-  agent/               CLI 에이전트 (auth / status / doctor / config 명령)
-  provider-adapters/   provider별 인증·usage 로직
-    codex/
-    claude/
-  schemas/             공통 JSON Schema (usage snapshot / event)
-docs/                  architecture / auth / provider 문서
-scripts/poc/           experimental scripts (저위험 실험)
-```
-
-## CLI 커맨드
-
-### status / usage
+전체 명령은 `token-weather <command> --help`로 확인. 요약:
 
 ```bash
-token-weather status
-token-weather usage
-token-weather status --account <email | accountKey | label>  # 특정 계정만
+token-weather status [--account <id>] [--provider <id>] [--json]   # 사용량/인증 한 번에
+token-weather usage  [...]                                         # status와 동일 출력 (alias)
+token-weather doctor [codex|claude] [--refresh-live] [--account]   # 환경/refresh 진단
+token-weather auth login <codex|claude> [--live-exchange] [--label]
+token-weather auth list   [provider]
+token-weather auth logout <provider> [--account]
+token-weather auth import claude                                   # Claude CLI credential 흡수
+token-weather config init                                          # 설정 파일 생성
 ```
 
-provider별 credential 상태, 선택된 계정, live usage window, 로컬 캐시 요약을 출력한다.
-한 provider에 여러 계정이 저장되어 있으면 기본은 모두 병렬 조회.
+`--live-exchange` 없이 \`auth login\`은 mock 저장만 수행 (실제 token 호출 차단). `--label`로 저장된 계정에 친화적 이름 부여 → 이후 `--account <label>`로 참조.
 
-자동 refresh 정책:
-- agent-store 계정에서 `expiresAt`이 이미 지난 access token은 provider 호출 전에 먼저 refresh를 시도한다.
-- 첫 provider 응답이 인증성 실패(`status.bucket === 'auth'`)로 분류되면 refresh 후 1회만 다시 시도한다.
-- import source 계정은 store 갱신 경로가 없으므로 자동 refresh하지 않는다.
-- `--account` / config 기반 계정 필터는 source 선택 이후에도 다시 적용된다.
+## JSON 출력 (자동화)
 
-### auth
+`status` / `usage`는 `--json`으로 정규화된 JSON 한 줄을 stdout에 출력합니다 — 토큰 redaction 보장. 외부 대시보드/수집기에서 그대로 소비 가능.
 
 ```bash
-token-weather auth login codex   [--live-exchange] [--port N] [--timeout SEC] [--label NAME] [--manual] [--no-open]
-token-weather auth login claude  [--live-exchange] [--port N] [--timeout SEC] [--label NAME]
-token-weather auth list
-token-weather auth logout <provider> [--account <id>]
-token-weather auth import claude      # ~/.claude/.credentials.json 흡수 (현재 지원되는 유일한 import 경로)
+token-weather status --json | jq '.providers[0]'
 ```
 
-`--live-exchange` 없이 호출하면 mock 저장만 수행한다.
-`--label <name>`을 지정하면 저장된 계정에 사용자 친화적 이름이 붙고, 이후 `--account <name>`으로 참조 가능하다.
-
-### doctor
-
-```bash
-token-weather doctor                        # 공통 환경 점검
-token-weather doctor codex                  # Codex 계정·refresh 가능성 점검
-token-weather doctor codex  --refresh-live  # 실제 refresh POST
-token-weather doctor codex  --account <id>
-token-weather doctor claude                 # Claude credential·live usage 점검
-token-weather doctor claude --refresh-live  # 실제 refresh POST
-token-weather doctor claude --refresh-live --account <id>  # 특정 계정 지정
-```
-
-### config
-
-```bash
-token-weather config init
-```
-
-`~/.config/ai-usage-agent/config.json`에 기본 설정을 생성한다.
-
-## Credential source 우선순위
-
-### Codex
-`agent-store` (live-exchange 실토큰) → `openclaw-import` (마이그레이션)
-
-### Claude
-`agent-store` (live-exchange 또는 `auth import claude` 저장분) → `claude-cli-import` (`~/.claude/.credentials.json` 실시간 reader)
-
-## 스키마
-
-`packages/schemas`에 JSON Schema 정의 + zero-dep 런타임 validator.
-
-- `usage-snapshot.schema.json`
-- `usage-event.schema.json`
-- 핵심 필드: `source`, `authType`, `confidence`, `usageWindows`, `status.bucket`
-- `status.bucket` 값: `ok` / `rate_limit` / `usage_window` / `billing` / `auth` / `auth_scope` / `overloaded` / `unknown`
-- `validateUsageSnapshot(data)` / `validateUsageEvent(data)` — 런타임 검증 함수
-- `buildUsageSnapshot` 출구에서 자동 validation (soft enforcement: invalid → warn + confidence 하강)
+shape / redaction 규약 / 한계: [docs/cli-json-output.md](./docs/cli-json-output.md).
 
 ## 보안 원칙
 
-- callback 서버는 `127.0.0.1`에만 bind
-- state 검증 + PKCE S256
-- refresh token / session cookie / sessionKey는 외부 서버 업로드 금지
-- access/refresh token을 로그에 출력하지 않음
-- raw prompt / raw response / 전체 transcript 업로드 금지
+- localhost callback은 `127.0.0.1`에만 bind, PKCE S256 + state 검증
+- access / refresh / id token은 로그/JSON 모두에서 redact (`SENSITIVE_KEYS` 기반)
+- raw prompt / response / transcript는 어떤 경우에도 외부로 보내지 않음
+- observed 값(`client_id`, endpoint)은 `--live-exchange` guard 뒤에서만 실 호출
 
-## observed vs verified
-
-바이너리 strings / 로컬 JWT에서 관찰한 값들(`client_id`, endpoint 등)은 **observed** 레벨로 구분하고 공식 확정된 값이 아님을 명시한다. provider 측 변경에 대비해 guard(`allowLiveExchange`) 뒤에서만 실 호출이 일어나도록 설계.
-
-자세한 내용은 `docs/auth-architecture.md` 참고.
+상세: [docs/auth-architecture.md](./docs/auth-architecture.md), [SECURITY.md](./SECURITY.md).
 
 ## 기여자용 참고 문서
 
