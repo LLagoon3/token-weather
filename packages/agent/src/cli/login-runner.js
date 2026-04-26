@@ -2,6 +2,7 @@ import {
   prepareLocalhostCallback,
   startLocalhostCallbackServer,
 } from '../auth/localhost-callback.js';
+import { readManualPasteInput, extractCodeFromPaste } from '../auth/manual-paste.js';
 import {
   loadAuthStore,
   saveAuthStore,
@@ -319,4 +320,29 @@ export function parseLoginOptions(args) {
     collectWarnings: true,
     includeHelp: true,
   });
+}
+
+/**
+ * `extractCodeFromPaste` 결과에 OAuth state 검증을 추가한 순수 함수.
+ *
+ * - raw code paste(`pasteResult.type === 'code'`)는 state가 없어 expectedState로
+ *   채워 통과시킨다 (callback URL이 너무 길어 paste 어려운 환경에서 raw code만으로
+ *   사용 가능하도록 하는 의도된 관용).
+ * - URL paste의 state가 expected와 다르면 `error: 'state-mismatch'`로 실패.
+ *
+ * @param {{ type: 'url' | 'code', value: string, error?: string }} pasteResult
+ * @param {string} expectedState
+ * @returns {{ code: string | null, state: string | null, error: string | null }}
+ */
+export function extractAndValidateManualPaste(pasteResult, expectedState) {
+  const extracted = extractCodeFromPaste(pasteResult);
+  if (extracted.error || !extracted.code) return extracted;
+  if (extracted.state && extracted.state !== expectedState) {
+    return { code: null, state: extracted.state, error: 'state-mismatch' };
+  }
+  return {
+    code: extracted.code,
+    state: extracted.state ?? expectedState,
+    error: null,
+  };
 }

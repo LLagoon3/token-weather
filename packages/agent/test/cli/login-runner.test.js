@@ -3,8 +3,41 @@ import assert from 'node:assert/strict';
 
 import {
   enrichIdentityFromProviderProfile,
+  extractAndValidateManualPaste,
   parseLoginOptions,
 } from '../../src/cli/login-runner.js';
+
+describe('extractAndValidateManualPaste', () => {
+  it('passes through code and fills expected state when raw code is pasted', () => {
+    const result = extractAndValidateManualPaste(
+      { type: 'code', value: 'code-123' },
+      'expected-state',
+    );
+    assert.equal(result.code, 'code-123');
+    assert.equal(result.state, 'expected-state');
+    assert.equal(result.error, null);
+  });
+
+  it('extracts code/state from callback URL and accepts matching state', () => {
+    const result = extractAndValidateManualPaste(
+      { type: 'url', value: 'http://localhost:1455/callback?code=abc&state=st1' },
+      'st1',
+    );
+    assert.equal(result.code, 'abc');
+    assert.equal(result.state, 'st1');
+    assert.equal(result.error, null);
+  });
+
+  it('returns state-mismatch when pasted URL state differs from expected', () => {
+    const result = extractAndValidateManualPaste(
+      { type: 'url', value: 'http://localhost:1455/callback?code=abc&state=other' },
+      'expected',
+    );
+    assert.equal(result.code, null);
+    assert.equal(result.state, 'other');
+    assert.equal(result.error, 'state-mismatch');
+  });
+});
 
 describe('enrichIdentityFromProviderProfile', () => {
   it('returns original identity for non-claude providers', async () => {
