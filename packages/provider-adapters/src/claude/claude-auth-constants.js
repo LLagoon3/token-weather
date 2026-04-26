@@ -10,18 +10,20 @@
 
 export const CLAUDE_AUTH = {
   /**
-   * OAuth authorization endpoint — Claude.ai login flow (observed).
+   * OAuth authorization endpoint — Claude.ai login flow (observed, pi-ai aligned).
    *
-   * Claude Code 바이너리에는 두 종류의 authorize URL이 있다:
+   * Claude Code 바이너리에는 두 종류의 authorize URL이 관찰된다:
    *   - CONSOLE_AUTHORIZE_URL = https://platform.claude.com/oauth/authorize
    *     → API key 발급용 (org:create_api_key 동의 화면)
-   *   - CLAUDE_AI_AUTHORIZE_URL = https://claude.com/cai/oauth/authorize
+   *   - CLAUDE_AI_AUTHORIZE_URL = https://claude.ai/oauth/authorize
    *     → claude.ai 사용자 OAuth (~/.claude/.credentials.json에 들어가는 토큰 발급)
    *
    * usage endpoint (api.anthropic.com/api/oauth/usage)는 후자의 토큰을 받으므로
-   * 우리는 claude.ai 경로를 사용한다.
+   * 우리는 claude.ai 경로를 사용한다. pi-ai (`@mariozechner/pi-ai`)도 동일 경로를
+   * 쓰고 있고, 이전의 `claude.com/cai/oauth/authorize`와 invalid_grant 회귀(이슈 #83)
+   * 의심 변수를 줄이기 위해 baseline을 일치시킨다.
    */
-  authorizationEndpoint: 'https://claude.com/cai/oauth/authorize',
+  authorizationEndpoint: 'https://claude.ai/oauth/authorize',
 
   /** OAuth token endpoint — observed, used for both code exchange and refresh */
   tokenEndpoint: 'https://platform.claude.com/v1/oauth/token',
@@ -49,8 +51,20 @@ export const CLAUDE_AUTH = {
    */
   observedClientId: '9d1c250a-e61b-44d9-88ed-5944d1962f5e',
 
-  /** Default scopes (관찰 대상 — 이후 authorize flow 구현 시 실측으로 보정) */
-  defaultScopes: ['org:create_api_key', 'user:profile', 'user:inference'],
+  /**
+   * Default scopes — pi-ai (`@mariozechner/pi-ai`)가 요청하는 6-scope baseline.
+   * `user:sessions:claude_code`, `user:mcp_servers`, `user:file_upload` 3개가
+   * 추가되면서 pi-ai와 일치. 이슈 #83의 invalid_grant 회귀 의심 변수 중 scope
+   * 차이가 후보였고, baseline 정렬로 그 변수를 제거한다.
+   */
+  defaultScopes: [
+    'org:create_api_key',
+    'user:profile',
+    'user:inference',
+    'user:sessions:claude_code',
+    'user:mcp_servers',
+    'user:file_upload',
+  ],
 
   /** Response type for authorization code flow */
   responseType: 'code',

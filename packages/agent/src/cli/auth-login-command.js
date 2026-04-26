@@ -172,12 +172,8 @@ async function runClaudeLogin(args) {
     return;
   }
 
-  if (options.manual) {
-    console.log('claude manual paste 경로는 아직 제공하지 않습니다.');
-    console.log('대신 로컬 callback 경로를 사용하세요: token-weather auth login claude');
-    return;
-  }
-
+  // Claude `--manual`은 runOAuthLoginFlow의 공통 manual 분기로 처리된다
+  // (login-runner.js::runManualPasteFlow). Codex와 동일한 spec 기반 흐름.
   await runOAuthLoginFlow(CLAUDE_LOGIN_SPEC, options);
 }
 

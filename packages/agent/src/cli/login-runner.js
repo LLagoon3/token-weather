@@ -2,6 +2,7 @@ import {
   prepareLocalhostCallback,
   startLocalhostCallbackServer,
 } from '../auth/localhost-callback.js';
+import { readManualPasteInput, extractCodeFromPaste } from '../auth/manual-paste.js';
 import {
   loadAuthStore,
   saveAuthStore,
@@ -83,6 +84,19 @@ export async function runOAuthLoginFlow(spec, options) {
   console.log('브라우저에서 열 URL:');
   console.log(`  ${authorizationUrl}`);
   console.log('');
+
+  if (options.manual) {
+    await runManualPasteFlow(spec, {
+      callbackUrl,
+      codeVerifier,
+      state,
+      liveExchange: options.liveExchange ?? false,
+      label: options.label ?? null,
+      keepLegacy: options.keepLegacy ?? false,
+    });
+    return;
+  }
+
   console.log('로그인 완료 후 localhost callback 서버가 code/state 수신을 대기 중입니다...');
 
   try {
@@ -116,6 +130,68 @@ export async function runOAuthLoginFlow(spec, options) {
     console.log('');
     console.log(`콜백 수신 실패: ${err.message}`);
   }
+}
+
+/**
+ * `--manual` 흐름: 사용자가 브라우저에서 OAuth를 완료한 뒤 callback URL 또는
+ * authorization code를 stdin에 paste한다. localhost callback server를 띄우지
+ * 않으므로 SSH / 컨테이너 / 포트 충돌 환경에서 사용 가능.
+ *
+ * spec.supportsMockCallback이 false인 provider(e.g. Claude)는 --live-exchange
+ * 없이 호출되면 mock 저장 없이 안내 메시지로 종료.
+ *
+ * `deps.readPaste` — 테스트 주입용 (기본: readManualPasteInput).
+ *
+ * @param {LoginProviderSpec} spec
+ * @param {{ callbackUrl: string, codeVerifier: string, state: string, liveExchange: boolean, label?: string|null, keepLegacy?: boolean }} options
+ * @param {{ readPaste?: () => Promise<{ type: 'url' | 'code', value: string }> }} [deps]
+ */
+export async function runManualPasteFlow(spec, {
+  callbackUrl,
+  codeVerifier,
+  state,
+  liveExchange,
+  label,
+  keepLegacy,
+}, deps = {}) {
+  const readPaste = deps.readPaste ?? readManualPasteInput;
+
+  console.log('manual paste 모드입니다.');
+  console.log('로그인 완료 후 callback URL 전체 또는 code를 붙여넣어 주세요.');
+  console.log('');
+
+  const pasteResult = await readPaste();
+  const extracted = extractAndValidateManualPaste(pasteResult, state);
+
+  if (extracted.error || !extracted.code) {
+    console.log('');
+    console.log(`입력 처리 실패: ${extracted.error ?? 'unknown-error'}`);
+    return;
+  }
+
+  console.log('');
+  console.log(`code 수신 완료: ${extracted.code}`);
+
+  if (liveExchange) {
+    await runLiveExchangeStep(spec, {
+      code: extracted.code,
+      callbackUrl,
+      codeVerifier,
+      state,
+      label,
+      keepLegacy,
+    });
+    return;
+  }
+
+  if (spec.supportsMockCallback && spec.saveMockAccount) {
+    await spec.saveMockAccount({ code: extracted.code });
+    return;
+  }
+
+  console.log('');
+  console.log('--live-exchange가 없으므로 token 교환을 생략합니다.');
+  console.log('실제 토큰 저장이 필요하면 --live-exchange 옵션을 추가해 재실행하세요.');
 }
 
 async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, state, label, keepLegacy }) {
@@ -319,4 +395,29 @@ export function parseLoginOptions(args) {
     collectWarnings: true,
     includeHelp: true,
   });
+}
+
+/**
+ * `extractCodeFromPaste` 결과에 OAuth state 검증을 추가한 순수 함수.
+ *
+ * - raw code paste(`pasteResult.type === 'code'`)는 state가 없어 expectedState로
+ *   채워 통과시킨다 (callback URL이 너무 길어 paste 어려운 환경에서 raw code만으로
+ *   사용 가능하도록 하는 의도된 관용).
+ * - URL paste의 state가 expected와 다르면 `error: 'state-mismatch'`로 실패.
+ *
+ * @param {{ type: 'url' | 'code', value: string, error?: string }} pasteResult
+ * @param {string} expectedState
+ * @returns {{ code: string | null, state: string | null, error: string | null }}
+ */
+export function extractAndValidateManualPaste(pasteResult, expectedState) {
+  const extracted = extractCodeFromPaste(pasteResult);
+  if (extracted.error || !extracted.code) return extracted;
+  if (extracted.state && extracted.state !== expectedState) {
+    return { code: null, state: extracted.state, error: 'state-mismatch' };
+  }
+  return {
+    code: extracted.code,
+    state: extracted.state ?? expectedState,
+    error: null,
+  };
 }
