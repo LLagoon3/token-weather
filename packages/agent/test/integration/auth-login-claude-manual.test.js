@@ -75,6 +75,62 @@ describe('runManualPasteFlow (Claude-like, supportsMockCallback=false, no liveEx
     assert.equal(mockSaveCalls, 0, 'Claude는 supportsMockCallback=false라 mock 저장 0회여야 함');
   });
 
+  it('URL paste matching state + liveExchange=true → spec.exchangeCode가 정확한 인자로 호출됨', async () => {
+    // manual paste의 핵심 사용자 가치는 callback URL paste → runLiveExchangeStep
+    // → spec.exchangeCode 호출 → 토큰 저장 경로다. exchangeCode가 throw하면
+    // runLiveExchangeStep의 try/catch가 잡아 '토큰을 저장하지 않습니다'로 깔끔히
+    // 종료하므로, 본 테스트는 exchangeCode 호출 인자만 검증하면 manual branch가
+    // 핵심 경로로 연결됨을 보장 (저장까지 가는 것은 createAccount/auth-store
+    // 흐름이라 별도 테스트 영역).
+    const calls = [];
+    const spec = {
+      ...CLAUDE_LIKE_SPEC,
+      endpointDescription: 'endpoint: claude.ai/oauth/token',
+      exchangeCode: async (args) => {
+        calls.push(args);
+        throw new Error('test-stop-after-exchange');
+      },
+    };
+
+    const cap = captureConsoleLog();
+    try {
+      await runManualPasteFlow(
+        spec,
+        {
+          callbackUrl: 'http://127.0.0.1:1455/callback',
+          codeVerifier: 'verifier-xyz',
+          state: 'state-abc',
+          liveExchange: true,
+          label: null,
+          keepLegacy: false,
+        },
+        {
+          readPaste: async () => ({
+            type: 'url',
+            value: 'http://127.0.0.1:1455/callback?code=manual-code&state=state-abc',
+          }),
+        },
+      );
+    } finally {
+      cap.restore();
+    }
+
+    assert.equal(calls.length, 1, 'exchangeCode가 정확히 1회 호출되어야 함');
+    assert.deepEqual(calls[0], {
+      code: 'manual-code',
+      callbackUrl: 'http://127.0.0.1:1455/callback',
+      codeVerifier: 'verifier-xyz',
+      state: 'state-abc',
+    });
+
+    const out = cap.lines.join('\n');
+    assert.match(out, /code 수신 완료: manual-code/);
+    assert.match(out, /--live-exchange 모드/);
+    // exchangeCode가 throw → runLiveExchangeStep catch → '토큰을 저장하지 않습니다'
+    assert.match(out, /live token exchange 실패: test-stop-after-exchange/);
+    assert.match(out, /토큰을 저장하지 않습니다\./);
+  });
+
   it('URL paste mismatching state → "state-mismatch" + saveMockAccount 호출 0회', async () => {
     let mockSaveCalls = 0;
     const spec = {
