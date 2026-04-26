@@ -21,6 +21,13 @@ describe('buildClaudeAuthorizationUrl', () => {
     assert.equal(`${url.origin}${url.pathname}`, CLAUDE_AUTH.authorizationEndpoint);
   });
 
+  it('matches the current pi-ai Anthropic authorize endpoint baseline', () => {
+    // pi-ai (@mariozechner/pi-ai)와 일치해야 invalid_grant 회귀(이슈 #83)
+    // 의심 변수가 줄어든다. 새 외부 baseline으로 회귀하면 본 테스트가 실패해
+    // 명시적 의사결정을 강제한다.
+    assert.equal(CLAUDE_AUTH.authorizationEndpoint, 'https://claude.ai/oauth/authorize');
+  });
+
   it('sets required OAuth query parameters', () => {
     const url = new URL(buildClaudeAuthorizationUrl(baseParams()));
     assert.equal(url.searchParams.get('response_type'), 'code');
