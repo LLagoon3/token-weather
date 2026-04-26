@@ -52,8 +52,18 @@ printf '\n$ token-weather config init\n'
 node "${BIN}" config init
 sleep 2
 
-# Step 3: auth login claude --manual (mock, no network)
-# Pipe a fake code so the manual paste flow completes without keyboard input.
+# Step 3: auth login claude --manual (no network)
+#
+# raw code paste 흐름:
+#   - PR #87 이후 Claude --manual이 동작. demo는 fake "raw code" 1줄을 paste해
+#     'manual paste 모드' → 'code 수신 완료: fake-demo-code' → '--live-exchange
+#     없으므로 token 교환을 생략' 시퀀스를 보여준다.
+#   - state 검증은 raw code paste에서는 expectedState로 채워 통과 (extractAnd
+#     ValidateManualPaste의 의도된 관용 — callback URL이 길어 paste 어려운 환경
+#     호환). callback URL paste 시에는 state mismatch면 'state-mismatch' 에러로
+#     조기 종료.
+#   - --live-exchange 없으므로 실 token 호출 0건, 저장 0건. demo의 시각적 가치는
+#     "manual flow가 실제로 동작함"을 보여주는 것.
 printf '\n$ echo "fake-demo-code" | token-weather auth login claude --manual\n'
 echo "fake-demo-code" | node "${BIN}" auth login claude --manual 2>/dev/null || true
 sleep 2.5
