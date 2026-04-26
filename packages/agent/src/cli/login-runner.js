@@ -84,6 +84,19 @@ export async function runOAuthLoginFlow(spec, options) {
   console.log('브라우저에서 열 URL:');
   console.log(`  ${authorizationUrl}`);
   console.log('');
+
+  if (options.manual) {
+    await runManualPasteFlow(spec, {
+      callbackUrl,
+      codeVerifier,
+      state,
+      liveExchange: options.liveExchange ?? false,
+      label: options.label ?? null,
+      keepLegacy: options.keepLegacy ?? false,
+    });
+    return;
+  }
+
   console.log('로그인 완료 후 localhost callback 서버가 code/state 수신을 대기 중입니다...');
 
   try {
@@ -117,6 +130,60 @@ export async function runOAuthLoginFlow(spec, options) {
     console.log('');
     console.log(`콜백 수신 실패: ${err.message}`);
   }
+}
+
+/**
+ * `--manual` 흐름: 사용자가 브라우저에서 OAuth를 완료한 뒤 callback URL 또는
+ * authorization code를 stdin에 paste한다. localhost callback server를 띄우지
+ * 않으므로 SSH / 컨테이너 / 포트 충돌 환경에서 사용 가능.
+ *
+ * spec.supportsMockCallback이 false인 provider(e.g. Claude)는 --live-exchange
+ * 없이 호출되면 mock 저장 없이 안내 메시지로 종료.
+ */
+async function runManualPasteFlow(spec, {
+  callbackUrl,
+  codeVerifier,
+  state,
+  liveExchange,
+  label,
+  keepLegacy,
+}) {
+  console.log('manual paste 모드입니다.');
+  console.log('로그인 완료 후 callback URL 전체 또는 code를 붙여넣어 주세요.');
+  console.log('');
+
+  const pasteResult = await readManualPasteInput();
+  const extracted = extractAndValidateManualPaste(pasteResult, state);
+
+  if (extracted.error || !extracted.code) {
+    console.log('');
+    console.log(`입력 처리 실패: ${extracted.error ?? 'unknown-error'}`);
+    return;
+  }
+
+  console.log('');
+  console.log(`code 수신 완료: ${extracted.code}`);
+
+  if (liveExchange) {
+    await runLiveExchangeStep(spec, {
+      code: extracted.code,
+      callbackUrl,
+      codeVerifier,
+      state,
+      label,
+      keepLegacy,
+    });
+    return;
+  }
+
+  if (spec.supportsMockCallback && spec.saveMockAccount) {
+    await spec.saveMockAccount({ code: extracted.code });
+    return;
+  }
+
+  console.log('');
+  console.log('--live-exchange가 없으므로 token 교환을 생략합니다.');
+  console.log('실제 토큰 저장이 필요하면 --live-exchange 옵션을 추가해 재실행하세요.');
 }
 
 async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, state, label, keepLegacy }) {
