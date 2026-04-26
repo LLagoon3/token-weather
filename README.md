@@ -62,7 +62,7 @@ token-weather auth import claude                                   # Claude CLI 
 token-weather config init                                          # 설정 파일 생성
 ```
 
-`--live-exchange` 없이 \`auth login\`은 mock 저장만 수행 (실제 token 호출 차단). `--label`로 저장된 계정에 친화적 이름 부여 → 이후 `--account <label>`로 참조.
+`--live-exchange` 없이 `auth login`은 mock 저장만 수행 (실제 token 호출 차단). `--label`로 저장된 계정에 친화적 이름 부여 → 이후 `--account <label>`로 참조.
 
 ## JSON 출력 (자동화)
 
