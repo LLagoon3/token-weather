@@ -51,8 +51,20 @@ export const CLAUDE_AUTH = {
    */
   observedClientId: '9d1c250a-e61b-44d9-88ed-5944d1962f5e',
 
-  /** Default scopes (관찰 대상 — 이후 authorize flow 구현 시 실측으로 보정) */
-  defaultScopes: ['org:create_api_key', 'user:profile', 'user:inference'],
+  /**
+   * Default scopes — pi-ai (`@mariozechner/pi-ai`)가 요청하는 6-scope baseline.
+   * `user:sessions:claude_code`, `user:mcp_servers`, `user:file_upload` 3개가
+   * 추가되면서 pi-ai와 일치. 이슈 #83의 invalid_grant 회귀 의심 변수 중 scope
+   * 차이가 후보였고, baseline 정렬로 그 변수를 제거한다.
+   */
+  defaultScopes: [
+    'org:create_api_key',
+    'user:profile',
+    'user:inference',
+    'user:sessions:claude_code',
+    'user:mcp_servers',
+    'user:file_upload',
+  ],
 
   /** Response type for authorization code flow */
   responseType: 'code',
