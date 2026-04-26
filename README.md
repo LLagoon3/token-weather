@@ -28,6 +28,14 @@ token-weather status                     # 인증 / 사용량 / 만료까지 한
 token-weather status --json | jq         # 자동화/대시보드용 정규화 JSON
 ```
 
+## Demo
+
+<!-- TOKEN_WEATHER_DEMO_PLACEHOLDER: docs/assets/demo.svg는 후속 이슈에서 추가 예정.
+     녹화 방법: bash scripts/record-demo.sh (asciinema + agg 필요).
+     녹화는 격리된 HOME에서 자동 수행, SVG 결과물에 토큰 누출 grep 검증까지 포함. -->
+
+`token-weather` 첫 1분 흐름은 `bash scripts/record-demo.sh`로 직접 녹화할 수 있습니다 ([asciinema](https://asciinema.org/) + [agg](https://github.com/asciinema/agg) 필요). 녹화는 격리된 HOME에서 수행되고, SVG 결과물은 publish 전 토큰 패턴 자동 검증을 거칩니다.
+
 ## What & Why
 
 - **무엇**: AI 도구의 OAuth credential과 사용량 window를 로컬에서 통합 조회하는 CLI. Codex(OpenAI) / Claude(Anthropic) 두 provider 운영 중.
