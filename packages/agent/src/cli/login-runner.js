@@ -139,20 +139,28 @@ export async function runOAuthLoginFlow(spec, options) {
  *
  * spec.supportsMockCallback이 false인 provider(e.g. Claude)는 --live-exchange
  * 없이 호출되면 mock 저장 없이 안내 메시지로 종료.
+ *
+ * `deps.readPaste` — 테스트 주입용 (기본: readManualPasteInput).
+ *
+ * @param {LoginProviderSpec} spec
+ * @param {{ callbackUrl: string, codeVerifier: string, state: string, liveExchange: boolean, label?: string|null, keepLegacy?: boolean }} options
+ * @param {{ readPaste?: () => Promise<{ type: 'url' | 'code', value: string }> }} [deps]
  */
-async function runManualPasteFlow(spec, {
+export async function runManualPasteFlow(spec, {
   callbackUrl,
   codeVerifier,
   state,
   liveExchange,
   label,
   keepLegacy,
-}) {
+}, deps = {}) {
+  const readPaste = deps.readPaste ?? readManualPasteInput;
+
   console.log('manual paste 모드입니다.');
   console.log('로그인 완료 후 callback URL 전체 또는 code를 붙여넣어 주세요.');
   console.log('');
 
-  const pasteResult = await readManualPasteInput();
+  const pasteResult = await readPaste();
   const extracted = extractAndValidateManualPaste(pasteResult, state);
 
   if (extracted.error || !extracted.code) {
