@@ -5,11 +5,13 @@
   "license": "Apache-2.0",
   "type": "module",
   "main": "./src/index.js",
+  "types": "./dist/types/index.d.ts",
   "files": [
     "src",
     "usage-event.schema.json",
     "usage-snapshot.schema.json",
-    "examples"
+    "examples",
+    "dist/types"
   ],
   "publishConfig": {
     "access": "public"
