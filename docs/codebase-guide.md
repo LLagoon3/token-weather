@@ -9,6 +9,7 @@
 - `docs/auth-cli.md` — auth CLI 명령 / 정책
 - `docs/provider-notes.md` — provider별 observed 값과 endpoint
 - `docs/typescript-consumers.md` — `.d.ts` 동봉 정책 + JSDoc 보강 시 따를 규약
+- `docs/release-policy.md` — semver / SCHEMA_VERSION / CHANGELOG 운영 규약 (사용자-가시 변경 PR 필독)
 
 ---
 
