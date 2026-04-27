@@ -89,5 +89,36 @@ for pkg in @token-weather/cli @token-weather/provider-adapters @token-weather/sc
 done
 echo "  ✓ 3 패키지 d.ts 모두 존재"
 
+echo "▶ 6. ESM root import 해상도 검증"
+# tmp 프로젝트의 root에서 3 패키지를 직접 import — 실제 publish/install 환경의
+# resolution 흐름과 동일. 단순 import 가능성과 알려진 named export 한 개의
+# shape 까지만 검증하고 함수는 호출하지 않는다 (side effect 회피).
+cat > "$TMP/import-check.mjs" <<'MJS'
+import { SCHEMA_VERSION, validateUsageSnapshot } from '@token-weather/schemas';
+import * as adapters from '@token-weather/provider-adapters';
+import * as cli from '@token-weather/cli';
+
+const failures = [];
+if (typeof SCHEMA_VERSION !== 'string') {
+  failures.push(`SCHEMA_VERSION expected string, got ${typeof SCHEMA_VERSION}`);
+}
+if (typeof validateUsageSnapshot !== 'function') {
+  failures.push(`validateUsageSnapshot expected function, got ${typeof validateUsageSnapshot}`);
+}
+if (typeof adapters !== 'object' || adapters === null || Object.keys(adapters).length === 0) {
+  failures.push('@token-weather/provider-adapters resolved but exports look empty');
+}
+if (typeof cli !== 'object' || cli === null || Object.keys(cli).length === 0) {
+  failures.push('@token-weather/cli resolved but exports look empty');
+}
+if (failures.length > 0) {
+  for (const f of failures) console.error('❌', f);
+  process.exit(1);
+}
+MJS
+
+HOME="$TMP_HOME" NO_COLOR=1 node "$TMP/import-check.mjs"
+echo "  ✓ 3 패키지 ESM root import OK"
+
 echo ""
 echo "✓ install smoke passed"

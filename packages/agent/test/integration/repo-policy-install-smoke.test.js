@@ -52,6 +52,11 @@ describe('repo-policy/install-smoke — script (PR #75)', () => {
     assert.match(text, /token-weather.*--help|--help.*token-weather|"\$BIN" --help/);
     // d.ts 검증 단계
     assert.match(text, /dist\/types\/index\.d\.ts/);
+    // ESM root import 해상도 검증 단계 (PR #90 review follow-up)
+    assert.match(text, /import-check\.mjs/);
+    assert.match(text, /from '@token-weather\/cli'/);
+    assert.match(text, /from '@token-weather\/schemas'/);
+    assert.match(text, /from '@token-weather\/provider-adapters'/);
   });
 });
 
