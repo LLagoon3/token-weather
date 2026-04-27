@@ -1,0 +1,39 @@
+name: Release
+
+# dev 브랜치 push 시 누적된 .changeset/*.md 를 모아 release PR(version bump +
+# CHANGELOG entry)을 자동 생성/갱신한다. 본 워크플로는 release PR 작성까지만
+# 책임진다 — 실제 npm publish 자동화는 #76에서 'publish' step 추가 예정.
+#
+# 정책 / 카테고리 / SCHEMA_VERSION 기준은 docs/release-policy.md.
+
+on:
+  push:
+    branches: [dev]
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install --no-package-lock
+
+      - uses: changesets/action@v1
+        with:
+          version: npx changeset version
+          # publish step은 #76(릴리스 자동화)에서 추가
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
