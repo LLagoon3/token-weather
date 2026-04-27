@@ -13,7 +13,7 @@ npm install @token-weather/schemas @token-weather/provider-adapters
 ```ts
 import { getStatusSnapshot } from '@token-weather/cli';
 import { validateUsageSnapshot, SCHEMA_VERSION } from '@token-weather/schemas';
-import { fetchClaudeUsage } from '@token-weather/provider-adapters/src/claude/fetch-claude-usage.js';
+import { fetchClaudeUsage } from '@token-weather/provider-adapters';
 
 const snapshot = await getStatusSnapshot({ providerFilter: 'claude' });
 //    ^? StatusSnapshot — schemaVersion / configPath / providers / claude? / ...
@@ -21,6 +21,8 @@ const snapshot = await getStatusSnapshot({ providerFilter: 'claude' });
 const result = validateUsageSnapshot(payload);
 //    ^? { valid: boolean; errors: string[] }
 ```
+
+> **Import 경로 규약**: 본 PR이 보장하는 타입 계약은 **각 패키지의 root entry**(`package.json::types`가 가리키는 `./dist/types/index.d.ts`) 기준입니다. 위 예시는 모두 `@token-weather/{cli,schemas,provider-adapters}` root에서 import. **subpath import**(`@token-weather/provider-adapters/src/claude/fetch-claude-usage.js` 같은 형태)는 동작은 하지만 본 PR의 타입 계약에 포함되지 않으며, 향후 `exports`/`typesVersions` 도입 시 별도 설계가 필요합니다. 안정적인 사용은 root import를 우선하세요.
 
 ## 타입 동봉 정책
 
@@ -106,5 +108,6 @@ code .
 ## 한계
 
 - 본 d.ts emission은 **JSDoc 커버리지에 의존**합니다. 미보강 export는 정확한 타입을 받지 못합니다 (any로 노출).
+- **타입 계약 범위는 package root entry만**: `package.json::types`가 가리키는 `./dist/types/index.d.ts`만 stable. subpath import (`@token-weather/.../src/...`)는 동작하지만 본 PR scope 외이고, 후속에서 `exports` 필드와 `typesVersions`로 공식 지원 여부 결정 (현재 main 사용 중이라 도입은 별도 PR로).
 - TypeScript 자체 컨버전은 본 정책 범위가 아닙니다.
 - 자동 sanity check (CI에 외부 TS project 컴파일 step) 도입은 후속 이슈에서 검토 (T2 #75 install smoke와 함께 묶일 수 있음).
