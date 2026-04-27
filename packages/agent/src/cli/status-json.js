@@ -112,9 +112,16 @@ export function redactSensitive(value) {
  * provider id는 `--provider <id>`가 받는 registry id(`codex`/`claude`)와 동일.
  * 출력 line 끝에 newline은 붙이지 않는다 (호출자가 결정).
  *
- * @param {object} snapshot - getStatusSnapshot 결과
- * @param {{ command?: string, generatedAt?: string|Date }} [meta]
- * @returns {string}
+ * @param {{
+ *   schemaVersion?: string,
+ *   configPath?: string,
+ *   accountFilter?: string|null,
+ *   providerFilter?: string|null,
+ *   codex?: object,
+ *   claude?: object
+ * }} snapshot - `getStatusSnapshot` 결과 (`StatusSnapshot` typedef과 동일 shape).
+ * @param {{ command?: 'status'|'usage', generatedAt?: string|Date }} [meta]
+ * @returns {string} single-line JSON.
  */
 export function formatStatusJson(snapshot, meta = {}) {
   const command = meta.command ?? 'status';

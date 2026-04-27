@@ -6,6 +6,12 @@ import { runAuthListCommand, formatAuthListHelp } from './auth-list-command.js';
 import { runAuthLogoutCommand, formatAuthLogoutHelp } from './auth-logout-command.js';
 import { runAuthImportCommand, formatAuthImportHelp } from './auth-import-command.js';
 
+/**
+ * CLI 진입점. `bin/token-weather.js`가 process.argv.slice(2)를 그대로 전달.
+ *
+ * @param {string[]} argv - CLI 인자 배열 (`['status', '--json']` 등).
+ * @returns {Promise<void>} 모든 서브커맨드는 stdout/stderr로 출력하고 void 반환.
+ */
 export async function runCli(argv) {
   const [command = 'status', ...rest] = argv;
 
