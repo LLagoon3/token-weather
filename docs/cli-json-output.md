@@ -2,7 +2,7 @@
 
 `status` / `usage` 커맨드는 `--json` 플래그로 정규화된 JSON 한 줄을 stdout에 출력한다. 자동화 / 대시보드 / 백엔드 수집기가 텍스트 포매팅을 다시 파싱하지 않고 직접 소비할 수 있도록 한 명세다.
 
-이 문서는 출력 shape의 **stable contract**다. 변경 시 schema bump이 필요하다(현재 `schemaVersion`은 `packages/schemas`와 공유).
+이 문서는 출력 shape의 **stable contract**다. 변경 시 schema bump이 필요하다(현재 `schemaVersion`은 `packages/schemas`와 공유 — string semver, [docs/release-policy.md §3](./release-policy.md) 참고).
 
 ## 사용
 
@@ -23,7 +23,7 @@ token-weather status --json --account work@example.com --provider claude
 {
   "command": "status",
   "generatedAt": "2026-04-25T08:30:00.000Z",
-  "schemaVersion": 1,
+  "schemaVersion": "0.1.0",
   "configPath": "/home/user/.config/ai-usage-agent/config.json",
   "accountFilter": null,
   "providerFilter": null,
@@ -38,7 +38,7 @@ token-weather status --json --account work@example.com --provider claude
 | --- | --- | --- |
 | `command` | `"status"` \| `"usage"` | 호출된 커맨드 이름. |
 | `generatedAt` | ISO-8601 string | snapshot 직렬화 시각(client-side). |
-| `schemaVersion` | int \| null | `packages/schemas/src/index.js::SCHEMA_VERSION`을 그대로 통과. |
+| `schemaVersion` | string semver \| null | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.1.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
 | `configPath` | string \| null | resolved config 파일 경로. |
 | `accountFilter` | string \| null | `--account <id>` 입력 (case-insensitive 매치는 별도). |
 | `providerFilter` | string \| null | `--provider <id>` 입력. lowercase 정규화된 값. |

@@ -98,7 +98,7 @@ export function redactSensitive(value) {
  * {
  *   "command": "status" | "usage",
  *   "generatedAt": "<ISO-8601>",
- *   "schemaVersion": <int>,
+ *   "schemaVersion": <string semver>,
  *   "configPath": <string>,
  *   "accountFilter": <string|null>,
  *   "providerFilter": <string|null>,
