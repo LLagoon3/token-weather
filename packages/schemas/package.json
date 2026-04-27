@@ -29,5 +29,8 @@
     "ai",
     "usage",
     "schema"
-  ]
+  ],
+  "scripts": {
+    "build:types": "tsc -p ./tsconfig.json"
+  }
 }
