@@ -15,7 +15,7 @@ npx changeset
 2. bump type 선택 (major / minor / patch — 기준은 [docs/release-policy.md](../docs/release-policy.md))
 3. 사용자 노출 변경 요약 (한 줄 markdown)
 
-생성된 `.changeset/<random-name>.md`를 PR에 함께 commit합니다. dev로 머지되면 `changesets/action`이 누적된 changeset을 모아 release PR(version bump + CHANGELOG entry)을 자동 생성/갱신합니다.
+생성된 `.changeset/<random-name>.md`를 PR에 함께 commit합니다. dev로 머지되면 `changesets/action`이 누적된 changeset을 모아 release PR(`packages/*/package.json` version bump + `packages/*/CHANGELOG.md`)을 자동 생성/갱신합니다. root [CHANGELOG.md](../CHANGELOG.md)는 publish 시점에 수동으로 큐레이트되는 high-level 요약입니다 — 자세한 정책은 [docs/release-policy.md §4](../docs/release-policy.md) 참고.
 
 ## 규약
 

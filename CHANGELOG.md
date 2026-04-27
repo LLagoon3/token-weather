@@ -6,7 +6,7 @@
 
 ## [Unreleased]
 
-이 섹션은 [Changesets](https://github.com/changesets/changesets)가 PR 단위 changeset을 누적해 자동 갱신합니다. 사용자-가시 변경이 있는 PR은 `npx changeset` 으로 release note를 함께 commit 해주세요.
+이 섹션은 publish 시점에 root에서 **수동으로 큐레이트**합니다 — 3 패키지를 가로지르는 사용자-가시 변경의 high-level 요약. 패키지별 상세 release note는 [Changesets](https://github.com/changesets/changesets)가 `packages/*/CHANGELOG.md`를 자동 생성하고, 본 문서는 publish PR에서 그 내용을 참고해 채웁니다. 사용자-가시 변경이 있는 PR은 `npx changeset` 으로 changeset을 함께 commit 해주세요.
 
 ## [0.1.0] - 2026-04-27
 
@@ -18,9 +18,9 @@
 - Claude CLI credential import 경로 ([#16]) 및 stats-cache usage + live OAuth ([#19]).
 - multi-account 지원 — 병렬 조회, `--account` 필터, label + config default ([#43]).
 - `@token-weather/schemas` runtime validation (`validateUsageSnapshot`) ([#47]).
-- `auth refresh` 명령 + token claims 기반 계정 식별 + doctor 진단 경로 ([#6], [#43]).
+- `doctor <provider> --refresh-live` 진단 경로 + token claims 기반 계정 식별 ([#6], [#43]).
 - usage/status 조회 시 OAuth access token **자동 refresh** ([#57], [#58]).
-- CLI 서브커맨드 단위 `--help` (status / usage / doctor / auth login·logout·list·refresh / config init) ([#66]).
+- CLI 서브커맨드 단위 `--help` (status / usage / doctor / auth login·logout·list·import / config init) ([#66]).
 - `status` / `usage` 의 `--provider <id>` scope 옵션 (case-insensitive 정규화 포함) ([#67]).
 - `status` / `usage` 의 `--json` 출력 모드 — stable contract + token redaction ([#68]).
 - Claude `--manual` paste 흐름 + `--live-exchange` 흐름 통합 ([#87]).

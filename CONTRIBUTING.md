@@ -151,7 +151,7 @@ PR 본문에는 최소한 아래 내용을 포함한다.
 npx changeset
 ```
 
-대화형 프롬프트가 (1) 영향받는 패키지 (3개 publishable이 linked되어 있어 셋이 같은 bump를 받음) (2) bump type (major / minor / patch) (3) 사용자 노출 변경 한 줄 요약을 묻는다. 생성된 `.changeset/<random-name>.md`를 PR에 함께 commit하면 dev 머지 시 `changesets/action`이 누적된 changeset을 모아 release PR을 자동 생성/갱신한다.
+대화형 프롬프트가 (1) 영향받는 패키지 (3개 publishable이 linked되어 있어 셋이 같은 bump를 받음) (2) bump type (major / minor / patch) (3) 사용자 노출 변경 한 줄 요약을 묻는다. 생성된 `.changeset/<random-name>.md`를 PR에 함께 commit하면 dev 머지 시 `changesets/action`이 누적된 changeset을 모아 release PR을 자동 생성/갱신한다 — 이때 `packages/<name>/CHANGELOG.md`가 자동 생성된다. root [CHANGELOG.md](./CHANGELOG.md)는 publish 시점에 release PR 작성자가 per-package CHANGELOG를 참고해 수동으로 큐레이트한다.
 
 - bump type 기준은 [docs/release-policy.md](./docs/release-policy.md). 모르면 PR 본문에 후보를 적고 리뷰에서 결정.
 - chore / docs only PR은 changeset 추가 안 함. CHANGELOG는 사용자 영향이 있는 변경만 기록.

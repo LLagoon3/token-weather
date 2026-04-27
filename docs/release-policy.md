@@ -89,7 +89,12 @@ contract는 [docs/cli-json-output.md](./cli-json-output.md)에 stable로 명시�
 
 ## 4. CHANGELOG 운영
 
-[CHANGELOG.md](../CHANGELOG.md) 카테고리:
+CHANGELOG는 두 layer로 운영한다 — Changesets 기본 동작에 맞춰서.
+
+- **`packages/<name>/CHANGELOG.md`** (auto): `changesets/action`의 `version` step이 누적된 changeset을 소비해 각 publishable package에 자동 생성/갱신. PR 본문 + bump type이 그대로 반영된다.
+- **루트 [CHANGELOG.md](../CHANGELOG.md)** (manual curated): 3 패키지를 가로지르는 사용자-가시 변경의 high-level 요약. publish 시점에 release PR 작성자가 per-package CHANGELOG들을 참고해 수동으로 채운다. 카테고리 정의는 아래.
+
+루트 CHANGELOG 카테고리:
 
 - **Added** — 신규 export / flag / provider / 명령
 - **Changed** — 기존 동작의 visible behavior 변경 (semver의 minor/major 트리거가 됨)
@@ -99,16 +104,19 @@ contract는 [docs/cli-json-output.md](./cli-json-output.md)에 stable로 명시�
 - **Security** — 보안 관련 변경 (redaction list 확장 / token 처리 보강 등)
 - **Internal** — 사용자에게 노출 안 되는 리팩터 / 테스트 / CI / 의존성. 이 카테고리는 **사용자 가독성 우선**으로 자동 생성된 minor 변경 위주이고, 큰 인프라 변경은 별도 entry로 두기.
 
-각 항목은 PR 번호 링크 + 한 줄 설명. 자세한 맥락은 PR description으로 위임.
+각 항목은 PR 번호 링크 + 한 줄 설명. 자세한 맥락은 PR description / per-package CHANGELOG로 위임.
+
+> **참고**: 향후 root CHANGELOG도 자동 집계가 필요해지면 `@changesets/changelog-github` 같은 custom changelog formatter + post-version 스크립트로 root에 모으는 step을 추가하는 방향으로 확장한다. 본 PR(#74) 시점에는 manual 운영.
 
 ## 5. release PR 흐름
 
 1. PR 작성자가 `npx changeset` 실행 → `.changeset/<name>.md` 생성 + commit.
-2. PR이 dev로 머지되면 `changesets/action`이 누적된 changeset을 모아 release PR(version bump + CHANGELOG entry)을 자동 생성/갱신.
-3. release PR을 검토 후 머지.
+2. PR이 dev로 머지되면 `changesets/action`이 누적된 changeset을 모아 release PR(`packages/*/package.json` version bump + `packages/*/CHANGELOG.md` 갱신)을 자동 생성/갱신.
+3. release PR을 검토하면서 root [CHANGELOG.md](../CHANGELOG.md)의 `[Unreleased]` 섹션을 per-package 변경 요약 기준으로 **수동** 갱신 후 머지.
 4. 실제 npm publish는 `#76`(릴리스 자동화)에서 추가될 publish step이 처리. 본 PR(#74)은 release PR 생성까지.
 5. v1.0.0 이상에서는 dev → main 머지가 release tag와 연결.
 
 ## 6. 변경 이력
 
 - 2026-04-27 (#74): 초안 작성. v0.1.0 publish 직전 상태에서 정책 명문화.
+- 2026-04-28 (#74 review follow-up): root CHANGELOG는 수동 큐레이트, per-package CHANGELOG는 Changesets 자동 생성으로 layer 구분 명문화.
