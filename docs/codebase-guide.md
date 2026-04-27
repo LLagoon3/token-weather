@@ -8,6 +8,7 @@
 - `docs/auth-architecture.md` — 인증 상세 설계
 - `docs/auth-cli.md` — auth CLI 명령 / 정책
 - `docs/provider-notes.md` — provider별 observed 값과 endpoint
+- `docs/typescript-consumers.md` — `.d.ts` 동봉 정책 + JSDoc 보강 시 따를 규약
 
 ---
 
