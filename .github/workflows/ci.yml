@@ -24,3 +24,23 @@ jobs:
       - run: npm run build:types
 
       - run: npm test
+
+  install-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install --no-package-lock
+
+      - run: bash ./scripts/install-smoke.sh
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-smoke-packs
+          path: packs/
+          retention-days: 7
