@@ -143,7 +143,20 @@ PR 본문에는 최소한 아래 내용을 포함한다.
 - PR / issue 본문에 access token / refresh token / id token / session cookie / accountKey 같은 민감값을 절대 첨부하지 않는다. 실수로 노출한 경우 즉시 revoke 후 재발급한다(절차는 SECURITY.md).
 - 새로운 토큰성 필드를 provider adapter / auth schema에 도입하는 PR은 동일 PR 안에서 `packages/agent/src/cli/status-json.js::SENSITIVE_KEYS`를 갱신하고 redaction 회귀 테스트를 추가한다 (`docs/cli-json-output.md` §한계 참고).
 
-## 8. 기여자 라이선스
+## 8. Release / changeset
+
+사용자-가시 변경(public API / CLI / `--json` shape / d.ts 등)을 포함하는 PR은 [Changesets](https://github.com/changesets/changesets)로 release note를 함께 commit한다.
+
+```bash
+npx changeset
+```
+
+대화형 프롬프트가 (1) 영향받는 패키지 (3개 publishable이 linked되어 있어 셋이 같은 bump를 받음) (2) bump type (major / minor / patch) (3) 사용자 노출 변경 한 줄 요약을 묻는다. 생성된 `.changeset/<random-name>.md`를 PR에 함께 commit하면 dev 머지 시 `changesets/action`이 누적된 changeset을 모아 release PR을 자동 생성/갱신한다.
+
+- bump type 기준은 [docs/release-policy.md](./docs/release-policy.md). 모르면 PR 본문에 후보를 적고 리뷰에서 결정.
+- chore / docs only PR은 changeset 추가 안 함. CHANGELOG는 사용자 영향이 있는 변경만 기록.
+
+## 9. 기여자 라이선스
 
 이 저장소는 [Apache License 2.0](./LICENSE)으로 배포됩니다.
 
