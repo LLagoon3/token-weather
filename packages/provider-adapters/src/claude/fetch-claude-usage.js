@@ -24,6 +24,17 @@ const PROVIDER_ID = 'anthropic-claude';
  *
  * @param {{ id: string, accessToken: string, accountId?: string|null, email?: string|null }} profile
  * @param {{ fetchImpl?: typeof fetch, capturedAt?: Date, timeoutMs?: number }} [options]
+ * @returns {Promise<{
+ *   source: string,
+ *   authType: string,
+ *   confidence: 'high'|'medium'|'low',
+ *   capturedAt: string,
+ *   provider: { id: string, displayName: string },
+ *   account: object,
+ *   status: { ok: boolean, httpStatus: number|null, bucket: string, message?: string|null },
+ *   usageWindows: Array<{ kind: string, usedPercent: number|null, resetAt: string|null }>,
+ *   raw?: object
+ * }>} 정규화된 usage snapshot. 실패 시 `status.ok: false` + `usageWindows: []`.
  */
 export async function fetchClaudeUsage(profile, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;

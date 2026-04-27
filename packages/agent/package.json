@@ -8,9 +8,11 @@
     "token-weather": "./bin/token-weather.js"
   },
   "main": "./src/index.js",
+  "types": "./dist/types/index.d.ts",
   "files": [
     "bin",
-    "src"
+    "src",
+    "dist/types"
   ],
   "publishConfig": {
     "access": "public"
@@ -44,6 +46,7 @@
   "scripts": {
     "dev": "node ./bin/token-weather.js status",
     "status": "node ./bin/token-weather.js status",
-    "doctor": "node ./bin/token-weather.js doctor"
+    "doctor": "node ./bin/token-weather.js doctor",
+    "build:types": "tsc -p ./tsconfig.json"
   }
 }

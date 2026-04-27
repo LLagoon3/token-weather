@@ -19,6 +19,10 @@
     "cli:status": "node ./packages/agent/bin/token-weather.js status",
     "cli:usage": "node ./packages/agent/bin/token-weather.js usage",
     "cli:doctor": "node ./packages/agent/bin/token-weather.js doctor",
-    "cli:config:init": "node ./packages/agent/bin/token-weather.js config init"
+    "cli:config:init": "node ./packages/agent/bin/token-weather.js config init",
+    "build:types": "npm -w @token-weather/schemas run build:types && npm -w @token-weather/provider-adapters run build:types && npm -w @token-weather/cli run build:types"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
   }
 }

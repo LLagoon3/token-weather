@@ -27,6 +27,15 @@ const CLIENT_ID_NOTE =
  *   tokenEndpoint?: string,
  *   fetchImpl?: typeof fetch,
  * }} params
+ * @returns {Promise<{
+ *   accessToken: string,
+ *   refreshToken: string|null,
+ *   idToken: string|null,
+ *   expiresIn: number|null,
+ *   tokenType: string|null,
+ *   scope: string|null
+ * }>} 정규화된 token 응답 shape (`shared/oauth-token-endpoint.js::postToTokenEndpoint`가 제공).
+ *   `allowLiveExchange: false`(기본값) 시 `liveExchangeDisabledError` throw.
  */
 export async function exchangeClaudeAuthorizationCode({
   code,
