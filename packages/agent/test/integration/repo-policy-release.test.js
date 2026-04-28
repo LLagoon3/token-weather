@@ -95,10 +95,36 @@ describe('repo-policy/release — release workflow (PR #74)', () => {
     assert.match(text, /uses:\s*changesets\/action/);
   });
 
-  it('release.yml 에 publish step 이 아직 없다 (의도적 — #76 범위)', () => {
+  // #76에서 publish step 활성화. 'publish: <command>' yaml key 가 changesets/
+  // action with: 블록에 들어오면 release PR 머지 시 실제 npm publish 실행.
+  it('release.yml 에 publish step 이 활성화되어 있다 (#76)', () => {
     const text = readText('.github/workflows/release.yml');
-    // 'publish: <command>' 형태의 yaml key가 changesets/action with: 블록에
-    // 들어오는 순간 실제 npm publish가 실행됨. 본 PR(#74)에서는 명시적 미포함.
-    assert.equal(/^\s*publish:\s*\S/m.test(text), false);
+    assert.match(text, /^\s*publish:\s+npx\s+changeset\s+publish/m);
+  });
+
+  it('release.yml 이 NPM_TOKEN 을 changesets/action env 로 주입한다 (#76)', () => {
+    const text = readText('.github/workflows/release.yml');
+    assert.match(text, /NPM_TOKEN:\s*\$\{\{\s*secrets\.NPM_TOKEN\s*\}\}/);
+  });
+
+  // publish 직전 안전벨트로 install smoke 스크립트 재호출 (#75 산출물).
+  // 도메인 분리: ci.yml install-smoke job 검증은 repo-policy-install-smoke.test.js,
+  // 본 단언은 release.yml 의 publish-time 호출만 가드한다.
+  it('release.yml 이 publish 직전 install smoke 를 호출한다 (#76)', () => {
+    const text = readText('.github/workflows/release.yml');
+    assert.match(text, /bash\s+\.\/scripts\/install-smoke\.sh/);
+  });
+
+  // npm publish provenance (OIDC) — #77 을 #76 에 흡수.
+  // id-token: write 권한 + NPM_CONFIG_PROVENANCE: 'true' 가 함께 있어야
+  // changesets 가 호출하는 npm publish 에 supply chain attestation 적용.
+  it('release.yml job 이 id-token: write 권한을 갖는다 (#77 provenance)', () => {
+    const text = readText('.github/workflows/release.yml');
+    assert.match(text, /^\s*id-token:\s*write/m);
+  });
+
+  it('release.yml 이 NPM_CONFIG_PROVENANCE 를 활성화한다 (#77 provenance)', () => {
+    const text = readText('.github/workflows/release.yml');
+    assert.match(text, /NPM_CONFIG_PROVENANCE:\s*['"]?true['"]?/);
   });
 });

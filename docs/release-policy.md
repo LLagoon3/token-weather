@@ -113,10 +113,12 @@ CHANGELOG는 두 layer로 운영한다 — Changesets 기본 동작에 맞춰서
 1. PR 작성자가 `npx changeset` 실행 → `.changeset/<name>.md` 생성 + commit.
 2. PR이 dev로 머지되면 `changesets/action`이 누적된 changeset을 모아 release PR(`packages/*/package.json` version bump + `packages/*/CHANGELOG.md` 갱신)을 자동 생성/갱신.
 3. release PR을 검토하면서 root [CHANGELOG.md](../CHANGELOG.md)의 `[Unreleased]` 섹션을 per-package 변경 요약 기준으로 **수동** 갱신 후 머지.
-4. 실제 npm publish는 `#76`(릴리스 자동화)에서 추가될 publish step이 처리. 본 PR(#74)은 release PR 생성까지.
-5. v1.0.0 이상에서는 dev → main 머지가 release tag와 연결.
+4. release PR 머지 시 `release.yml`이 `bash ./scripts/install-smoke.sh` 안전벨트(#75)를 한 번 더 실행하고, `changesets/action`의 publish step이 `npx changeset publish`로 npm registry에 자동 출판한다. 3 publishable 패키지(`@token-weather/cli` / `@token-weather/provider-adapters` / `@token-weather/schemas`)가 동일 version으로 출판된다(linked).
+5. publish 결과는 `changesets/action`이 GitHub Release 자동 생성 — release note는 per-package CHANGELOG 기반. v1.0.0 이상에서는 dev → main 머지가 release tag와 연결.
 
 ## 6. 변경 이력
 
 - 2026-04-27 (#74): 초안 작성. v0.1.0 publish 직전 상태에서 정책 명문화.
 - 2026-04-28 (#74 review follow-up): root CHANGELOG는 수동 큐레이트, per-package CHANGELOG는 Changesets 자동 생성으로 layer 구분 명문화.
+- 2026-04-28 (#76): publish step 활성화 — `release.yml`에 `npx changeset publish` + `NPM_TOKEN` 연결 + install smoke (#75) 안전벨트 재호출. release PR 머지 시 자동 npm publish.
+- 2026-04-28 (#76 + #77 통합): npm publish provenance 활성화 — `release.yml` job 에 `id-token: write` 권한 + changesets/action env 에 `NPM_CONFIG_PROVENANCE: 'true'` 추가. 첫 publish 부터 supply chain attestation 적용. (#77 별도 이슈는 본 PR 로 흡수 close.)
