@@ -27,9 +27,7 @@ export function generateState(bytes = 32) {
  */
 export function generatePkce(bytes = 32) {
   const codeVerifier = randomBytes(bytes).toString('base64url');
-  const codeChallenge = createHash('sha256')
-    .update(codeVerifier)
-    .digest('base64url');
+  const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
   return {
     codeVerifier,
     codeChallenge,
@@ -82,9 +80,10 @@ export async function prepareLocalhostCallback({
   });
 
   if (port == null) {
-    const reason = preferredPort != null
-      ? `지정된 포트 ${preferredPort}을(를) 사용할 수 없습니다.`
-      : '사용 가능한 콜백 포트를 찾지 못했습니다. manual paste 모드로 전환합니다.';
+    const reason =
+      preferredPort != null
+        ? `지정된 포트 ${preferredPort}을(를) 사용할 수 없습니다.`
+        : '사용 가능한 콜백 포트를 찾지 못했습니다. manual paste 모드로 전환합니다.';
     return { ready: false, params: null, reason, fallbackExhausted };
   }
 
@@ -174,7 +173,11 @@ export function startLocalhostCallbackServer({
     }
 
     timer = setTimeout(() => {
-      finish(new Error(`localhost callback 서버가 ${timeoutMs}ms 내에 응답을 받지 못해 타임아웃되었습니다.`));
+      finish(
+        new Error(
+          `localhost callback 서버가 ${timeoutMs}ms 내에 응답을 받지 못해 타임아웃되었습니다.`,
+        ),
+      );
     }, timeoutMs);
 
     server.listen(port, '127.0.0.1');

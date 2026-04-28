@@ -114,8 +114,10 @@ function identityFromClaims(claims, source, fallbackEmailDomain) {
     email: bestEmail,
     accountId: sub ?? null,
     displayName: name ?? preferredUsername ?? null,
-    claimSource: email ? `${source}:email`
-      : preferredUsername ? `${source}:preferred_username`
-      : `${source}:sub`,
+    claimSource: email
+      ? `${source}:email`
+      : preferredUsername
+        ? `${source}:preferred_username`
+        : `${source}:sub`,
   };
 }

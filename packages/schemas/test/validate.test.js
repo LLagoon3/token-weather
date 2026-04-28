@@ -16,16 +16,18 @@ function validSnapshot(overrides = {}) {
     data: {},
     rawText: '{}',
     fields: {
-      usageWindows: [{
-        kind: 'primary',
-        label: 'primary window',
-        usedPercent: 50,
-        usedAmount: null,
-        limitAmount: null,
-        remainingAmount: null,
-        windowSeconds: null,
-        resetAt: null,
-      }],
+      usageWindows: [
+        {
+          kind: 'primary',
+          label: 'primary window',
+          usedPercent: 50,
+          usedAmount: null,
+          limitAmount: null,
+          remainingAmount: null,
+          windowSeconds: null,
+          resetAt: null,
+        },
+      ],
       ...overrides,
     },
   });
@@ -56,13 +58,26 @@ describe('validateUsageSnapshot — valid data', () => {
   });
 
   it('accepts all standard status.bucket values', () => {
-    const buckets = ['ok', 'rate_limit', 'usage_window', 'billing', 'auth', 'auth_scope', 'overloaded', 'unknown'];
+    const buckets = [
+      'ok',
+      'rate_limit',
+      'usage_window',
+      'billing',
+      'auth',
+      'auth_scope',
+      'overloaded',
+      'unknown',
+    ];
     for (const bucket of buckets) {
       const snap = validSnapshot();
       snap.status.bucket = bucket;
       snap.status.ok = bucket === 'ok';
       const result = validateUsageSnapshot(snap);
-      assert.equal(result.valid, true, `bucket "${bucket}" should be valid. errors: ${result.errors}`);
+      assert.equal(
+        result.valid,
+        true,
+        `bucket "${bucket}" should be valid. errors: ${result.errors}`,
+      );
     }
   });
 });

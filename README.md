@@ -56,10 +56,10 @@ token-weather auth login claude --manual --live-exchange
 
 ## 지원 provider
 
-| Provider | OAuth 로그인 | Usage endpoint | Refresh | Status |
-| --- | --- | --- | --- | --- |
-| Codex (OpenAI) | ✓ `auth login codex --live-exchange` | `wham/usage` | ✓ | 운영 중 |
-| Claude (Anthropic) | ✓ `auth login claude --live-exchange` | `oauth/usage` | ✓ | 운영 중 |
+| Provider           | OAuth 로그인                          | Usage endpoint | Refresh | Status  |
+| ------------------ | ------------------------------------- | -------------- | ------- | ------- |
+| Codex (OpenAI)     | ✓ `auth login codex --live-exchange`  | `wham/usage`   | ✓       | 운영 중 |
+| Claude (Anthropic) | ✓ `auth login claude --live-exchange` | `oauth/usage`  | ✓       | 운영 중 |
 
 provider별 observed endpoint / client_id 상세는 [docs/provider-notes.md](./docs/provider-notes.md).
 

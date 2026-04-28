@@ -22,7 +22,13 @@ describe('selectClaudeAuthSource (via claude-provider)', () => {
 
 describe('buildClaudeSnapshot (via claude-provider)', () => {
   it('returns detected=false when no credentials and no agent accounts', () => {
-    const snap = buildClaudeSnapshot(FAKE_PATH, () => null, [], '/tmp/no-stats.json', () => null);
+    const snap = buildClaudeSnapshot(
+      FAKE_PATH,
+      () => null,
+      [],
+      '/tmp/no-stats.json',
+      () => null,
+    );
     assert.equal(snap.detected, false);
     assert.equal(snap.authSource, 'not-found');
     assert.equal(snap.usage.source, 'not-found');
@@ -131,10 +137,7 @@ describe('resolveClaudeProfileFromSnapshot (via claude-provider)', () => {
   });
 
   it('returns null when no accessToken anywhere', () => {
-    assert.equal(
-      resolveClaudeProfileFromSnapshot({ selectedAccount: { accountKey: 'x' } }),
-      null,
-    );
+    assert.equal(resolveClaudeProfileFromSnapshot({ selectedAccount: { accountKey: 'x' } }), null);
   });
 });
 
@@ -150,8 +153,14 @@ describe('getClaudeSnapshot — disabled config contract', () => {
 describe('filterEntriesByAccount (claude-provider)', () => {
   it('filters agent-store entry arrays by mapped profile fields', () => {
     const entries = [
-      { account: { accountKey: 'a' }, profile: { id: 'anthropic-claude:a', email: 'a@x.com', label: 'work' } },
-      { account: { accountKey: 'b' }, profile: { id: 'anthropic-claude:b', email: 'b@x.com', label: 'personal' } },
+      {
+        account: { accountKey: 'a' },
+        profile: { id: 'anthropic-claude:a', email: 'a@x.com', label: 'work' },
+      },
+      {
+        account: { accountKey: 'b' },
+        profile: { id: 'anthropic-claude:b', email: 'b@x.com', label: 'personal' },
+      },
     ];
 
     assert.equal(filterEntriesByAccount(entries, 'anthropic-claude:a').length, 1);

@@ -20,24 +20,25 @@ function jsonResponse({ status = 200, body = {} } = {}) {
 
 describe('fetchClaudeOauthProfile', () => {
   it('parses account, organization, application and identity fields', async () => {
-    const fetchImpl = async () => jsonResponse({
-      body: {
-        account: {
-          uuid: 'acct-123',
-          display_name: '라군',
-          full_name: '이석호',
-          email: 'lagoon@example.com',
+    const fetchImpl = async () =>
+      jsonResponse({
+        body: {
+          account: {
+            uuid: 'acct-123',
+            display_name: '라군',
+            full_name: '이석호',
+            email: 'lagoon@example.com',
+          },
+          organization: {
+            uuid: 'org-123',
+            name: 'Lagoon Org',
+          },
+          application: {
+            uuid: 'app-123',
+            name: 'Claude Code',
+          },
         },
-        organization: {
-          uuid: 'org-123',
-          name: 'Lagoon Org',
-        },
-        application: {
-          uuid: 'app-123',
-          name: 'Claude Code',
-        },
-      },
-    });
+      });
 
     const result = await fetchClaudeOauthProfile({
       accessToken: 'token-123',
@@ -62,29 +63,31 @@ describe('fetchClaudeOauthProfile', () => {
   });
 
   it('falls back to full_name when display_name is absent', async () => {
-    const fetchImpl = async () => jsonResponse({
-      body: {
-        account: {
-          uuid: 'acct-123',
-          full_name: '에버다임 IT팀',
-          email: 'everdigm@example.com',
+    const fetchImpl = async () =>
+      jsonResponse({
+        body: {
+          account: {
+            uuid: 'acct-123',
+            full_name: '에버다임 IT팀',
+            email: 'everdigm@example.com',
+          },
         },
-      },
-    });
+      });
 
     const result = await fetchClaudeOauthProfile({ accessToken: 'token-123', fetchImpl });
     assert.equal(result.displayName, '에버다임 IT팀');
   });
 
   it('throws descriptive error on non-2xx response', async () => {
-    const fetchImpl = async () => jsonResponse({
-      status: 403,
-      body: {
-        error: {
-          message: 'OAuth token does not meet scope requirement user:profile',
+    const fetchImpl = async () =>
+      jsonResponse({
+        status: 403,
+        body: {
+          error: {
+            message: 'OAuth token does not meet scope requirement user:profile',
+          },
         },
-      },
-    });
+      });
 
     await assert.rejects(
       () => fetchClaudeOauthProfile({ accessToken: 'token-123', fetchImpl }),
@@ -93,9 +96,6 @@ describe('fetchClaudeOauthProfile', () => {
   });
 
   it('throws when accessToken is empty', async () => {
-    await assert.rejects(
-      () => fetchClaudeOauthProfile({ accessToken: '' }),
-      /accessToken이 비어/,
-    );
+    await assert.rejects(() => fetchClaudeOauthProfile({ accessToken: '' }), /accessToken이 비어/);
   });
 });

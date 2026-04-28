@@ -7,6 +7,7 @@
 현재 이 패키지는 설치형 CLI 에이전트의 초기 버전이다.
 
 구현된 것:
+
 - CLI 엔트리포인트: `bin/token-weather.js`
 - 명령 라우팅 구조
 - 기본 설정 파일 생성 및 로딩
@@ -19,6 +20,7 @@
 - 공통 snapshot 스키마 기반 출력 흐름
 
 아직 미구현 또는 초기 상태:
+
 - Claude adapter 연결
 - `inspect <provider>` 상세 출력
 - `sync` 업로드 기능
@@ -85,6 +87,7 @@ node packages/agent/bin/token-weather.js status
 ```
 
 현재 기본 설정에는 아래 항목이 들어간다:
+
 - 출력 포맷
 - sync 사용 여부
 - provider 활성화 여부

@@ -55,9 +55,7 @@ describe('repo-policy/types — typescript devDep + base tsconfig (PR #73)', () 
 
   it('tsconfig.base.json 이 존재하며 emitDeclarationOnly + declaration 활성화', () => {
     assert.equal(repoFileExists('tsconfig.base.json'), true);
-    const base = JSON.parse(
-      fs.readFileSync(path.join(REPO_ROOT, 'tsconfig.base.json'), 'utf8'),
-    );
+    const base = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'tsconfig.base.json'), 'utf8'));
     assert.equal(base.compilerOptions?.declaration, true);
     assert.equal(base.compilerOptions?.emitDeclarationOnly, true);
     assert.equal(base.compilerOptions?.allowJs, true);
@@ -71,9 +69,7 @@ describe('repo-policy/types — 패키지별 tsconfig + types 필드 (PR #73)', 
     });
 
     it(`${label} 의 tsconfig 가 base를 extends 한다`, () => {
-      const cfg = JSON.parse(
-        fs.readFileSync(path.join(REPO_ROOT, `${dir}/tsconfig.json`), 'utf8'),
-      );
+      const cfg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, `${dir}/tsconfig.json`), 'utf8'));
       assert.match(cfg.extends ?? '', /tsconfig\.base\.json$/);
     });
 

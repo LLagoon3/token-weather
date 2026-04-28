@@ -165,10 +165,14 @@ describe('fetchCodexUsage — error status buckets', () => {
 
 describe('fetchCodexUsage — schema compliance', () => {
   it('success snapshot passes schema validation', async () => {
-    const fetchImpl = async () => mockResponse({
-      status: 200,
-      body: { plan_type: 'plus', rate_limit: { primary_window: { used_percent: 0, reset_at: 1700000000 } } },
-    });
+    const fetchImpl = async () =>
+      mockResponse({
+        status: 200,
+        body: {
+          plan_type: 'plus',
+          rate_limit: { primary_window: { used_percent: 0, reset_at: 1700000000 } },
+        },
+      });
     const snap = await fetchCodexUsage(BASE_PROFILE, { fetchImpl });
     const result = validateUsageSnapshot(snap);
     assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);

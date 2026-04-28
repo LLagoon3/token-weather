@@ -7,6 +7,7 @@ provider별 인증 소스, usage endpoint, 응답 정규화 로직을 모아두�
 현재는 Codex adapter가 구현되어 있다.
 
 구현된 것:
+
 - OpenClaw auth profile 파일에서 Codex OAuth 프로필 읽기
 - `https://chatgpt.com/backend-api/wham/usage` 호출
 - 선택적 `ChatGPT-Account-Id` 헤더 지원
@@ -35,6 +36,7 @@ src/
 ## Codex adapter 요약
 
 ### auth source
+
 기본적으로 아래 경로를 읽는다:
 
 ```text
@@ -42,20 +44,24 @@ src/
 ```
 
 여기서:
+
 - `provider === "openai-codex"`
 - `type === "oauth"`
 
 인 프로필만 추출한다.
 
 ### endpoint
+
 ```text
 https://chatgpt.com/backend-api/wham/usage
 ```
 
 ### normalized output
+
 현재 출력은 `packages/schemas/usage-snapshot.schema.json` 방향을 따르는 snapshot 구조다.
 
 주요 필드:
+
 - `provider`
 - `account`
 - `source`

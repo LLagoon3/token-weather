@@ -140,8 +140,18 @@ describe('resolveAccountByIdentifier', () => {
 
 describe('resolveAccount (combined)', () => {
   const accounts = [
-    { accountKey: 'codex:alice', email: 'alice@x.com', status: 'active', lastUsedAt: '2024-01-01T00:00:00Z' },
-    { accountKey: 'codex:bob', email: 'bob@x.com', status: 'active', lastUsedAt: '2024-06-01T00:00:00Z' },
+    {
+      accountKey: 'codex:alice',
+      email: 'alice@x.com',
+      status: 'active',
+      lastUsedAt: '2024-01-01T00:00:00Z',
+    },
+    {
+      accountKey: 'codex:bob',
+      email: 'bob@x.com',
+      status: 'active',
+      lastUsedAt: '2024-06-01T00:00:00Z',
+    },
   ];
 
   it('uses explicit identifier when provided', () => {

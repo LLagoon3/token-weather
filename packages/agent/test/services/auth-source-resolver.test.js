@@ -14,12 +14,7 @@ describe('resolveAuthSource', () => {
   });
 
   it('falls back to first non-empty import source', () => {
-    const result = resolveAuthSource(
-      [],
-      [
-        { id: 'openclaw-import', accounts: [{ id: 'oc-1' }] },
-      ],
-    );
+    const result = resolveAuthSource([], [{ id: 'openclaw-import', accounts: [{ id: 'oc-1' }] }]);
     assert.equal(result.authSource, 'openclaw-import');
     assert.deepEqual(result.accounts, [{ id: 'oc-1' }]);
   });

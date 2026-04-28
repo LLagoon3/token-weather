@@ -1,10 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  __testables,
-  fetchUsageWithAutoRefresh,
-} from '../../src/services/usage-auto-refresh.js';
+import { __testables, fetchUsageWithAutoRefresh } from '../../src/services/usage-auto-refresh.js';
 
 function makeEntry(overrides = {}) {
   const account = {
@@ -143,16 +140,17 @@ describe('fetchUsageWithAutoRefresh', () => {
 
   it('surfaces refresh failure when an expired account cannot be refreshed', async () => {
     await assert.rejects(
-      () => fetchUsageWithAutoRefresh(
-        makeEntry({
-          account: { expiresAt: '2000-01-01T00:00:00.000Z' },
-        }),
-        makeSpec({
-          refreshToken: async () => {
-            throw new Error('invalid_grant');
-          },
-        }),
-      ),
+      () =>
+        fetchUsageWithAutoRefresh(
+          makeEntry({
+            account: { expiresAt: '2000-01-01T00:00:00.000Z' },
+          }),
+          makeSpec({
+            refreshToken: async () => {
+              throw new Error('invalid_grant');
+            },
+          }),
+        ),
       /invalid_grant/,
     );
   });

@@ -54,23 +54,24 @@ describe('resolveClaudeAccount – account resolution', () => {
   });
 
   it('selects by accountIdentifier override', () => {
-    const other = { ...agentAccount, accountKey: 'claude:other', email: 'other@example.com', status: 'active' };
-    const result = resolveClaudeAccount(
-      [agentAccount, other],
-      [],
-      { accountIdentifier: 'other@example.com' },
-    );
+    const other = {
+      ...agentAccount,
+      accountKey: 'claude:other',
+      email: 'other@example.com',
+      status: 'active',
+    };
+    const result = resolveClaudeAccount([agentAccount, other], [], {
+      accountIdentifier: 'other@example.com',
+    });
     assert.equal(result.account.accountKey, 'claude:other');
     assert.equal(result.reason, 'explicit-selection');
     assert.equal(result.authSource, 'agent-store');
   });
 
   it('ignores imported list when accountIdentifier is given and agent-store wins', () => {
-    const result = resolveClaudeAccount(
-      [agentAccount],
-      [cliImportAccount],
-      { accountIdentifier: 'agent@example.com' },
-    );
+    const result = resolveClaudeAccount([agentAccount], [cliImportAccount], {
+      accountIdentifier: 'agent@example.com',
+    });
     assert.equal(result.account.accountKey, 'claude:agent-user');
     assert.equal(result.authSource, 'agent-store');
   });

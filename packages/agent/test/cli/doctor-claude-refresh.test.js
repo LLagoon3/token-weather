@@ -122,38 +122,50 @@ describe('resolveClaudeRefreshTargetAccount — with accountIdentifier', () => {
 
   it('finds matching account by email from agent-store', async () => {
     await seedStore([
-      { accountKey: 'anthropic-claude:a', email: 'a@x.com', status: 'active', tokens: { accessToken: 'at' } },
-      { accountKey: 'anthropic-claude:b', email: 'b@x.com', status: 'active', tokens: { accessToken: 'at' } },
+      {
+        accountKey: 'anthropic-claude:a',
+        email: 'a@x.com',
+        status: 'active',
+        tokens: { accessToken: 'at' },
+      },
+      {
+        accountKey: 'anthropic-claude:b',
+        email: 'b@x.com',
+        status: 'active',
+        tokens: { accessToken: 'at' },
+      },
     ]);
 
-    const result = await resolveClaudeRefreshTargetAccount(
-      { selectedAccount: null },
-      'b@x.com',
-    );
+    const result = await resolveClaudeRefreshTargetAccount({ selectedAccount: null }, 'b@x.com');
     assert.equal(result.accountKey, 'anthropic-claude:b');
   });
 
   it('returns null when no match found', async () => {
     await seedStore([
-      { accountKey: 'anthropic-claude:a', email: 'a@x.com', status: 'active', tokens: { accessToken: 'at' } },
+      {
+        accountKey: 'anthropic-claude:a',
+        email: 'a@x.com',
+        status: 'active',
+        tokens: { accessToken: 'at' },
+      },
     ]);
 
-    const result = await resolveClaudeRefreshTargetAccount(
-      { selectedAccount: null },
-      'nope@x.com',
-    );
+    const result = await resolveClaudeRefreshTargetAccount({ selectedAccount: null }, 'nope@x.com');
     assert.equal(result, null);
   });
 
   it('finds by label', async () => {
     await seedStore([
-      { accountKey: 'anthropic-claude:a', email: 'a@x.com', label: 'work', status: 'active', tokens: { accessToken: 'at' } },
+      {
+        accountKey: 'anthropic-claude:a',
+        email: 'a@x.com',
+        label: 'work',
+        status: 'active',
+        tokens: { accessToken: 'at' },
+      },
     ]);
 
-    const result = await resolveClaudeRefreshTargetAccount(
-      { selectedAccount: null },
-      'work',
-    );
+    const result = await resolveClaudeRefreshTargetAccount({ selectedAccount: null }, 'work');
     assert.equal(result.accountKey, 'anthropic-claude:a');
   });
 });

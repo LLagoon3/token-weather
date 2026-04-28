@@ -14,13 +14,7 @@ import prettierConfig from 'eslint-config-prettier';
 
 export default [
   {
-    ignores: [
-      '**/node_modules/**',
-      '**/dist/**',
-      'packs/**',
-      'docs/examples/**',
-      'scripts/poc/**',
-    ],
+    ignores: ['**/node_modules/**', '**/dist/**', 'packs/**', 'docs/examples/**', 'scripts/poc/**'],
   },
   js.configs.recommended,
   {

@@ -11,10 +11,11 @@
  */
 export function filterRealCodexAccounts(accounts) {
   return (accounts ?? []).filter(
-    (a) => a.status !== 'disabled'
-      && a.tokens?.accessToken
-      && !a.raw?.mock
-      && !a.tokens.accessToken.startsWith('mock-'),
+    (a) =>
+      a.status !== 'disabled' &&
+      a.tokens?.accessToken &&
+      !a.raw?.mock &&
+      !a.tokens.accessToken.startsWith('mock-'),
   );
 }
 

@@ -54,9 +54,7 @@ export async function postToTokenEndpoint({
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(
-      `${errorPrefix}: ${res.status} ${res.statusText} — ${text}`,
-    );
+    throw new Error(`${errorPrefix}: ${res.status} ${res.statusText} — ${text}`);
   }
 
   const json = await res.json();
@@ -111,12 +109,7 @@ function encodeRequest(body, encoding, extraHeaders) {
  * @param {string} [options.clientIdNote]   - client_id 신뢰도 주석 (provider마다 다름)
  * @returns {Error}
  */
-export function liveExchangeDisabledError({
-  caller,
-  endpoint,
-  grantType,
-  clientIdNote = '',
-}) {
+export function liveExchangeDisabledError({ caller, endpoint, grantType, clientIdNote = '' }) {
   return new Error(
     `[${caller}] Live exchange is disabled. ` +
       'Pass { allowLiveExchange: true } to perform a real POST to ' +

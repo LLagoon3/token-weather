@@ -146,14 +146,11 @@ export async function runOAuthLoginFlow(spec, options) {
  * @param {{ callbackUrl: string, codeVerifier: string, state: string, liveExchange: boolean, label?: string|null, keepLegacy?: boolean }} options
  * @param {{ readPaste?: () => Promise<{ type: 'url' | 'code', value: string }> }} [deps]
  */
-export async function runManualPasteFlow(spec, {
-  callbackUrl,
-  codeVerifier,
-  state,
-  liveExchange,
-  label,
-  keepLegacy,
-}, deps = {}) {
+export async function runManualPasteFlow(
+  spec,
+  { callbackUrl, codeVerifier, state, liveExchange, label, keepLegacy },
+  deps = {},
+) {
   const readPaste = deps.readPaste ?? readManualPasteInput;
 
   console.log('manual paste 모드입니다.');
@@ -194,7 +191,10 @@ export async function runManualPasteFlow(spec, {
   console.log('실제 토큰 저장이 필요하면 --live-exchange 옵션을 추가해 재실행하세요.');
 }
 
-async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, state, label, keepLegacy }) {
+async function runLiveExchangeStep(
+  spec,
+  { code, callbackUrl, codeVerifier, state, label, keepLegacy },
+) {
   console.log('');
   console.log('⚠ --live-exchange 모드: 실제 token endpoint에 POST를 시도합니다.');
   if (spec.endpointDescription) console.log(`  ${spec.endpointDescription}`);
@@ -220,7 +220,11 @@ async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, stat
       fallbackCode: code,
       fallbackEmailDomain: spec.fallbackEmailDomain,
     });
-    const { identity, profile } = await enrichIdentityFromProviderProfile(spec, tokenResponse, baseIdentity);
+    const { identity, profile } = await enrichIdentityFromProviderProfile(
+      spec,
+      tokenResponse,
+      baseIdentity,
+    );
     console.log(`  identity source: ${identity.claimSource}`);
 
     await saveLiveExchangeAccount(spec, tokenResponse, identity, { label, keepLegacy, profile });
@@ -237,7 +241,12 @@ async function runLiveExchangeStep(spec, { code, callbackUrl, codeVerifier, stat
   }
 }
 
-async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label, keepLegacy, profile } = {}) {
+async function saveLiveExchangeAccount(
+  spec,
+  tokenResponse,
+  identity,
+  { label, keepLegacy, profile } = {},
+) {
   const now = new Date();
   const expiresAt = tokenResponse.expiresIn
     ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
@@ -265,13 +274,15 @@ async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label, k
       idToken: tokenResponse.idToken ?? null,
       exchangedAt: now.toISOString(),
       identityClaimSource: identity.claimSource,
-      ...(profile ? {
-        profile: {
-          account: profile.account,
-          organization: profile.organization,
-          application: profile.application,
-        },
-      } : {}),
+      ...(profile
+        ? {
+            profile: {
+              account: profile.account,
+              organization: profile.organization,
+              application: profile.application,
+            },
+          }
+        : {}),
       note: 'live token exchange 결과 — observed client_id + S256 PKCE 기반',
     },
   });
@@ -285,13 +296,17 @@ async function saveLiveExchangeAccount(spec, tokenResponse, identity, { label, k
   if (duplicates.length > 0) {
     if (keepLegacy) {
       console.log('');
-      console.log('ℹ 같은 identity(sub/email)로 저장된 legacy accountKey를 감지했지만 --keep-legacy로 유지합니다:');
+      console.log(
+        'ℹ 같은 identity(sub/email)로 저장된 legacy accountKey를 감지했지만 --keep-legacy로 유지합니다:',
+      );
       for (const dup of duplicates) {
         console.log(`  - ${dup.accountKey} (${dup.reason})`);
       }
     } else {
       console.log('');
-      console.log('ℹ 같은 identity(sub/email)로 저장된 legacy accountKey를 감지해 자동 정리합니다:');
+      console.log(
+        'ℹ 같은 identity(sub/email)로 저장된 legacy accountKey를 감지해 자동 정리합니다:',
+      );
       for (const dup of duplicates) {
         console.log(`  - 제거: ${dup.accountKey} (${dup.reason})`);
         storeAfterCleanup = removeProviderAccount(storeAfterCleanup, spec.storeKey, dup.accountKey);
@@ -338,9 +353,10 @@ export async function enrichIdentityFromProviderProfile(spec, tokenResponse, ide
       email: profile.email ?? identity.email,
       accountId: profile.accountId ?? identity.accountId,
       displayName: profile.displayName ?? identity.displayName,
-      claimSource: profile.accountId || profile.email || profile.displayName
-        ? 'profile'
-        : identity.claimSource,
+      claimSource:
+        profile.accountId || profile.email || profile.displayName
+          ? 'profile'
+          : identity.claimSource,
     };
 
     return { identity: enrichedIdentity, profile };
@@ -371,14 +387,16 @@ const LOGIN_FLAGS = {
     key: 'port',
     type: 'int',
     validate: (n) => n >= 0 && n <= 65535,
-    invalidMessage: '--port 값 "${value}"이(가) 유효하지 않습니다. 정수 0~65535 범위로 지정해 주세요.',
+    invalidMessage:
+      '--port 값 "${value}"이(가) 유효하지 않습니다. 정수 0~65535 범위로 지정해 주세요.',
   },
   '--timeout': {
     key: 'timeoutMs',
     type: 'int',
     validate: (n) => n > 0,
     transform: (n) => n * 1000,
-    invalidMessage: '--timeout 값 "${value}"이(가) 유효하지 않습니다. 양의 정수(초)로 지정해 주세요.',
+    invalidMessage:
+      '--timeout 값 "${value}"이(가) 유효하지 않습니다. 양의 정수(초)로 지정해 주세요.',
   },
   '--label': {
     key: 'label',

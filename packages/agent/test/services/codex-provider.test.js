@@ -68,10 +68,7 @@ describe('filterRealCodexAccounts — multi-account retention', () => {
     ];
     const result = filterRealCodexAccounts(accounts);
     assert.equal(result.length, 2);
-    assert.deepEqual(
-      result.map((a) => a.accountKey).sort(),
-      ['one', 'two'],
-    );
+    assert.deepEqual(result.map((a) => a.accountKey).sort(), ['one', 'two']);
   });
 });
 
@@ -107,8 +104,14 @@ describe('filterProfilesByAccount', () => {
 describe('filterEntriesByAccount', () => {
   it('filters entry arrays by profile id/email/label', () => {
     const entries = [
-      { account: { accountKey: 'a' }, profile: { id: 'openai-codex:a', email: 'a@x.com', label: 'work' } },
-      { account: { accountKey: 'b' }, profile: { id: 'openai-codex:b', email: 'b@x.com', label: 'personal' } },
+      {
+        account: { accountKey: 'a' },
+        profile: { id: 'openai-codex:a', email: 'a@x.com', label: 'work' },
+      },
+      {
+        account: { accountKey: 'b' },
+        profile: { id: 'openai-codex:b', email: 'b@x.com', label: 'personal' },
+      },
     ];
 
     assert.equal(filterEntriesByAccount(entries, 'openai-codex:a').length, 1);

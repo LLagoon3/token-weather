@@ -241,12 +241,8 @@ describe('parseLoginOptions — --timeout validation', () => {
 
 describe('parseLoginOptions — combined', () => {
   it('combines valid flags + invalid values yields both options and warnings', () => {
-    const opts = parseLoginOptions([
-      '--port', 'foo',
-      '--timeout', '60',
-      '--live-exchange',
-    ]);
-    assert.equal(opts.port, null);        // invalid, stays null
+    const opts = parseLoginOptions(['--port', 'foo', '--timeout', '60', '--live-exchange']);
+    assert.equal(opts.port, null); // invalid, stays null
     assert.equal(opts.timeoutMs, 60_000); // valid
     assert.equal(opts.liveExchange, true);
     assert.equal(opts.warnings.length, 1);

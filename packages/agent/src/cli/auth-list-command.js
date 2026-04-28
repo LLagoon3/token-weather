@@ -31,9 +31,7 @@ export async function runAuthListCommand(provider, options = {}) {
   }
   const loadStore = options.loadStore ?? loadAuthStore;
   const store = await loadStore();
-  const providerIds = provider
-    ? [provider]
-    : Object.keys(store.providers ?? {});
+  const providerIds = provider ? [provider] : Object.keys(store.providers ?? {});
 
   let totalCount = 0;
 
@@ -55,9 +53,7 @@ export async function runAuthListCommand(provider, options = {}) {
       const isLive = acct.raw?.liveExchange === true;
       const hasRefresh = !isMock && Boolean(acct.tokens?.refreshToken);
 
-      const expired = acct.expiresAt
-        ? new Date(acct.expiresAt) < new Date()
-        : null;
+      const expired = acct.expiresAt ? new Date(acct.expiresAt) < new Date() : null;
 
       const lines = [
         `  accountKey : ${acct.accountKey}`,

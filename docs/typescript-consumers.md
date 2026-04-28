@@ -103,6 +103,7 @@ code .
 ```
 
 타입 추론이 정상 동작하면:
+
 - `snapshot.schemaVersion`이 `string`으로 자동완성에 노출
 - `result.valid`가 `boolean`, `result.errors`가 `string[]`
 - 미보강 export는 `any`로 표시되지만 컴파일 에러는 없음

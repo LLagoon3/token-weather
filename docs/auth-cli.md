@@ -17,12 +17,14 @@ token-weather auth login claude  [--live-exchange] [--port N] [--timeout SEC]
 ```
 
 동작:
+
 - localhost callback OAuth (PKCE S256 + state) 기반
 - 기본 경로는 token exchange 없이 **mock 저장**
 - `--live-exchange` 시 provider token endpoint에 실제 POST (실험적, guard 해제)
 - 성공 시 agent-store(`auth.json`)에 access/refresh token 저장
 
 옵션:
+
 - `--live-exchange`: 실제 token 교환 시도. 실패 시 mock fallback 없이 에러 표시
 - `--manual` (Codex): callback URL/code 수동 붙여넣기
 - `--no-open` (Codex): 브라우저 자동 실행 안 함
@@ -32,6 +34,7 @@ token-weather auth login claude  [--live-exchange] [--port N] [--timeout SEC]
 - `--keep-legacy`: 새 토큰과 같은 sub/email을 가진 기존 legacy accountKey를 자동 제거하지 않고 유지한다. 기본값은 자동 정리.
 
 provider별 callback 경로:
+
 - Codex: `/auth/callback`
 - Claude: `/callback`
 
@@ -82,6 +85,7 @@ token-weather doctor claude --refresh-live --account <id>  # 특정 계정 지�
 ```
 
 점검 항목:
+
 - auth store / credential 파일 존재 여부
 - 선택될 계정 (agent-store > import 우선순위)
 - expiresAt 만료 임박 여부
@@ -99,6 +103,7 @@ token-weather doctor claude --refresh-live --account <id>  # 특정 계정 지�
 - 관찰값(observed client_id, endpoint)이 변경될 때 자동 재시도로 피해가 커지는 것 방지
 
 guard를 해제할 시점:
+
 1. client_id 공식 확정
 2. client_secret 요구사항 명확화
 3. 장기 안정성 확인

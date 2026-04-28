@@ -21,7 +21,7 @@ const DEFAULT_ENDPOINT = 'https://api.anthropic.com/api/oauth/profile';
  *   displayName: string|null,
  *   accountId: string|null,
  *   raw: object,
- * }>} 
+ * }>}
  */
 export async function fetchClaudeOauthProfile({
   accessToken,
@@ -53,10 +53,8 @@ export async function fetchClaudeOauthProfile({
   }
 
   if (!res.ok) {
-    const message = payload?.error?.message
-      ?? payload?.error_description
-      ?? payload?.message
-      ?? res.statusText;
+    const message =
+      payload?.error?.message ?? payload?.error_description ?? payload?.message ?? res.statusText;
     throw new Error(`Claude OAuth profile fetch failed: ${res.status} ${message}`);
   }
 
@@ -69,9 +67,7 @@ export async function fetchClaudeOauthProfile({
     organization,
     application,
     email: readString(account?.email),
-    displayName: readString(account?.display_name)
-      ?? readString(account?.full_name)
-      ?? null,
+    displayName: readString(account?.display_name) ?? readString(account?.full_name) ?? null,
     accountId: readString(account?.uuid),
     raw: isRecord(payload) ? payload : {},
   };
@@ -82,7 +78,5 @@ function isRecord(value) {
 }
 
 function readString(value) {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : null;
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }

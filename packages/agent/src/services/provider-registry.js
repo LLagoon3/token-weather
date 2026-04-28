@@ -42,17 +42,12 @@ export const PROVIDER_IDS = Object.freeze(PROVIDER_REGISTRY.map((p) => p.id));
  */
 export async function runProviderSnapshots(config, options = {}) {
   const filter = options.providerFilter ?? null;
-  const targets = filter
-    ? PROVIDER_REGISTRY.filter((p) => p.id === filter)
-    : PROVIDER_REGISTRY;
+  const targets = filter ? PROVIDER_REGISTRY.filter((p) => p.id === filter) : PROVIDER_REGISTRY;
   const entries = await Promise.all(
     targets.map(async (p) => {
       const providerOptions = {
         ...options,
-        accountFilter:
-          options.accountFilter
-            ?? config?.defaults?.profiles?.[p.id]
-            ?? null,
+        accountFilter: options.accountFilter ?? config?.defaults?.profiles?.[p.id] ?? null,
       };
       return [p.id, await p.getSnapshot(config, providerOptions)];
     }),

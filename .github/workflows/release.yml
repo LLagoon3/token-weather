@@ -25,7 +25,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      id-token: write   # npm provenance (OIDC) + Trusted Publishing 인증
+      id-token: write # npm provenance (OIDC) + Trusted Publishing 인증
     steps:
       - uses: actions/checkout@v4
         with:

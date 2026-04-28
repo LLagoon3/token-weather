@@ -201,7 +201,9 @@ describe('formatClaudeSection', () => {
       },
     };
     const lines = formatClaudeSection(snapshot);
-    assert.ok(lines.some((l) => l.includes('실패') && l.includes('403') && l.includes('auth_scope')));
+    assert.ok(
+      lines.some((l) => l.includes('실패') && l.includes('403') && l.includes('auth_scope')),
+    );
     assert.ok(lines.some((l) => l.includes('user:profile')));
   });
 

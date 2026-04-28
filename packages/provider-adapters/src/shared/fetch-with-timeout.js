@@ -23,7 +23,10 @@ export async function fetchWithTimeout(fetchImpl, input, init = {}) {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(new Error(`request timed out after ${timeoutMs}ms`)), timeoutMs);
+  const timeoutId = setTimeout(
+    () => controller.abort(new Error(`request timed out after ${timeoutMs}ms`)),
+    timeoutMs,
+  );
 
   // external signal과 연결: 외부 abort 시 내부 controller도 abort
   if (externalSignal) {
@@ -31,7 +34,9 @@ export async function fetchWithTimeout(fetchImpl, input, init = {}) {
       clearTimeout(timeoutId);
       controller.abort(externalSignal.reason);
     } else {
-      externalSignal.addEventListener('abort', () => controller.abort(externalSignal.reason), { once: true });
+      externalSignal.addEventListener('abort', () => controller.abort(externalSignal.reason), {
+        once: true,
+      });
     }
   }
 

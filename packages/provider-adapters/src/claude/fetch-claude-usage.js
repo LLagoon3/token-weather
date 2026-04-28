@@ -1,9 +1,5 @@
 import { fetchWithTimeout } from '../shared/fetch-with-timeout.js';
-import {
-  buildUsageSnapshot,
-  toIsoString,
-  parseJsonSafely,
-} from '../shared/usage-snapshot.js';
+import { buildUsageSnapshot, toIsoString, parseJsonSafely } from '../shared/usage-snapshot.js';
 
 const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
 const PROVIDER_ID = 'anthropic-claude';

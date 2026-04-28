@@ -19,13 +19,10 @@ export async function readManualPasteInput() {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
   const input = await new Promise((resolve) => {
-    rl.question(
-      '콜백 URL 전체 또는 authorization code를 붙여넣으세요:\n> ',
-      (answer) => {
-        rl.close();
-        resolve(answer.trim());
-      },
-    );
+    rl.question('콜백 URL 전체 또는 authorization code를 붙여넣으세요:\n> ', (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
   });
 
   if (!input) {

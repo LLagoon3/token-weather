@@ -107,9 +107,9 @@ export async function getClaudeSnapshot(
     // backward-compat alias: selectedAccount에 해당하는 항목을 우선 노출,
     // 없으면 첫 항목.
     networkUsage:
-      settled.find((s) => s.accountKey === base.selectedAccount?.accountKey)?.snapshot
-        ?? settled[0]?.snapshot
-        ?? null,
+      settled.find((s) => s.accountKey === base.selectedAccount?.accountKey)?.snapshot ??
+      settled[0]?.snapshot ??
+      null,
     accountFilter: options.accountFilter ?? null,
     filteredOut: false,
   };

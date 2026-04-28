@@ -100,7 +100,10 @@ describe('bin/token-weather — smoke', () => {
     });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     const parsed = JSON.parse(result.stdout.trim());
-    assert.deepEqual(parsed.providers.map((p) => p.id), ['codex']);
+    assert.deepEqual(
+      parsed.providers.map((p) => p.id),
+      ['codex'],
+    );
     assert.equal(parsed.providerFilter, 'codex');
   });
 });

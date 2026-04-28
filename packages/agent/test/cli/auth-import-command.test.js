@@ -46,8 +46,10 @@ describe('runAuthImportCommand', () => {
       runAuthImportCommand('claude', [], {
         claudeReadFn: () => null,
         loadStore: async () => createEmptyAuthStore(),
-        saveStore: async () => { saved = true; },
-      })
+        saveStore: async () => {
+          saved = true;
+        },
+      }),
     );
 
     const flat = lines.join('\n');
@@ -61,8 +63,10 @@ describe('runAuthImportCommand', () => {
       runAuthImportCommand('claude', [], {
         claudeReadFn: () => ({ accessToken: 'tok', refreshToken: 'ref' }),
         loadStore: async () => createEmptyAuthStore(),
-        saveStore: async (store) => { savedStore = store; },
-      })
+        saveStore: async (store) => {
+          savedStore = store;
+        },
+      }),
     );
 
     const flat = lines.join('\n');

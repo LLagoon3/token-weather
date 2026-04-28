@@ -1,10 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  formatTokenExpiry,
-  formatRefreshSuccess,
-} from '../../src/cli/doctor-helpers.js';
+import { formatTokenExpiry, formatRefreshSuccess } from '../../src/cli/doctor-helpers.js';
 
 describe('formatTokenExpiry', () => {
   it('returns null when expiresAtIso is missing or invalid', () => {

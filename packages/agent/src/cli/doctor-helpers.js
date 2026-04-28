@@ -43,7 +43,12 @@ export function formatClaudeSection(snapshot) {
   const usages = Array.isArray(snapshot.networkUsages)
     ? snapshot.networkUsages
     : snapshot.networkUsage
-      ? [{ accountKey: snapshot.selectedAccount?.accountKey ?? null, snapshot: snapshot.networkUsage }]
+      ? [
+          {
+            accountKey: snapshot.selectedAccount?.accountKey ?? null,
+            snapshot: snapshot.networkUsage,
+          },
+        ]
       : [];
 
   if (usages.length === 0) {

@@ -58,7 +58,15 @@
       "properties": {
         "bucket": {
           "type": "string",
-          "enum": ["rate_limit", "usage_window", "billing", "auth", "overloaded", "network", "unknown"]
+          "enum": [
+            "rate_limit",
+            "usage_window",
+            "billing",
+            "auth",
+            "overloaded",
+            "network",
+            "unknown"
+          ]
         },
         "code": { "type": "string" },
         "message": { "type": ["string", "null"] },

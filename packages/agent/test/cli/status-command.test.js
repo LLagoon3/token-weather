@@ -154,7 +154,9 @@ describe('formatClaudeNetworkUsage', () => {
 describe('formatClaudeLocalUsage', () => {
   it('shows 데이터 없음 when usage is null or not-found', () => {
     assert.ok(formatClaudeLocalUsage(null).some((l) => l.includes('데이터 없음')));
-    assert.ok(formatClaudeLocalUsage({ source: 'not-found' }).some((l) => l.includes('데이터 없음')));
+    assert.ok(
+      formatClaudeLocalUsage({ source: 'not-found' }).some((l) => l.includes('데이터 없음')),
+    );
   });
 
   it('renders totalSessions / totalMessages / model usage indicators', () => {
@@ -278,11 +280,21 @@ describe('formatClaudeSection — networkUsages array support', () => {
 
 describe('parseStatusOptions', () => {
   it('returns { account: null } for empty args', () => {
-    assert.deepEqual(parseStatusOptions([]), { account: null, provider: null, json: false, help: false });
+    assert.deepEqual(parseStatusOptions([]), {
+      account: null,
+      provider: null,
+      json: false,
+      help: false,
+    });
   });
 
   it('handles null/undefined args', () => {
-    assert.deepEqual(parseStatusOptions(undefined), { account: null, provider: null, json: false, help: false });
+    assert.deepEqual(parseStatusOptions(undefined), {
+      account: null,
+      provider: null,
+      json: false,
+      help: false,
+    });
   });
 
   it('parses --account <value>', () => {
@@ -297,7 +309,12 @@ describe('parseStatusOptions', () => {
 
   it('treats --account "" as "no value" (legacy contract)', () => {
     // 공통 helper 전환 후에도 빈 문자열은 default 유지해야 한다.
-    assert.deepEqual(parseStatusOptions(['--account', '']), { account: null, provider: null, json: false, help: false });
+    assert.deepEqual(parseStatusOptions(['--account', '']), {
+      account: null,
+      provider: null,
+      json: false,
+      help: false,
+    });
   });
 
   it('recognizes --help and -h', () => {
@@ -485,7 +502,11 @@ describe('formatCodexSection — accountFilter empty result', () => {
       filteredOut: true,
       snapshots: [],
     });
-    assert.ok(lines.some((l) => l.includes('계정 필터 "nope@x.com"에 해당하는 Codex 계정을 찾지 못했습니다')));
+    assert.ok(
+      lines.some((l) =>
+        l.includes('계정 필터 "nope@x.com"에 해당하는 Codex 계정을 찾지 못했습니다'),
+      ),
+    );
   });
 
   it('falls back to normal "프로필 없음" when filteredOut=false', () => {
@@ -501,7 +522,9 @@ describe('formatCodexSection — accountFilter empty result', () => {
 describe('formatClaudeNetworkUsages — filteredOut context', () => {
   it('shows filter-specific message when context.filteredOut is set', () => {
     const lines = formatClaudeNetworkUsages([], { filteredOut: true, accountFilter: 'nope' });
-    assert.ok(lines.some((l) => l.includes('계정 필터 "nope"에 해당하는 Claude 계정을 찾지 못했습니다')));
+    assert.ok(
+      lines.some((l) => l.includes('계정 필터 "nope"에 해당하는 Claude 계정을 찾지 못했습니다')),
+    );
   });
 });
 

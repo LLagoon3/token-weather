@@ -6,10 +6,7 @@ import {
   AUTH_STORE_VERSION,
   createAccount,
 } from '../../src/auth/auth-store-schema.js';
-import {
-  upsertProviderAccount,
-  removeProviderAccount,
-} from '../../src/auth/auth-store.js';
+import { upsertProviderAccount, removeProviderAccount } from '../../src/auth/auth-store.js';
 
 describe('createEmptyAuthStore', () => {
   it('returns a store with correct version and empty providers', () => {

@@ -179,27 +179,30 @@ describe('fetchClaudeUsage', () => {
 
 describe('fetchClaudeUsage — schema compliance', () => {
   it('success snapshot passes schema validation', async () => {
-    const fetchImpl = async () => createMockResponse({
-      status: 200,
-      body: { five_hour: { utilization: 0.25, resets_at: '2026-04-19T00:00:00Z' } },
-    });
+    const fetchImpl = async () =>
+      createMockResponse({
+        status: 200,
+        body: { five_hour: { utilization: 0.25, resets_at: '2026-04-19T00:00:00Z' } },
+      });
     const snap = await fetchClaudeUsage(BASE_PROFILE, { fetchImpl });
     const result = validateUsageSnapshot(snap);
     assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
   });
 
   it('failure snapshot passes schema validation', async () => {
-    const fetchImpl = async () => createMockResponse({ status: 401, body: { error: { message: 'invalid' } } });
+    const fetchImpl = async () =>
+      createMockResponse({ status: 401, body: { error: { message: 'invalid' } } });
     const snap = await fetchClaudeUsage(BASE_PROFILE, { fetchImpl });
     const result = validateUsageSnapshot(snap);
     assert.equal(result.valid, true, `errors: ${result.errors.join(', ')}`);
   });
 
   it('auth_scope bucket passes schema validation', async () => {
-    const fetchImpl = async () => createMockResponse({
-      status: 403,
-      body: { error: { message: 'missing scope requirement user:profile' } },
-    });
+    const fetchImpl = async () =>
+      createMockResponse({
+        status: 403,
+        body: { error: { message: 'missing scope requirement user:profile' } },
+      });
     const snap = await fetchClaudeUsage(BASE_PROFILE, { fetchImpl });
     assert.equal(snap.status.bucket, 'auth_scope');
     const result = validateUsageSnapshot(snap);
