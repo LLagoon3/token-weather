@@ -102,9 +102,12 @@ describe('repo-policy/release — release workflow (PR #74)', () => {
     assert.match(text, /^\s*publish:\s+npx\s+changeset\s+publish/m);
   });
 
-  it('release.yml 이 NPM_TOKEN 을 changesets/action env 로 주입한다 (#76)', () => {
+  // Trusted Publishing(OIDC) 단독 운영으로 전환 후 token 의존성이 다시
+  // 들어오는 회귀 차단. NPM_TOKEN / NODE_AUTH_TOKEN env 모두 부재해야 한다.
+  it('release.yml 에 NPM_TOKEN / NODE_AUTH_TOKEN env 가 없다 (Trusted Publishing 단독)', () => {
     const text = readText('.github/workflows/release.yml');
-    assert.match(text, /NPM_TOKEN:\s*\$\{\{\s*secrets\.NPM_TOKEN\s*\}\}/);
+    assert.equal(/NPM_TOKEN:\s*\$\{\{/.test(text), false, 'NPM_TOKEN env 잔존');
+    assert.equal(/NODE_AUTH_TOKEN:\s*\$\{\{/.test(text), false, 'NODE_AUTH_TOKEN env 잔존');
   });
 
   // publish 직전 안전벨트로 install smoke 스크립트 재호출 (#75 산출물).
