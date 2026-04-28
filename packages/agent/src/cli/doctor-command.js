@@ -194,9 +194,7 @@ async function runDoctorClaudeRefreshLive(snapshot, { accountIdentifier } = {}) 
     if (isImportSource) {
       console.log('');
       console.log('ℹ claude-cli-import 출처 — agent-store에 저장하지 않습니다.');
-      console.log(
-        '  agent-store에 유지하려면 `auth login claude --live-exchange`로 재로그인하세요.',
-      );
+      console.log('  agent-store에 유지하려면 `auth login claude`로 재로그인하세요.');
       return;
     }
     const result = await updateClaudeStoreAfterRefresh(account, tokenResponse);

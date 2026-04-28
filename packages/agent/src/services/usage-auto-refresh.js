@@ -37,10 +37,7 @@ async function refreshEntry(entry, spec) {
   const refreshToken = getRefreshToken(entry.account);
   if (!refreshToken) return entry;
 
-  const tokenResponse = await spec.refreshToken({
-    refreshToken,
-    allowLiveExchange: true,
-  });
+  const tokenResponse = await spec.refreshToken({ refreshToken });
   await spec.updateStoreAfterRefresh(entry.account, tokenResponse);
 
   const refreshedAccount = mergeRefreshedAccount(entry.account, tokenResponse);
