@@ -44,7 +44,7 @@ export async function fetchClaudeUsage(profile, options = {}) {
   const headers = {
     Authorization: `Bearer ${profile.accessToken}`,
     Accept: 'application/json',
-    'User-Agent': 'ai-usage-agent',
+    'User-Agent': 'token-weather',
     'anthropic-version': '2023-06-01',
     'anthropic-beta': 'oauth-2025-04-20',
   };

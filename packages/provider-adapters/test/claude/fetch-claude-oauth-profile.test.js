@@ -51,6 +51,16 @@ describe('fetchClaudeOauthProfile', () => {
     assert.equal(result.application.name, 'Claude Code');
   });
 
+  it('sends User-Agent: token-weather header', async () => {
+    let capturedInit = null;
+    const fetchImpl = async (_input, init) => {
+      capturedInit = init;
+      return jsonResponse({ body: { account: { uuid: 'acct-1' } } });
+    };
+    await fetchClaudeOauthProfile({ accessToken: 'tok', fetchImpl });
+    assert.equal(capturedInit.headers['User-Agent'], 'token-weather');
+  });
+
   it('falls back to full_name when display_name is absent', async () => {
     const fetchImpl = async () => jsonResponse({
       body: {
