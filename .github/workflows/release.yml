@@ -5,6 +5,10 @@ name: Release
 # smoke 통과 후 changesets/action 이 npm publish 를 자동 실행한다.
 #
 # 정책 / 카테고리 / SCHEMA_VERSION 기준은 docs/release-policy.md.
+#
+# provenance(OIDC) 는 #76 + #77 통합 시도에서 first publish PUT 404 로
+# 실패하여 일시 비활성화 — npm.com 에 Trusted Publisher 등록 후 후속 PR
+# 에서 재도입 예정. 자세한 이력은 docs/release-policy.md §6.
 
 on:
   push:
@@ -20,7 +24,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      id-token: write   # npm provenance (OIDC) — supply chain attestation
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,8 +33,21 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+          scope: '@token-weather'
 
       - run: npm install --no-package-lock
+
+      # publish 직전 인증 진단 — npm whoami / ping 으로 NPM_TOKEN 이 정상
+      # 인증되는지 명시적으로 확인. 실패 시 publish 직전에 fail 하여 원인
+      # 진단을 빨리 잡는다.
+      - name: Verify npm auth
+        run: |
+          npm whoami --registry=https://registry.npmjs.org/
+          npm ping --registry=https://registry.npmjs.org/
+          npm config get registry
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # publish 직전 안전벨트 — #75 에서 도입한 install smoke 스크립트 재사용.
       # release PR 머지 직후 changesets/action 이 publish 를 호출하기 전에
@@ -46,7 +62,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # changesets 가 호출하는 npm publish 가 --provenance 플래그를 자동
-          # 적용하도록 한다 (npm 9.5+ 가 인식). id-token: write OIDC 권한과
-          # 함께 첫 publish 부터 supply chain attestation 보장.
-          NPM_CONFIG_PROVENANCE: 'true'
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # provenance 일시 비활성화 — Trusted Publisher 미등록 상태에서
+          # OIDC publish 가 PUT 404 로 거부되는 케이스 회피. 후속 PR 에서
+          # npm.com Trusted Publisher 등록 + 'true' 로 복귀.
+          NPM_CONFIG_PROVENANCE: 'false'
