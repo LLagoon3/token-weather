@@ -11,7 +11,7 @@ import { CLAUDE_AUTH } from '@token-weather/provider-adapters/src/claude/claude-
 import { loadAuthStore } from '../auth/auth-store.js';
 import { buildUsageSnapshot } from '@token-weather/provider-adapters/src/shared/usage-snapshot.js';
 import { resolveProviderAccountEntries } from './provider-profile-resolver.js';
-import { filterEntriesByAccount, filterProfilesByAccount } from './account-filter.js';
+import { filterEntriesByAccount } from './account-filter.js';
 import { fetchUsageWithAutoRefresh } from './usage-auto-refresh.js';
 import { refreshClaudeToken } from '@token-weather/provider-adapters/src/claude/refresh-claude-token.js';
 import { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';

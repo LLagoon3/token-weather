@@ -1,6 +1,7 @@
 {
   "name": "token-weather",
   "private": true,
+  "type": "module",
   "version": "0.1.0",
   "description": "Token Weather — local AI usage and auth dashboard CLI (monorepo)",
   "license": "Apache-2.0",

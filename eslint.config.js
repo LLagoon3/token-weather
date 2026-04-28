@@ -19,6 +19,7 @@ export default [
       '**/dist/**',
       'packs/**',
       'docs/examples/**',
+      'scripts/poc/**',
     ],
   },
   js.configs.recommended,
