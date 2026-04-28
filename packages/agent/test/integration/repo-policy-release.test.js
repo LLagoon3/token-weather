@@ -118,6 +118,13 @@ describe('repo-policy/release — release workflow (PR #74)', () => {
     assert.match(text, /bash\s+\.\/scripts\/install-smoke\.sh/);
   });
 
+  // npm Trusted Publishing(OIDC) 은 npm CLI 11+ 를 요구한다. setup-node@v4
+  // 번들 npm (10.9.7) 으로는 publish 가 PUT 404 로 거부된다.
+  it('release.yml 이 npm 11+ 로 업그레이드한다 (Trusted Publishing OIDC 요구사항)', () => {
+    const text = readText('.github/workflows/release.yml');
+    assert.match(text, /npm install -g npm@/);
+  });
+
   // npm provenance (OIDC) — Trusted Publisher 등록 완료 후 재활성화.
   // id-token: write 권한 + NPM_CONFIG_PROVENANCE: 'true' 가 함께 있어야
   // changesets 가 호출하는 npm publish 에 supply chain attestation 적용.
