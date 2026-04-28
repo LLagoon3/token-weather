@@ -12,6 +12,7 @@
 - `docs/typescript-consumers.md` — `.d.ts` 동봉 정책 + JSDoc 보강 시 따를 규약
 - `docs/release-policy.md` — semver / SCHEMA_VERSION / CHANGELOG 운영 규약 (사용자-가시 변경 PR 필독)
 - `scripts/install-smoke.sh` — publish 직전 npm install 깨짐(cross-package import / files 누락 / d.ts 부재 등)을 자동 검증하는 스크립트. PR마다 CI에서 호출.
+- `eslint.config.js` / `.prettierrc.json` — 코드 품질 / 형식 자동 enforce. CI lint job이 PR 단계에서 위반 차단. 위반 발견 시 `npm run lint:fix` 또는 `npm run format`으로 자동 수정.
 
 ---
 
