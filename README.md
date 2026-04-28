@@ -23,7 +23,7 @@ token-weather --help
 
 ```bash
 token-weather config init                              # ~/.config/token-weather/config.json 생성
-token-weather auth login claude --live-exchange        # 브라우저 → localhost callback (PKCE + state 검증)
+token-weather auth login claude                        # 브라우저 → localhost callback (PKCE + state 검증) → 실제 OAuth 토큰 저장
 token-weather status                                   # 인증 / 사용량 / 만료까지 한 번에
 token-weather status --json | jq                       # 자동화/대시보드용 정규화 JSON
 ```
@@ -31,10 +31,10 @@ token-weather status --json | jq                       # 자동화/대시보드�
 브라우저 자동 callback이 어려운 환경(SSH, 컨테이너, 포트 충돌)에서는 `--manual`을 사용하면 콘솔에 노출된 OAuth URL을 다른 머신에서 열고 callback URL을 paste하는 흐름이 됩니다:
 
 ```bash
-token-weather auth login claude --manual --live-exchange
+token-weather auth login claude --manual
 ```
 
-`--live-exchange`를 빼면 mock/생략 경로로 동작 (실 토큰 저장 안 함).
+테스트 / 실험 환경에서 실제 token endpoint 호출 없이 mock 계정만 저장하려면 `--mock` 옵션을 추가합니다 (default 는 실제 OAuth 토큰 교환).
 
 ## Demo
 
@@ -52,14 +52,14 @@ token-weather auth login claude --manual --live-exchange
   - **Multi-account**: 한 provider에 여러 계정 저장, 병렬 조회, label 부여
   - **자동 refresh**: 만료된 access token은 provider 호출 전 preflight refresh, auth 실패 시 1회 재시도
   - **`status --json` stable contract**: 토큰 redaction 보장된 정규화 출력 — 외부 대시보드/수집기가 직접 소비 가능 ([docs/cli-json-output.md](./docs/cli-json-output.md))
-  - **observed vs verified 구분**: provider 바이너리 관찰값에 의존하는 endpoint는 `--live-exchange` guard 뒤에서만 호출 — 실수로 실 토큰 호출이 반복되지 않도록
+  - **observed `client_id` 사용**: provider 바이너리 관찰값을 그대로 사용 (공식 등록된 OAuth client 가 아님). 본 도구의 모든 publish 자체는 npm Trusted Publishing OIDC + SLSA provenance 로 검증 — 외부에서 supply chain 검증 가능
 
 ## 지원 provider
 
-| Provider           | OAuth 로그인                          | Usage endpoint | Refresh | Status  |
-| ------------------ | ------------------------------------- | -------------- | ------- | ------- |
-| Codex (OpenAI)     | ✓ `auth login codex --live-exchange`  | `wham/usage`   | ✓       | 운영 중 |
-| Claude (Anthropic) | ✓ `auth login claude --live-exchange` | `oauth/usage`  | ✓       | 운영 중 |
+| Provider           | OAuth 로그인          | Usage endpoint | Refresh | Status  |
+| ------------------ | --------------------- | -------------- | ------- | ------- |
+| Codex (OpenAI)     | ✓ `auth login codex`  | `wham/usage`   | ✓       | 운영 중 |
+| Claude (Anthropic) | ✓ `auth login claude` | `oauth/usage`  | ✓       | 운영 중 |
 
 provider별 observed endpoint / client_id 상세는 [docs/provider-notes.md](./docs/provider-notes.md).
 
@@ -71,14 +71,14 @@ provider별 observed endpoint / client_id 상세는 [docs/provider-notes.md](./d
 token-weather status [--account <id>] [--provider <id>] [--json]   # 사용량/인증 한 번에
 token-weather usage  [...]                                         # status와 동일 출력 (alias)
 token-weather doctor [codex|claude] [--refresh-live] [--account]   # 환경/refresh 진단
-token-weather auth login <codex|claude> [--live-exchange] [--label]
+token-weather auth login <codex|claude> [--mock] [--manual] [--label]
 token-weather auth list   [provider]
 token-weather auth logout <provider> [--account]
 token-weather auth import claude                                   # Claude CLI credential 흡수
 token-weather config init                                          # 설정 파일 생성
 ```
 
-`--live-exchange` 없이 `auth login`은 mock 저장만 수행 (실제 token 호출 차단). `--label`로 저장된 계정에 친화적 이름 부여 → 이후 `--account <label>`로 참조.
+default `auth login` 은 실제 OAuth 토큰 교환을 수행합니다. `--mock` 옵션 시 token endpoint 호출 없이 mock 계정만 저장 (테스트/실험용). `--label` 로 저장된 계정에 친화적 이름 부여 → 이후 `--account <label>` 로 참조.
 
 ## JSON 출력 (자동화)
 
@@ -95,7 +95,7 @@ shape / redaction 규약 / 한계: [docs/cli-json-output.md](./docs/cli-json-out
 - localhost callback은 `127.0.0.1`에만 bind, PKCE S256 + state 검증
 - access / refresh / id token은 로그/JSON 모두에서 redact (`SENSITIVE_KEYS` 기반)
 - raw prompt / response / transcript는 어떤 경우에도 외부로 보내지 않음
-- observed 값(`client_id`, endpoint)은 `--live-exchange` guard 뒤에서만 실 호출
+- observed `client_id` 는 v0.2.0 부터 가드 없이 사용 (publish 자체는 npm Trusted Publishing OIDC + SLSA provenance 로 검증). 공식 client 등록 전까지는 실험적 운영
 
 상세: [docs/auth-architecture.md](./docs/auth-architecture.md), [SECURITY.md](./SECURITY.md).
 
