@@ -31,18 +31,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Node 24 — 번들 npm 이 11+ 라 npm Trusted Publishing(OIDC) 요구사항을
+      # 자기 업그레이드 없이 충족한다. node 22 번들 npm 위에서 npm 자기 업그레이드
+      # step 자체가 native module 캐시 충돌(promise-retry 누락)로 깨졌던 회귀
+      # (release run 25079605613)를 회피.
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
           scope: '@token-weather'
 
-      # npm Trusted Publishing(OIDC) 은 npm CLI 11+ 를 요구한다.
-      # actions/setup-node@v4 (node 22) 의 번들 npm 은 10.9.7 라 OIDC publish
-      # 인증이 PUT 404 로 거부됨 (이전 v0.2.0 release run 25059699115). 본
-      # repo 의 packageManager (root package.json) 와도 일관되게 11.x 사용.
-      - run: npm install -g npm@latest
-      - run: npm --version
+      - run: node --version && npm --version
 
       - run: npm install --no-package-lock
 
