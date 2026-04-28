@@ -47,6 +47,8 @@ const result = validateUsageSnapshot(payload);
 
 ## Manual sanity check 절차 (메인테이너)
 
+> **자동 검증**: 아래 단계 1-2(pack + 임시 install)는 [`scripts/install-smoke.sh`](../scripts/install-smoke.sh)가 PR마다 CI에서 자동 수행한다 (#75 도입). 본 절차는 단계 3-5(`tsc --noEmit` + IDE 자동완성)까지의 **타입 추론 품질**을 사람이 확인하고 싶을 때 사용한다.
+
 publish 직전 외부 TypeScript 프로젝트에서 import / 추론이 동작하는지 수동 검증:
 
 ```bash
@@ -110,4 +112,4 @@ code .
 - 본 d.ts emission은 **JSDoc 커버리지에 의존**합니다. 미보강 export는 정확한 타입을 받지 못합니다 (any로 노출).
 - **타입 계약 범위는 package root entry만**: `package.json::types`가 가리키는 `./dist/types/index.d.ts`만 stable. subpath import (`@token-weather/.../src/...`)는 동작하지만 본 PR scope 외이고, 후속에서 `exports` 필드와 `typesVersions`로 공식 지원 여부 결정 (현재 main 사용 중이라 도입은 별도 PR로).
 - TypeScript 자체 컨버전은 본 정책 범위가 아닙니다.
-- 자동 sanity check (CI에 외부 TS project 컴파일 step) 도입은 후속 이슈에서 검토 (T2 #75 install smoke와 함께 묶일 수 있음).
+- 자동 install/import 검증: `scripts/install-smoke.sh` (#75)가 PR마다 CI에서 pack + tmp install + bin smoke + d.ts 산출물 존재까지 수행. `tsc --noEmit` 단계는 본 manual 절차에 남아있다 — 자동화는 별도 후속 이슈에서 검토.
