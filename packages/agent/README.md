@@ -15,17 +15,15 @@
 - account resolver: provider별 기본 계정 자동 선택 및 명시 선택
 - `auth login codex` CLI 골격
 - localhost callback 준비 코드 및 포트 fallback 뼈대
-- manual paste 입력 처리 및 mock auth store 저장 흐름 (manual 경로만 mock)
+- manual paste 입력 처리 — default 는 실제 OAuth, `--mock` 시 mock 계정 저장
 - Codex provider live usage 조회 결과 출력
 - 공통 snapshot 스키마 기반 출력 흐름
 
 아직 미구현 또는 초기 상태:
 
-- Claude adapter 연결
 - `inspect <provider>` 상세 출력
 - `sync` 업로드 기능
 - 정식 formatter / table renderer
-- schema validation
 - provider 측 revoke endpoint 호출 (logout은 로컬 제거만 수행)
 
 ## 현재 가능한 명령
@@ -45,8 +43,9 @@
 - `token-weather auth login codex --mock`
   - 실제 token endpoint 호출 없이 mock 계정만 저장 (테스트/실험용)
 - `token-weather auth login codex --manual`
-  - callback URL/code 입력을 받아 placeholder/mock 계정을 auth store에 저장
-  - 아직 실제 OAuth token exchange는 아님
+  - 브라우저에서 OAuth 완료 후 callback URL / code 를 stdin 에 paste
+  - default 는 실제 token endpoint POST → real token 저장 (`--manual` 흐름도 default OAuth)
+  - `--mock` 추가 시 placeholder 계정만 저장
 - `token-weather auth list`
   - 저장된 모든 provider의 인증 계정 목록 출력
   - provider, accountKey, email, source, authType, expiresAt, mock 여부, refresh 가능 여부 표시
