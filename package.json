@@ -9,9 +9,12 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "echo \"TODO: wire dev commands\"",
-    "build": "echo \"TODO: wire build commands\"",
-    "lint": "echo \"TODO: wire lint commands\"",
+    "dev": "node ./packages/agent/bin/token-weather.js status",
+    "build": "npm run build:types",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "node --test packages/agent/test/**/*.test.js packages/provider-adapters/test/**/*.test.js packages/schemas/test/**/*.test.js",
     "test:schemas": "node --test packages/schemas/test/**/*.test.js",
     "test:agent": "node --test packages/agent/test/**/*.test.js",
