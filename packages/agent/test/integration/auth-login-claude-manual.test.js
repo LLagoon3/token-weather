@@ -31,18 +31,22 @@ const CLAUDE_LIKE_SPEC = {
   callbackPath: '/callback',
   providerLabel: 'Claude',
   supportsMockCallback: false,
-  // Claude 실 spec과 다르게 buildAuthorizationUrl / exchangeCode는 본 테스트에서
-  // 호출되지 않으므로 정의하지 않는다 (--live-exchange 없는 경로 + state-mismatch).
+  // 본 테스트는 runManualPasteFlow 의 `mock: true` 분기 (저장 0회) +
+  // state-mismatch 분기 검증 — supportsMockCallback=false 라 mock 모드여도
+  // saveMockAccount 가 호출되지 않는 점이 핵심.
 };
 
-describe('runManualPasteFlow (Claude-like, supportsMockCallback=false, no liveExchange)', () => {
-  it('URL paste matching state → "token 교환을 생략" + saveMockAccount 호출 0회', async () => {
+describe('runManualPasteFlow (Claude-like, supportsMockCallback=false, mock 모드)', () => {
+  it('URL paste matching state + mock=true → supportsMockCallback=false 라 mock 분기 진입 안 함, default(live) 로 fall through', async () => {
     let mockSaveCalls = 0;
     const spec = {
       ...CLAUDE_LIKE_SPEC,
+      // mock 분기에 들어가지 않아야 함을 검증할 spy
       saveMockAccount: async () => {
         mockSaveCalls += 1;
       },
+      // mock 분기 미진입 → default 로 빠져 runLiveExchangeStep 시도. exchangeCode
+      // 정의 없으면 'is not a function' 으로 throw 되어 catch 됨.
     };
 
     const cap = captureConsoleLog();
@@ -53,7 +57,7 @@ describe('runManualPasteFlow (Claude-like, supportsMockCallback=false, no liveEx
           callbackUrl: 'http://127.0.0.1:1455/callback',
           codeVerifier: 'verifier-xyz',
           state: 'state-abc',
-          liveExchange: false,
+          mock: true,
           label: null,
           keepLegacy: false,
         },
@@ -71,11 +75,12 @@ describe('runManualPasteFlow (Claude-like, supportsMockCallback=false, no liveEx
     const out = cap.lines.join('\n');
     assert.match(out, /manual paste 모드입니다\./);
     assert.match(out, /code 수신 완료: test-code/);
-    assert.match(out, /--live-exchange가 없으므로 token 교환을 생략합니다/);
-    assert.equal(mockSaveCalls, 0, 'Claude는 supportsMockCallback=false라 mock 저장 0회여야 함');
+    // supportsMockCallback=false 라 mock=true 여도 saveMockAccount 호출되지 않음
+    assert.equal(mockSaveCalls, 0, 'supportsMockCallback=false 일 때 mock 분기 진입 안 해야 함');
+    assert.match(out, /토큰을 저장하지 않습니다\./);
   });
 
-  it('URL paste matching state + liveExchange=true → spec.exchangeCode가 정확한 인자로 호출됨', async () => {
+  it('URL paste matching state + mock=false (default) → spec.exchangeCode가 정확한 인자로 호출됨', async () => {
     // manual paste의 핵심 사용자 가치는 callback URL paste → runLiveExchangeStep
     // → spec.exchangeCode 호출 → 토큰 저장 경로다. exchangeCode가 throw하면
     // runLiveExchangeStep의 try/catch가 잡아 '토큰을 저장하지 않습니다'로 깔끔히
@@ -100,7 +105,7 @@ describe('runManualPasteFlow (Claude-like, supportsMockCallback=false, no liveEx
           callbackUrl: 'http://127.0.0.1:1455/callback',
           codeVerifier: 'verifier-xyz',
           state: 'state-abc',
-          liveExchange: true,
+          mock: false,
           label: null,
           keepLegacy: false,
         },
@@ -125,7 +130,6 @@ describe('runManualPasteFlow (Claude-like, supportsMockCallback=false, no liveEx
 
     const out = cap.lines.join('\n');
     assert.match(out, /code 수신 완료: manual-code/);
-    assert.match(out, /--live-exchange 모드/);
     // exchangeCode가 throw → runLiveExchangeStep catch → '토큰을 저장하지 않습니다'
     assert.match(out, /live token exchange 실패: test-stop-after-exchange/);
     assert.match(out, /토큰을 저장하지 않습니다\./);
@@ -148,7 +152,7 @@ describe('runManualPasteFlow (Claude-like, supportsMockCallback=false, no liveEx
           callbackUrl: 'http://127.0.0.1:1455/callback',
           codeVerifier: 'verifier-xyz',
           state: 'expected-state',
-          liveExchange: false,
+          mock: false,
           label: null,
           keepLegacy: false,
         },

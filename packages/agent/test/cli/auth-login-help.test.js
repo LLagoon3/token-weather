@@ -20,9 +20,9 @@ describe('formatAuthLoginHelp', () => {
     assert.match(formatAuthLoginHelp()[0], /^token-weather auth login/);
   });
 
-  it('lists key options (--live-exchange, --port, --timeout, --label, --manual, -h)', () => {
+  it('lists key options (--mock, --port, --timeout, --label, --manual, -h)', () => {
     const body = formatAuthLoginHelp().join('\n');
-    assert.match(body, /--live-exchange/);
+    assert.match(body, /--mock/);
     assert.match(body, /--port/);
     assert.match(body, /--timeout/);
     assert.match(body, /--label/);
