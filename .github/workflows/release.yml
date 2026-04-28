@@ -37,6 +37,13 @@ jobs:
           registry-url: https://registry.npmjs.org
           scope: '@token-weather'
 
+      # npm Trusted Publishing(OIDC) 은 npm CLI 11+ 를 요구한다.
+      # actions/setup-node@v4 (node 22) 의 번들 npm 은 10.9.7 라 OIDC publish
+      # 인증이 PUT 404 로 거부됨 (이전 v0.2.0 release run 25059699115). 본
+      # repo 의 packageManager (root package.json) 와도 일관되게 11.x 사용.
+      - run: npm install -g npm@latest
+      - run: npm --version
+
       - run: npm install --no-package-lock
 
       # publish 직전 안전벨트 — #75 에서 도입한 install smoke 스크립트 재사용.
