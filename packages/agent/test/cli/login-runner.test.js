@@ -138,7 +138,7 @@ describe('parseLoginOptions — defaults & flags', () => {
       noOpen: false,
       manual: false,
       device: false,
-      liveExchange: false,
+      mock: false,
       port: null,
       timeoutMs: 120_000,
       label: null,
@@ -161,10 +161,10 @@ describe('parseLoginOptions — defaults & flags', () => {
   });
 
   it('toggles boolean flags', () => {
-    const opts = parseLoginOptions(['--no-open', '--manual', '--live-exchange']);
+    const opts = parseLoginOptions(['--no-open', '--manual', '--mock']);
     assert.equal(opts.noOpen, true);
     assert.equal(opts.manual, true);
-    assert.equal(opts.liveExchange, true);
+    assert.equal(opts.mock, true);
     assert.equal(opts.device, false);
   });
 
@@ -241,10 +241,10 @@ describe('parseLoginOptions — --timeout validation', () => {
 
 describe('parseLoginOptions — combined', () => {
   it('combines valid flags + invalid values yields both options and warnings', () => {
-    const opts = parseLoginOptions(['--port', 'foo', '--timeout', '60', '--live-exchange']);
+    const opts = parseLoginOptions(['--port', 'foo', '--timeout', '60', '--mock']);
     assert.equal(opts.port, null); // invalid, stays null
     assert.equal(opts.timeoutMs, 60_000); // valid
-    assert.equal(opts.liveExchange, true);
+    assert.equal(opts.mock, true);
     assert.equal(opts.warnings.length, 1);
   });
 
@@ -279,9 +279,9 @@ describe('parseLoginOptions — --label', () => {
     assert.match(opts.warnings[0], /--label 값이 비어/);
   });
 
-  it('accepts --label together with --live-exchange', () => {
-    const opts = parseLoginOptions(['--label', 'personal', '--live-exchange']);
+  it('accepts --label together with --mock', () => {
+    const opts = parseLoginOptions(['--label', 'personal', '--mock']);
     assert.equal(opts.label, 'personal');
-    assert.equal(opts.liveExchange, true);
+    assert.equal(opts.mock, true);
   });
 });

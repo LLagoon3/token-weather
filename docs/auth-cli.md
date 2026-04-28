@@ -12,22 +12,22 @@ token-weather doctor [provider] [options]
 ## login
 
 ```bash
-token-weather auth login codex   [--live-exchange] [--manual] [--no-open] [--port N] [--timeout SEC]
-token-weather auth login claude  [--live-exchange] [--port N] [--timeout SEC]
+token-weather auth login codex   [--manual] [--no-open] [--port N] [--timeout SEC] [--mock]
+token-weather auth login claude  [--manual] [--no-open] [--port N] [--timeout SEC] [--mock]
 ```
 
 동작:
 
 - localhost callback OAuth (PKCE S256 + state) 기반
-- 기본 경로는 token exchange 없이 **mock 저장**
-- `--live-exchange` 시 provider token endpoint에 실제 POST (실험적, guard 해제)
-- 성공 시 agent-store(`auth.json`)에 access/refresh token 저장
+- **기본 경로는 실제 OAuth 토큰 교환** — provider token endpoint에 POST 후 access/refresh token 저장
+- `--mock` 옵션 시 token endpoint 호출 없이 mock 계정만 저장 (테스트/실험용)
+- 성공 시 agent-store(`auth.json`)에 토큰 저장
 
 옵션:
 
-- `--live-exchange`: 실제 token 교환 시도. 실패 시 mock fallback 없이 에러 표시
-- `--manual` (Codex): callback URL/code 수동 붙여넣기
-- `--no-open` (Codex): 브라우저 자동 실행 안 함
+- `--mock`: 실제 token endpoint 호출 없이 mock 계정만 저장 (테스트/실험)
+- `--manual`: callback URL/code 수동 붙여넣기 (SSH/컨테이너/포트 충돌 환경)
+- `--no-open`: 브라우저 자동 실행 안 함
 - `--port N`: localhost callback 포트 지정 (정수 0~65535). 범위를 벗어나면 경고를 출력하고 login을 중단한다.
 - `--timeout SEC`: callback 대기 시간 (기본 120초). 양의 정수여야 하며 아니면 경고 후 중단.
 - `--label <name>`: 저장될 계정에 라벨을 붙인다. 이후 `--account <name>`으로 참조 가능.
@@ -46,7 +46,7 @@ token-weather auth list openai-codex
 token-weather auth list claude
 ```
 
-출력 필드: provider, accountKey, email, label, source, authType, status, mock 여부, liveToken 여부, refresh 가능 여부, expiresAt, createdAt, updatedAt.
+출력 필드: provider, accountKey, email, label, source, authType, status, mock 여부, refresh 가능 여부, expiresAt, createdAt, updatedAt.
 
 Claude는 agent-store에 저장된 계정과 `~/.claude/.credentials.json` import source 양쪽을 표시한다.
 
@@ -95,19 +95,6 @@ token-weather doctor claude --refresh-live --account <id>  # 특정 계정 지�
 
 `doctor --refresh-live`는 수동 진단/검증용 경로다. `status` / `usage`의 자동 refresh와는 별도로 동작한다.
 
-## Guard 정책 (`allowLiveExchange`)
-
-- `exchangeCodexAuthorizationCode`, `refreshCodexToken`, `exchangeClaudeAuthorizationCode`, `refreshClaudeToken` 모두 기본 guarded
-- CLI의 `--live-exchange` / `--refresh-live`를 통해서만 guard 해제
-- 실패 시 mock fallback 없이 에러 노출 (사용자 혼동 방지)
-- 관찰값(observed client_id, endpoint)이 변경될 때 자동 재시도로 피해가 커지는 것 방지
-
-guard를 해제할 시점:
-
-1. client_id 공식 확정
-2. client_secret 요구사항 명확화
-3. 장기 안정성 확인
-
 ## 포트 충돌 정책 (Codex)
 
 - 기본 포트: `1455`
@@ -145,7 +132,7 @@ Claude는 동일한 `resolveCallbackPort` 로직을 사용하되 callback path�
 ### 데스크톱: Claude 독립 OAuth
 
 ```bash
-token-weather auth login claude --live-exchange
+token-weather auth login claude
 # authorize URL 출력 → 브라우저에서 직접 열기
 # 로그인 완료 → localhost callback 수신 → token 저장
 token-weather status

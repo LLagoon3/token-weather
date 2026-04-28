@@ -131,14 +131,14 @@ export function formatRefreshSuccess(tokenResponse, prevRefreshToken) {
  * provider별 refresh 함수를 호출하고, 성공/실패 출력을 통합한다.
  * 성공 시 호출자가 store 갱신 등을 수행할 수 있도록 onSuccess 콜백을 제공.
  *
- * @param {{ providerLabel: string, refreshFn: (params: { refreshToken: string, allowLiveExchange: boolean }) => Promise<object> }} spec
+ * @param {{ providerLabel: string, refreshFn: (params: { refreshToken: string }) => Promise<object> }} spec
  * @param {string} refreshToken
  * @param {(tokenResponse: object) => Promise<void>|void} [onSuccess]
  * @returns {Promise<void>}
  */
 export async function runRefreshLiveAttempt(spec, refreshToken, onSuccess) {
   try {
-    const tokenResponse = await spec.refreshFn({ refreshToken, allowLiveExchange: true });
+    const tokenResponse = await spec.refreshFn({ refreshToken });
     console.log('✓ refresh 성공');
     for (const line of formatRefreshSuccess(tokenResponse, refreshToken)) {
       console.log(line);
@@ -158,7 +158,7 @@ export const CODEX_REFRESH_SPEC = {
   providerLabel: 'Codex',
   refreshFn: refreshCodexToken,
   failureNote:
-    '저장된 토큰을 변경하지 않았습니다.\n계정 상태를 확인하거나 `token-weather auth login codex --live-exchange`로 재인증하세요.',
+    '저장된 토큰을 변경하지 않았습니다.\n계정 상태를 확인하거나 `token-weather auth login codex`로 재인증하세요.',
 };
 
 export const CLAUDE_REFRESH_SPEC = {

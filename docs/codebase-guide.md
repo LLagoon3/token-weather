@@ -72,14 +72,12 @@ postToTokenEndpoint({
   timeoutMs,
   fetchImpl,
 });
-liveExchangeDisabledError({ caller, endpoint, grantType, clientIdNote });
 ```
 
 - token endpoint POST 공통 처리 (authorization_code / refresh_token 공용).
 - `encoding: 'form' | 'json'` — Codex는 form, Claude는 json.
 - `fallbackRefreshToken`: 응답에 `refresh_token`이 없을 때 기존 값 유지 (rotation 없는 경우).
 - 응답은 정규화된 shape `{ accessToken, refreshToken, idToken, expiresIn, tokenType, scope }`로 반환.
-- `liveExchangeDisabledError`는 `allowLiveExchange: false` guard용 표준 Error 빌더.
 
 ### 2.3 `shared/fetch-with-timeout.js`
 
@@ -135,17 +133,9 @@ export function buildFooAuthorizationUrl({ callbackUrl, state, codeChallenge, co
 ### 3.3 Token exchange / Refresh 패턴
 
 ```js
-import { postToTokenEndpoint, liveExchangeDisabledError } from '../shared/oauth-token-endpoint.js';
+import { postToTokenEndpoint } from '../shared/oauth-token-endpoint.js';
 
-export async function exchangeFooAuthorizationCode({ code, callbackUrl, codeVerifier, allowLiveExchange = false, ... }) {
-  if (!allowLiveExchange) {
-    throw liveExchangeDisabledError({
-      caller: 'exchangeFooAuthorizationCode',
-      endpoint: FOO_AUTH.tokenEndpoint,
-      grantType: 'authorization_code',
-      clientIdNote: 'observed only',
-    });
-  }
+export async function exchangeFooAuthorizationCode({ code, callbackUrl, codeVerifier, ... }) {
   return postToTokenEndpoint({
     endpoint: FOO_AUTH.tokenEndpoint,
     encoding: 'form', // or 'json'
@@ -156,7 +146,7 @@ export async function exchangeFooAuthorizationCode({ code, callbackUrl, codeVeri
 }
 ```
 
-**절대 직접 `fetch()`로 token endpoint를 호출하지 말 것.** 모든 timeout/encoding/error 포맷이 `postToTokenEndpoint`에 통합되어 있다.
+**절대 직접 `fetch()`로 token endpoint를 호출하지 말 것.** 모든 timeout/encoding/error 포맷이 `postToTokenEndpoint`에 통합되어 있다. observed `client_id` 가드(`allowLiveExchange`)는 #97 에서 제거됐다 — `auth login` 의 default 가 실제 OAuth 가 됐고 라이브러리 직접 호출도 가드 없이 정상 POST.
 
 ### 3.4 Usage fetcher 패턴
 
@@ -180,18 +170,11 @@ export async function fetchFooUsage(profile, options = {}) {
 **모든 usage fetcher의 반환값은 schema validation을 자동으로 통과한다.**
 `buildUsageSnapshot` 출구에서 `validateUsageSnapshot`이 호출되고, invalid 시 `console.warn` + `confidence: 'low'`로 하강한다 (soft enforcement — 비파괴). failure snapshot도 `buildUsageSnapshot` 경유이므로 동일하게 적용된다.
 
-### 3.5 Guard 패턴 (`allowLiveExchange`)
+### 3.5 Auth login default (#97)
 
-관찰값(observed) 기반으로 구현한 live 호출은 기본적으로 **차단**되어야 한다.
+`auth login` 의 default 는 **실제 OAuth 토큰 교환** (provider token endpoint POST → access/refresh token 저장). `--mock` opt-in 시 mock 계정만 저장 (테스트/실험).
 
-- 함수 기본값 `allowLiveExchange = false`
-- CLI에서만 `--live-exchange` 플래그로 활성화
-- 차단 시 `liveExchangeDisabledError`로 설명적 에러 반환
-
-이 guard는 다음 조건이 모두 충족되기 전까지 유지한다:
-
-1. client_id가 공식 확정됨
-2. client_secret 요구 여부가 명확해짐
+이전(`v0.1.x`) 까지는 default 가 mock 이었고 `--live-exchange` opt-in 으로 실제 OAuth 였지만, #97 에서 사용자 직관 (표준 OAuth CLI 와 정합) 측면으로 뒤집기. observed `client_id` 가드(`allowLiveExchange`) 도 함께 제거 — 자세한 이력은 [docs/release-policy.md §6](./release-policy.md).
 
 ---
 
@@ -309,10 +292,10 @@ Provider spec shape(`LoginProviderSpec`):
   fallbackEmailDomain,     // id_token이 없거나 email/preferred_username이 빠졌을 때 fallback 도메인
                            //   Codex: 'codex.openai.com', Claude: 'claude.com'
   buildAuthorizationUrl,   // adapter의 build-* 함수 그대로
-  exchangeCode,            // adapter의 exchange-* 함수를 { allowLiveExchange: true }로 감싼 것
-  supportsMockCallback,    // true면 --live-exchange 없을 때 mock 저장
-  saveMockAccount,         // supportsMockCallback=true일 때 필요
-  note, endpointDescription, liveExchangeWarning,  // UX 문구
+  exchangeCode,            // adapter의 exchange-* 함수 (가드 없이 직접 호출, #97)
+  supportsMockCallback,    // true면 --mock 시 mock 계정 저장 — Codex/Claude 모두 true (#97)
+  saveMockAccount,         // supportsMockCallback=true 시 필요. 공통 helper saveMockAccountFor 위임
+  note, endpointDescription, clientIdWarning,  // UX 문구
 }
 ```
 
@@ -320,12 +303,12 @@ Provider spec shape(`LoginProviderSpec`):
 
 ### 5.2 Option 파싱
 
-`parseLoginOptions(args)`를 사용. 공통 플래그: `--port`, `--timeout`, `--no-open`, `--manual`, `--device`, `--live-exchange`.
+`parseLoginOptions(args)`를 사용. 공통 플래그: `--port`, `--timeout`, `--no-open`, `--manual`, `--device`, `--mock`, `--label`, `--keep-legacy`.
 
 반환 shape:
 
 ```js
-{ noOpen, manual, device, liveExchange, port, timeoutMs, warnings: string[] }
+{ noOpen, manual, device, mock, port, timeoutMs, label, keepLegacy, warnings: string[] }
 ```
 
 숫자 옵션은 내부에서 유효성 검증한다:
@@ -564,7 +547,6 @@ concurrency:
 - provider 지식을 `shared/`에 넣음 → provider는 spec/params로 주입
 - "1 파일 1 함수"로 파일 수 폭증
 - token을 console.log로 출력
-- guard(`allowLiveExchange`) 기본값을 true로 변경 (공식 확정 전까지)
 - OpenClaw에 새로운 의존 추가 (agent는 독립)
 - agent → provider-adapters 반대 방향 import
 - observed 값을 문서에 "verified"로 기록

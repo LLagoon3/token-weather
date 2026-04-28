@@ -1,20 +1,16 @@
 import { CLAUDE_AUTH } from './claude-auth-constants.js';
-import { postToTokenEndpoint, liveExchangeDisabledError } from '../shared/oauth-token-endpoint.js';
-
-const CLIENT_ID_NOTE =
-  'Note: client_id is an observed value from the Claude Code binary and not officially confirmed.';
+import { postToTokenEndpoint } from '../shared/oauth-token-endpoint.js';
 
 /**
  * Claude OAuth refresh token 교환.
  *
- * Codex refreshCodexToken과 동일한 guard/shape.
+ * Codex refreshCodexToken과 동일한 shape.
  * Claude는 JSON body 필요 (token endpoint 공통).
  *
  * 응답에 `refresh_token`이 오면 rotation, 아니면 입력 refreshToken을 그대로 유지.
  *
  * @param {{
  *   refreshToken: string,
- *   allowLiveExchange?: boolean,
  *   clientId?: string,
  *   clientSecret?: string,
  *   tokenEndpoint?: string,
@@ -23,7 +19,6 @@ const CLIENT_ID_NOTE =
  */
 export async function refreshClaudeToken({
   refreshToken,
-  allowLiveExchange = false,
   clientId = CLAUDE_AUTH.observedClientId,
   clientSecret,
   tokenEndpoint = CLAUDE_AUTH.tokenEndpoint,
@@ -31,15 +26,6 @@ export async function refreshClaudeToken({
 }) {
   if (!refreshToken) {
     throw new Error('[refreshClaudeToken] refreshToken이 비어 있습니다.');
-  }
-
-  if (!allowLiveExchange) {
-    throw liveExchangeDisabledError({
-      caller: 'refreshClaudeToken',
-      endpoint: tokenEndpoint,
-      grantType: 'refresh_token',
-      clientIdNote: CLIENT_ID_NOTE,
-    });
   }
 
   return postToTokenEndpoint({

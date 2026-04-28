@@ -25,22 +25,22 @@ import { parseCliOptions } from './parse-options.js';
  * @property {string} accountKeyPrefix     - account key prefix (e.g. 'openai-codex', 'anthropic-claude')
  * @property {string} callbackPath         - localhost callback 경로 (e.g. '/auth/callback', '/callback')
  * @property {string} providerLabel        - 브라우저 콜백 응답에 표시할 라벨
- * @property {string} [endpointDescription] - live-exchange 안내 문구용 (e.g. 'Claude token endpoint')
+ * @property {string} [endpointDescription] - 실제 token endpoint 안내 문구 (e.g. 'Claude token endpoint')
  * @property {string} [fallbackEmailDomain]  - id_token이 없거나 email/preferred_username이 빠졌을 때 fallback에 사용할 도메인
  * @property {(p: { callbackUrl: string, state: string, codeChallenge: string, codeChallengeMethod: string }) => string} buildAuthorizationUrl
  * @property {(p: { code: string, callbackUrl: string, codeVerifier: string, state?: string }) => Promise<object>} exchangeCode
- * @property {boolean} supportsMockCallback - true면 --live-exchange 없이 callback 수신 시 mock 계정 저장
+ * @property {boolean} supportsMockCallback - true면 --mock 시 callback 수신 코드를 mock 계정으로 저장
  * @property {(p: { code: string }) => Promise<void>} [saveMockAccount] - supportsMockCallback=true 필요
  * @property {string} [note]               - 안내 블록에 추가 표시할 provider별 주석
- * @property {string} [liveExchangeWarning] - --live-exchange 주의 블록 (provider마다 문구 다름)
+ * @property {string} [clientIdWarning]    - observed client_id 사용 안내 (provider마다 문구 다름)
  */
 
 /**
- * localhost callback → (optional live exchange) → agent-store 저장까지
- * 공통 흐름을 수행한다.
+ * localhost callback → token exchange → agent-store 저장까지 공통 흐름을 수행한다.
+ * default 는 실제 OAuth 토큰 교환. `--mock` 시 mock 계정 저장.
  *
  * @param {LoginProviderSpec} spec
- * @param {{ port: number|null, timeoutMs: number, liveExchange: boolean, label?: string|null }} options
+ * @param {{ port: number|null, timeoutMs: number, mock: boolean, label?: string|null }} options
  */
 export async function runOAuthLoginFlow(spec, options) {
   const prepared = await prepareLocalhostCallback({
@@ -78,7 +78,7 @@ export async function runOAuthLoginFlow(spec, options) {
   console.log('');
   console.log('참고:');
   if (spec.note) console.log(`- ${spec.note}`);
-  console.log('- 기본 경로는 --live-exchange 없이 실제 token 저장을 수행하지 않습니다.');
+  console.log('- 기본 경로는 실제 OAuth 토큰 교환을 수행합니다 (mock 저장은 `--mock` 사용).');
   console.log('- 브라우저 자동 실행은 하지 않습니다.');
   console.log('');
   console.log('브라우저에서 열 URL:');
@@ -90,7 +90,7 @@ export async function runOAuthLoginFlow(spec, options) {
       callbackUrl,
       codeVerifier,
       state,
-      liveExchange: options.liveExchange ?? false,
+      mock: options.mock ?? false,
       label: options.label ?? null,
       keepLegacy: options.keepLegacy ?? false,
     });
@@ -110,22 +110,28 @@ export async function runOAuthLoginFlow(spec, options) {
     console.log('');
     console.log(`code 수신 완료: ${result.code}`);
 
-    if (options.liveExchange) {
-      await runLiveExchangeStep(spec, {
-        code: result.code,
-        callbackUrl,
-        codeVerifier,
-        state,
-        label: options.label ?? null,
-        keepLegacy: options.keepLegacy ?? false,
-      });
-    } else if (spec.supportsMockCallback && spec.saveMockAccount) {
-      await spec.saveMockAccount({ code: result.code });
-    } else {
-      console.log('');
-      console.log('--live-exchange가 없으므로 token 교환을 생략합니다.');
-      console.log('실제 토큰 저장이 필요하면 --live-exchange 옵션을 추가해 재실행하세요.');
+    // --mock 은 fail-closed 계약: spec 이 mock 을 지원하지 않으면 실제 OAuth
+    // 로 fall-through 하지 않고 안내 후 종료. 사용자가 --mock 을 명시한 의도
+    // ("실제 endpoint hit 회피") 를 깨지 않도록.
+    if (options.mock) {
+      if (spec.supportsMockCallback && spec.saveMockAccount) {
+        await spec.saveMockAccount({ code: result.code });
+      } else {
+        console.log('');
+        console.log(`이 provider(${spec.id}) 는 --mock 을 지원하지 않습니다.`);
+        console.log('토큰을 저장하지 않습니다.');
+      }
+      return;
     }
+
+    await runLiveExchangeStep(spec, {
+      code: result.code,
+      callbackUrl,
+      codeVerifier,
+      state,
+      label: options.label ?? null,
+      keepLegacy: options.keepLegacy ?? false,
+    });
   } catch (err) {
     console.log('');
     console.log(`콜백 수신 실패: ${err.message}`);
@@ -137,18 +143,18 @@ export async function runOAuthLoginFlow(spec, options) {
  * authorization code를 stdin에 paste한다. localhost callback server를 띄우지
  * 않으므로 SSH / 컨테이너 / 포트 충돌 환경에서 사용 가능.
  *
- * spec.supportsMockCallback이 false인 provider(e.g. Claude)는 --live-exchange
- * 없이 호출되면 mock 저장 없이 안내 메시지로 종료.
+ * default 는 실제 token 교환. `mock=true` + spec.supportsMockCallback 시
+ * mock 계정 저장.
  *
  * `deps.readPaste` — 테스트 주입용 (기본: readManualPasteInput).
  *
  * @param {LoginProviderSpec} spec
- * @param {{ callbackUrl: string, codeVerifier: string, state: string, liveExchange: boolean, label?: string|null, keepLegacy?: boolean }} options
+ * @param {{ callbackUrl: string, codeVerifier: string, state: string, mock: boolean, label?: string|null, keepLegacy?: boolean }} options
  * @param {{ readPaste?: () => Promise<{ type: 'url' | 'code', value: string }> }} [deps]
  */
 export async function runManualPasteFlow(
   spec,
-  { callbackUrl, codeVerifier, state, liveExchange, label, keepLegacy },
+  { callbackUrl, codeVerifier, state, mock, label, keepLegacy },
   deps = {},
 ) {
   const readPaste = deps.readPaste ?? readManualPasteInput;
@@ -169,26 +175,26 @@ export async function runManualPasteFlow(
   console.log('');
   console.log(`code 수신 완료: ${extracted.code}`);
 
-  if (liveExchange) {
-    await runLiveExchangeStep(spec, {
-      code: extracted.code,
-      callbackUrl,
-      codeVerifier,
-      state,
-      label,
-      keepLegacy,
-    });
+  // --mock 은 fail-closed: spec 미지원 시 실제 OAuth fall-through 안 함.
+  if (mock) {
+    if (spec.supportsMockCallback && spec.saveMockAccount) {
+      await spec.saveMockAccount({ code: extracted.code });
+    } else {
+      console.log('');
+      console.log(`이 provider(${spec.id}) 는 --mock 을 지원하지 않습니다.`);
+      console.log('토큰을 저장하지 않습니다.');
+    }
     return;
   }
 
-  if (spec.supportsMockCallback && spec.saveMockAccount) {
-    await spec.saveMockAccount({ code: extracted.code });
-    return;
-  }
-
-  console.log('');
-  console.log('--live-exchange가 없으므로 token 교환을 생략합니다.');
-  console.log('실제 토큰 저장이 필요하면 --live-exchange 옵션을 추가해 재실행하세요.');
+  await runLiveExchangeStep(spec, {
+    code: extracted.code,
+    callbackUrl,
+    codeVerifier,
+    state,
+    label,
+    keepLegacy,
+  });
 }
 
 async function runLiveExchangeStep(
@@ -196,9 +202,9 @@ async function runLiveExchangeStep(
   { code, callbackUrl, codeVerifier, state, label, keepLegacy },
 ) {
   console.log('');
-  console.log('⚠ --live-exchange 모드: 실제 token endpoint에 POST를 시도합니다.');
+  console.log('실제 token endpoint에 POST를 시도합니다.');
   if (spec.endpointDescription) console.log(`  ${spec.endpointDescription}`);
-  if (spec.liveExchangeWarning) console.log(`  ${spec.liveExchangeWarning}`);
+  if (spec.clientIdWarning) console.log(`  ${spec.clientIdWarning}`);
   console.log('');
 
   try {
@@ -231,12 +237,10 @@ async function runLiveExchangeStep(
   } catch (err) {
     console.log('');
     console.log(`❌ live token exchange 실패: ${err.message}`);
+    console.log('');
+    console.log('토큰을 저장하지 않습니다.');
     if (spec.supportsMockCallback) {
-      console.log('');
-      console.log('mock fallback을 수행하지 않습니다.');
-      console.log('기본 mock 저장을 원하면 --live-exchange 없이 다시 실행하세요.');
-    } else {
-      console.log('토큰을 저장하지 않습니다.');
+      console.log('mock 저장으로 실험하려면 `--mock` 옵션과 함께 다시 실행하세요.');
     }
   }
 }
@@ -268,7 +272,6 @@ async function saveLiveExchangeAccount(
     raw: {
       provider: spec.accountKeyPrefix,
       mock: false,
-      liveExchange: true,
       tokenType: tokenResponse.tokenType,
       scope: tokenResponse.scope ?? null,
       idToken: tokenResponse.idToken ?? null,
@@ -370,7 +373,7 @@ const LOGIN_DEFAULTS = {
   noOpen: false,
   manual: false,
   device: false,
-  liveExchange: false,
+  mock: false,
   port: null,
   timeoutMs: 120_000,
   label: null,
@@ -381,7 +384,7 @@ const LOGIN_FLAGS = {
   '--no-open': { key: 'noOpen', type: 'boolean' },
   '--manual': { key: 'manual', type: 'boolean' },
   '--device': { key: 'device', type: 'boolean' },
-  '--live-exchange': { key: 'liveExchange', type: 'boolean' },
+  '--mock': { key: 'mock', type: 'boolean' },
   '--keep-legacy': { key: 'keepLegacy', type: 'boolean' },
   '--port': {
     key: 'port',

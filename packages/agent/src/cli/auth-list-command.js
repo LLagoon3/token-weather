@@ -50,7 +50,6 @@ export async function runAuthListCommand(provider, options = {}) {
       totalCount += 1;
       const status = acct.status === 'disabled' ? 'disabled' : 'active';
       const isMock = acct.raw?.mock === true;
-      const isLive = acct.raw?.liveExchange === true;
       const hasRefresh = !isMock && Boolean(acct.tokens?.refreshToken);
 
       const expired = acct.expiresAt ? new Date(acct.expiresAt) < new Date() : null;
@@ -64,7 +63,6 @@ export async function runAuthListCommand(provider, options = {}) {
         `  authType   : ${acct.authType ?? '(알 수 없음)'}`,
         `  status     : ${status}`,
         `  mock       : ${isMock ? 'yes' : 'no'}`,
-        `  liveToken  : ${isLive ? 'yes' : 'no'}`,
         `  refresh    : ${hasRefresh ? 'available' : 'none'}`,
         `  expiresAt  : ${formatExpiry(acct.expiresAt, expired)}`,
         `  createdAt  : ${acct.createdAt ?? '-'}`,

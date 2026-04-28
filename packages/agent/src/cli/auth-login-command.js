@@ -1,5 +1,4 @@
-import { readManualPasteInput, extractCodeFromPaste } from '../auth/manual-paste.js';
-import { createMockCodexAccountFromManualInput } from '../auth/mock-auth-exchange.js';
+import { createMockAccountFromInput } from '../auth/mock-auth-exchange.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import {
   buildCodexAuthorizationUrl,
@@ -24,7 +23,7 @@ export function formatAuthLoginHelp() {
     'Provider: codex, claude',
     '',
     'Options:',
-    '  --live-exchange       실제 token exchange를 수행 (기본: mock 저장)',
+    '  --mock                실제 token endpoint 호출 없이 mock 계정만 저장 (테스트/실험용)',
     '  --port <number>       localhost callback port 지정 (0~65535)',
     '  --timeout <seconds>   callback 대기 시간 (기본 120)',
     '  --label <name>        계정 라벨 지정',
@@ -33,6 +32,8 @@ export function formatAuthLoginHelp() {
     '  --device              device code flow (미구현)',
     '  --keep-legacy         legacy 중복 계정을 정리하지 않음',
     '  -h, --help            이 도움말 출력',
+    '',
+    '기본 경로는 실제 OAuth 토큰 교환을 수행합니다.',
   ];
 }
 
@@ -53,7 +54,7 @@ export async function runAuthLoginCommand(provider, args = []) {
 
   if (!provider) {
     console.log(
-      '사용법: token-weather auth login <provider> [--manual] [--no-open] [--port <number>] [--timeout <seconds>] [--live-exchange] [--label <name>] [--keep-legacy]',
+      '사용법: token-weather auth login <provider> [--manual] [--no-open] [--port <number>] [--timeout <seconds>] [--mock] [--label <name>] [--keep-legacy]',
     );
     return;
   }
@@ -86,11 +87,6 @@ async function runCodexLogin(args) {
     return;
   }
 
-  if (options.manual) {
-    await runCodexManualPasteFlow();
-    return;
-  }
-
   await runOAuthLoginFlow(CODEX_LOGIN_SPEC, options);
 }
 
@@ -103,59 +99,13 @@ const CODEX_LOGIN_SPEC = {
   providerLabel: 'Codex',
   fallbackEmailDomain: 'codex.openai.com',
   note: 'authorize → callback 경로는 OpenClaw 관찰 기준으로 동작 검증됨.',
-  liveExchangeWarning: 'client_id는 관찰된 값(observed)이며 OpenAI 공식 확정이 아닙니다.',
+  clientIdWarning: 'client_id는 관찰된 값(observed)이며 OpenAI 공식 확정이 아닙니다.',
   buildAuthorizationUrl: buildCodexAuthorizationUrl,
   exchangeCode: ({ code, callbackUrl, codeVerifier }) =>
-    exchangeCodexAuthorizationCode({
-      code,
-      callbackUrl,
-      codeVerifier,
-      allowLiveExchange: true,
-    }),
+    exchangeCodexAuthorizationCode({ code, callbackUrl, codeVerifier }),
   supportsMockCallback: true,
-  saveMockAccount: async ({ code }) => {
-    const account = createMockCodexAccountFromManualInput({
-      code,
-      rawInput: `localhost-callback:${code}`,
-    });
-    const store = await loadAuthStore();
-    const nextStore = upsertProviderAccount(store, CODEX_STORE_KEY, account);
-    await saveAuthStore(nextStore);
-
-    console.log('mock 계정을 auth store에 저장했어.');
-    console.log(`저장 accountKey: ${account.accountKey}`);
-    console.log(
-      '기본 경로는 token exchange 없이 mock 저장만 수행. 실제 exchange는 --live-exchange 사용.',
-    );
-  },
+  saveMockAccount: ({ code }) => saveMockAccountFor(CODEX_LOGIN_SPEC, { code }),
 };
-
-async function runCodexManualPasteFlow() {
-  console.log('token-weather auth login codex --manual');
-  console.log('-----------------------------------------');
-  console.log('주의: manual 경로는 token exchange 없이 mock 저장만 수행해.');
-
-  const pasteResult = await readManualPasteInput();
-  const extracted = extractCodeFromPaste(pasteResult);
-
-  if (extracted.error || !extracted.code) {
-    console.log(`입력 처리 실패: ${extracted.error ?? 'unknown-error'}`);
-    return;
-  }
-
-  const account = createMockCodexAccountFromManualInput({
-    code: extracted.code,
-    rawInput: pasteResult.value,
-  });
-
-  const store = await loadAuthStore();
-  const nextStore = upsertProviderAccount(store, CODEX_STORE_KEY, account);
-  await saveAuthStore(nextStore);
-
-  console.log('mock 계정을 auth store에 저장했어.');
-  console.log(`저장 accountKey: ${account.accountKey}`);
-  console.log('이 저장 결과는 실제 OAuth 인증이 아니라 이후 흐름 연결을 위한 임시 구현이야.');
-}
 
 // ─── Claude ─────────────────────────────────────────────────────────────────
 
@@ -172,8 +122,9 @@ async function runClaudeLogin(args) {
     return;
   }
 
-  // Claude `--manual`은 runOAuthLoginFlow의 공통 manual 분기로 처리된다
-  // (login-runner.js::runManualPasteFlow). Codex와 동일한 spec 기반 흐름.
+  // `--manual` 은 runOAuthLoginFlow 의 공통 manual 분기로 처리된다
+  // (login-runner.js::runManualPasteFlow). Codex / Claude 모두 동일한
+  // spec 기반 흐름으로 통합됐다 (#97).
   await runOAuthLoginFlow(CLAUDE_LOGIN_SPEC, options);
 }
 
@@ -189,15 +140,30 @@ const CLAUDE_LOGIN_SPEC = {
   endpointDescription: `endpoint: ${CLAUDE_AUTH.tokenEndpoint}`,
   buildAuthorizationUrl: buildClaudeAuthorizationUrl,
   exchangeCode: ({ code, callbackUrl, codeVerifier, state }) =>
-    exchangeClaudeAuthorizationCode({
-      code,
-      callbackUrl,
-      codeVerifier,
-      state,
-      allowLiveExchange: true,
-    }),
-  supportsMockCallback: false,
+    exchangeClaudeAuthorizationCode({ code, callbackUrl, codeVerifier, state }),
+  supportsMockCallback: true,
+  saveMockAccount: ({ code }) => saveMockAccountFor(CLAUDE_LOGIN_SPEC, { code }),
 };
+
+/**
+ * 공통 mock 저장 helper. spec.storeKey + spec.accountKeyPrefix 만 다르고
+ * 나머지는 동일한 흐름이라 spec 별 saveMockAccount 가 본 함수에 위임.
+ */
+async function saveMockAccountFor(spec, { code }) {
+  const account = createMockAccountFromInput({
+    provider: spec.accountKeyPrefix,
+    accountKeyPrefix: spec.accountKeyPrefix,
+    code,
+    rawInput: `localhost-callback:${code}`,
+  });
+  const store = await loadAuthStore();
+  const nextStore = upsertProviderAccount(store, spec.storeKey, account);
+  await saveAuthStore(nextStore);
+
+  console.log('mock 계정을 auth store에 저장했어.');
+  console.log(`저장 accountKey: ${account.accountKey}`);
+  console.log('실제 OAuth 토큰을 받으려면 --mock 없이 다시 실행하세요.');
+}
 
 // ─── Option validation ─────────────────────────────────────────────────────
 

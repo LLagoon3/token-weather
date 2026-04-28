@@ -39,14 +39,11 @@
 - `token-weather config init`
   - 기본 설정 파일 생성
 - `token-weather auth login codex`
-  - authorize → localhost callback → code/state 수신까지 동작 검증됨
-  - 기본 경로는 token exchange 없이 mock 저장으로 끝남
-  - authorize URL은 OpenClaw 관찰 기준으로 정렬됨 (observed alignment, 공식 확정 아님)
-- `token-weather auth login codex --live-exchange`
-  - callback code 수신 후 실제 token endpoint에 POST를 수행 (실험적, 동작 검증됨)
-  - 성공 시 real token을 auth store에 저장, 실패 시 에러 표시 (mock fallback 없음)
-  - PKCE S256 적용됨, client_id는 observed 값 (공식 확정 아님)
+  - default — authorize → localhost callback → code/state 수신 → token endpoint 에 POST → real token 저장
+  - PKCE S256 적용됨, client_id 는 observed 값 (공식 확정 아님)
   - account 식별: id_token/access_token claims 기반 (email → preferred_username → sub), 불가 시 code prefix fallback
+- `token-weather auth login codex --mock`
+  - 실제 token endpoint 호출 없이 mock 계정만 저장 (테스트/실험용)
 - `token-weather auth login codex --manual`
   - callback URL/code 입력을 받아 placeholder/mock 계정을 auth store에 저장
   - 아직 실제 OAuth token exchange는 아님
