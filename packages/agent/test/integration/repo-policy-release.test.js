@@ -115,16 +115,8 @@ describe('repo-policy/release — release workflow (PR #74)', () => {
     assert.match(text, /bash\s+\.\/scripts\/install-smoke\.sh/);
   });
 
-  // npm publish provenance (OIDC) — #77 을 #76 에 흡수.
-  // id-token: write 권한 + NPM_CONFIG_PROVENANCE: 'true' 가 함께 있어야
-  // changesets 가 호출하는 npm publish 에 supply chain attestation 적용.
-  it('release.yml job 이 id-token: write 권한을 갖는다 (#77 provenance)', () => {
-    const text = readText('.github/workflows/release.yml');
-    assert.match(text, /^\s*id-token:\s*write/m);
-  });
-
-  it('release.yml 이 NPM_CONFIG_PROVENANCE 를 활성화한다 (#77 provenance)', () => {
-    const text = readText('.github/workflows/release.yml');
-    assert.match(text, /NPM_CONFIG_PROVENANCE:\s*['"]?true['"]?/);
-  });
+  // provenance(OIDC) 가드는 #76+#77 통합 머지 후 first publish PUT 404 로
+  // 실패해 일시 비활성화 — npm.com Trusted Publisher 등록 후 후속 PR 에서
+  // 다시 추가. 자세한 이력은 docs/release-policy.md §6.
+  // 본 PR 시점에는 provenance 활성화 단언을 두지 않는다.
 });
