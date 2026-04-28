@@ -28,7 +28,7 @@
 
 ### Changed
 
-- CLI option parser를 spec 기반 공통 helper(`parseCliOptions`)로 통일 — status / usage / doctor / login / logout / refresh ([#62]).
+- CLI option parser를 spec 기반 공통 helper(`parseCliOptions`)로 통일 — status / usage / doctor / auth login / auth logout ([#62]).
 - Claude OAuth flow를 pi-ai baseline(`claude.ai` authorize endpoint + 6-scope) 기준으로 정렬 ([#87]).
 - 패키지명을 `@token-weather/*`로 리네임, bin을 `token-weather`로 정렬 ([#82]).
 - repo 식별자(`ai-usage-agent` → `token-weather`) 일괄 치환 + 워크스페이스 경계 import를 `@token-weather/*` 패키지명으로 변환 ([#82]).
@@ -54,28 +54,28 @@
 - CI: `npm install --no-package-lock` → `npm run build:types` → `npm test` 흐름 정착 ([#88]).
 - README / CONTRIBUTING / `docs/codebase-guide.md` 사용자 온보딩 + 보안 신고 단락 + 라이선스 단락 ([#80], [#81], [#85]).
 
-[Unreleased]: https://github.com/LLagoon3/ai-usage-agent/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/LLagoon3/ai-usage-agent/releases/tag/v0.1.0
+[Unreleased]: https://github.com/LLagoon3/token-weather/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/LLagoon3/token-weather/releases/tag/v0.1.0
 
-[#6]: https://github.com/LLagoon3/ai-usage-agent/pull/6
-[#16]: https://github.com/LLagoon3/ai-usage-agent/pull/16
-[#19]: https://github.com/LLagoon3/ai-usage-agent/pull/19
-[#29]: https://github.com/LLagoon3/ai-usage-agent/pull/29
-[#32]: https://github.com/LLagoon3/ai-usage-agent/pull/32
-[#43]: https://github.com/LLagoon3/ai-usage-agent/pull/43
-[#47]: https://github.com/LLagoon3/ai-usage-agent/pull/47
-[#49]: https://github.com/LLagoon3/ai-usage-agent/pull/49
-[#51]: https://github.com/LLagoon3/ai-usage-agent/pull/51
-[#55]: https://github.com/LLagoon3/ai-usage-agent/pull/55
-[#57]: https://github.com/LLagoon3/ai-usage-agent/pull/57
-[#58]: https://github.com/LLagoon3/ai-usage-agent/pull/58
-[#62]: https://github.com/LLagoon3/ai-usage-agent/pull/62
-[#66]: https://github.com/LLagoon3/ai-usage-agent/pull/66
-[#67]: https://github.com/LLagoon3/ai-usage-agent/pull/67
-[#68]: https://github.com/LLagoon3/ai-usage-agent/pull/68
-[#80]: https://github.com/LLagoon3/ai-usage-agent/pull/80
-[#81]: https://github.com/LLagoon3/ai-usage-agent/pull/81
-[#82]: https://github.com/LLagoon3/ai-usage-agent/pull/82
-[#85]: https://github.com/LLagoon3/ai-usage-agent/pull/85
-[#87]: https://github.com/LLagoon3/ai-usage-agent/pull/87
-[#88]: https://github.com/LLagoon3/ai-usage-agent/pull/88
+[#6]: https://github.com/LLagoon3/token-weather/pull/6
+[#16]: https://github.com/LLagoon3/token-weather/pull/16
+[#19]: https://github.com/LLagoon3/token-weather/pull/19
+[#29]: https://github.com/LLagoon3/token-weather/pull/29
+[#32]: https://github.com/LLagoon3/token-weather/pull/32
+[#43]: https://github.com/LLagoon3/token-weather/pull/43
+[#47]: https://github.com/LLagoon3/token-weather/pull/47
+[#49]: https://github.com/LLagoon3/token-weather/pull/49
+[#51]: https://github.com/LLagoon3/token-weather/pull/51
+[#55]: https://github.com/LLagoon3/token-weather/pull/55
+[#57]: https://github.com/LLagoon3/token-weather/pull/57
+[#58]: https://github.com/LLagoon3/token-weather/pull/58
+[#62]: https://github.com/LLagoon3/token-weather/pull/62
+[#66]: https://github.com/LLagoon3/token-weather/pull/66
+[#67]: https://github.com/LLagoon3/token-weather/pull/67
+[#68]: https://github.com/LLagoon3/token-weather/pull/68
+[#80]: https://github.com/LLagoon3/token-weather/pull/80
+[#81]: https://github.com/LLagoon3/token-weather/pull/81
+[#82]: https://github.com/LLagoon3/token-weather/pull/82
+[#85]: https://github.com/LLagoon3/token-weather/pull/85
+[#87]: https://github.com/LLagoon3/token-weather/pull/87
+[#88]: https://github.com/LLagoon3/token-weather/pull/88

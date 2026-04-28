@@ -2,7 +2,7 @@
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
 [![npm version](https://img.shields.io/npm/v/%40token-weather%2Fcli.svg)](https://www.npmjs.com/package/@token-weather/cli)
-[![CI](https://github.com/LLagoon3/ai-usage-agent/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/LLagoon3/ai-usage-agent/actions/workflows/ci.yml)
+[![CI](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/node/v/%40token-weather%2Fcli.svg)](https://nodejs.org/)
 
 > **Local CLI dashboard for AI service usage and OAuth credentials.**
@@ -118,7 +118,7 @@ npm run test:adapters # provider adapters만
 npm run test:schemas  # schemas 패키지만
 ```
 
-진행 중인 작업은 [Issues](https://github.com/LLagoon3/ai-usage-agent/issues)에서 추적합니다.
+진행 중인 작업은 [Issues](https://github.com/LLagoon3/token-weather/issues)에서 추적합니다.
 
 ### 추가 문서
 
