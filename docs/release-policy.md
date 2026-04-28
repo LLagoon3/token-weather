@@ -121,3 +121,4 @@ CHANGELOG는 두 layer로 운영한다 — Changesets 기본 동작에 맞춰서
 - 2026-04-27 (#74): 초안 작성. v0.1.0 publish 직전 상태에서 정책 명문화.
 - 2026-04-28 (#74 review follow-up): root CHANGELOG는 수동 큐레이트, per-package CHANGELOG는 Changesets 자동 생성으로 layer 구분 명문화.
 - 2026-04-28 (#76): publish step 활성화 — `release.yml`에 `npx changeset publish` + `NPM_TOKEN` 연결 + install smoke (#75) 안전벨트 재호출. release PR 머지 시 자동 npm publish.
+- 2026-04-28 (#76 + #77 통합): npm publish provenance 활성화 — `release.yml` job 에 `id-token: write` 권한 + changesets/action env 에 `NPM_CONFIG_PROVENANCE: 'true'` 추가. 첫 publish 부터 supply chain attestation 적용. (#77 별도 이슈는 본 PR 로 흡수 close.)

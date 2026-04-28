@@ -20,6 +20,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write   # npm provenance (OIDC) — supply chain attestation
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,3 +46,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # changesets 가 호출하는 npm publish 가 --provenance 플래그를 자동
+          # 적용하도록 한다 (npm 9.5+ 가 인식). id-token: write OIDC 권한과
+          # 함께 첫 publish 부터 supply chain attestation 보장.
+          NPM_CONFIG_PROVENANCE: 'true'
