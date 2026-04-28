@@ -1,4 +1,3 @@
-import { readManualPasteInput, extractCodeFromPaste } from '../auth/manual-paste.js';
 import { createMockCodexAccountFromManualInput } from '../auth/mock-auth-exchange.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import {
@@ -86,11 +85,6 @@ async function runCodexLogin(args) {
     return;
   }
 
-  if (options.manual) {
-    await runCodexManualPasteFlow();
-    return;
-  }
-
   await runOAuthLoginFlow(CODEX_LOGIN_SPEC, options);
 }
 
@@ -130,33 +124,6 @@ const CODEX_LOGIN_SPEC = {
   },
 };
 
-async function runCodexManualPasteFlow() {
-  console.log('token-weather auth login codex --manual');
-  console.log('-----------------------------------------');
-  console.log('주의: manual 경로는 token exchange 없이 mock 저장만 수행해.');
-
-  const pasteResult = await readManualPasteInput();
-  const extracted = extractCodeFromPaste(pasteResult);
-
-  if (extracted.error || !extracted.code) {
-    console.log(`입력 처리 실패: ${extracted.error ?? 'unknown-error'}`);
-    return;
-  }
-
-  const account = createMockCodexAccountFromManualInput({
-    code: extracted.code,
-    rawInput: pasteResult.value,
-  });
-
-  const store = await loadAuthStore();
-  const nextStore = upsertProviderAccount(store, CODEX_STORE_KEY, account);
-  await saveAuthStore(nextStore);
-
-  console.log('mock 계정을 auth store에 저장했어.');
-  console.log(`저장 accountKey: ${account.accountKey}`);
-  console.log('이 저장 결과는 실제 OAuth 인증이 아니라 이후 흐름 연결을 위한 임시 구현이야.');
-}
-
 // ─── Claude ─────────────────────────────────────────────────────────────────
 
 async function runClaudeLogin(args) {
@@ -172,8 +139,9 @@ async function runClaudeLogin(args) {
     return;
   }
 
-  // Claude `--manual`은 runOAuthLoginFlow의 공통 manual 분기로 처리된다
-  // (login-runner.js::runManualPasteFlow). Codex와 동일한 spec 기반 흐름.
+  // `--manual` 은 runOAuthLoginFlow 의 공통 manual 분기로 처리된다
+  // (login-runner.js::runManualPasteFlow). Codex / Claude 모두 동일한
+  // spec 기반 흐름으로 통합됐다 (#97).
   await runOAuthLoginFlow(CLAUDE_LOGIN_SPEC, options);
 }
 
