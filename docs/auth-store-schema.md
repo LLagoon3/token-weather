@@ -11,7 +11,7 @@
 기본 경로:
 
 ```text
-~/.config/ai-usage-agent/auth.json
+~/.config/token-weather/auth.json
 ```
 
 현재 기본 방안:

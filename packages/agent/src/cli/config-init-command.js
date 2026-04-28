@@ -9,7 +9,7 @@ export function formatConfigInitHelp() {
   return [
     'token-weather config init',
     '',
-    '~/.config/ai-usage-agent/config.json에 기본 설정 파일을 생성합니다.',
+    '~/.config/token-weather/config.json에 기본 설정 파일을 생성합니다.',
     '',
     'Options:',
     '  -h, --help   이 도움말 출력',

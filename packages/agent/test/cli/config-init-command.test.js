@@ -46,7 +46,7 @@ describe('runConfigInitCommand — --help', () => {
     await runConfigInitCommand(['--help']);
     assert.ok(logged.some((l) => l.startsWith('token-weather config init')));
     // --help 경로는 파일을 쓰지 않는다.
-    const configPath = path.join(tmpHome, '.config', 'ai-usage-agent', 'config.json');
+    const configPath = path.join(tmpHome, '.config', 'token-weather', 'config.json');
     assert.equal(fs.existsSync(configPath), false);
   });
 });
@@ -54,10 +54,10 @@ describe('runConfigInitCommand — --help', () => {
 describe('runConfigInitCommand — fresh init', () => {
   withTmpHome();
 
-  it('creates ~/.config/ai-usage-agent/config.json with default contents', async () => {
+  it('creates ~/.config/token-weather/config.json with default contents', async () => {
     await runConfigInitCommand();
 
-    const configPath = path.join(tmpHome, '.config', 'ai-usage-agent', 'config.json');
+    const configPath = path.join(tmpHome, '.config', 'token-weather', 'config.json');
     assert.ok(fs.existsSync(configPath), 'config file should exist');
 
     const raw = fs.readFileSync(configPath, 'utf8');
@@ -81,7 +81,7 @@ describe('runConfigInitCommand — overwrite behavior', () => {
   withTmpHome();
 
   it('overwrites existing file (current contract — caller responsible for backup)', async () => {
-    const configPath = path.join(tmpHome, '.config', 'ai-usage-agent', 'config.json');
+    const configPath = path.join(tmpHome, '.config', 'token-weather', 'config.json');
     fs.mkdirSync(path.dirname(configPath), { recursive: true });
     fs.writeFileSync(configPath, '{"custom":"value"}');
 

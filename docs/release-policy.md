@@ -18,7 +18,7 @@
 - public d.ts breaking — export 제거, 함수 signature 변경(필수 param 추가/순서 변경/타입 narrow), `@typedef` 키 제거.
 - CLI flag 제거 또는 shorthand 의미 변경 (예: `--account` 동작 자체가 바뀜).
 - 기존 CLI 명령 제거 (예: `token-weather status` 자체를 없앰).
-- `~/.config/ai-usage-agent/` 경로 / `auth.json` 스키마의 incompatible 변경.
+- `~/.config/token-weather/` 경로 / `auth.json` 스키마의 incompatible 변경.
 
 ### minor (0.X.0)
 

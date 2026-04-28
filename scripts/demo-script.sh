@@ -5,7 +5,7 @@
 #
 # **DO NOT RUN THIS SCRIPT DIRECTLY.** Always invoke through
 # scripts/record-demo.sh, which sets up an isolated HOME via mktemp. Direct
-# execution would read the user's real ~/.config/ai-usage-agent/auth.json
+# execution would read the user's real ~/.config/token-weather/auth.json
 # and leak account identifiers / token metadata into the recording.
 #
 # Constraints:
@@ -22,7 +22,7 @@ if [[ "${TOKEN_WEATHER_DEMO_SAFE:-0}" != "1" ]]; then
   cat >&2 <<'EOF'
 ERROR: demo-script.sh must be invoked through scripts/record-demo.sh.
 
-Direct execution would read your real ~/.config/ai-usage-agent/auth.json
+Direct execution would read your real ~/.config/token-weather/auth.json
 and expose account identifiers / token metadata in the recording.
 
 Run instead:

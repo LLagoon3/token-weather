@@ -358,7 +358,7 @@ export function parseStatusOptions(args) {
 
 ### 6.1 Store 위치
 
-`~/.config/ai-usage-agent/auth.json` (권한 `0600`). 스키마는 `auth-store-schema.js`.
+`~/.config/token-weather/auth.json` (권한 `0600`). 스키마는 `auth-store-schema.js`.
 
 ```
 {

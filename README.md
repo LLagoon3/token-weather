@@ -22,7 +22,7 @@ token-weather --help
 첫 명령:
 
 ```bash
-token-weather config init                              # ~/.config/ai-usage-agent/config.json 생성
+token-weather config init                              # ~/.config/token-weather/config.json 생성
 token-weather auth login claude --live-exchange        # 브라우저 → localhost callback (PKCE + state 검증)
 token-weather status                                   # 인증 / 사용량 / 만료까지 한 번에
 token-weather status --json | jq                       # 자동화/대시보드용 정규화 JSON

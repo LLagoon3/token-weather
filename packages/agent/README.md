@@ -81,7 +81,7 @@ node packages/agent/bin/token-weather.js status
 기본 설정 경로:
 
 ```text
-~/.config/ai-usage-agent/config.json
+~/.config/token-weather/config.json
 ```
 
 현재 기본 설정에는 아래 항목이 들어간다:

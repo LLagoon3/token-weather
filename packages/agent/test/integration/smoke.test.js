@@ -47,7 +47,7 @@ describe('bin/token-weather — smoke', () => {
         timeout: 10_000,
       });
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      const expected = path.join(tmpHome, '.config', 'ai-usage-agent', 'config.json');
+      const expected = path.join(tmpHome, '.config', 'token-weather', 'config.json');
       assert.ok(fs.existsSync(expected), 'config.json should be created');
       const parsed = JSON.parse(fs.readFileSync(expected, 'utf8'));
       assert.ok(parsed.providers);

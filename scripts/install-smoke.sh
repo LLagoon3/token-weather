@@ -15,7 +15,7 @@
 #   5) 3 패키지의 dist/types/index.d.ts 가 install된 node_modules에 존재하는지 확인
 #
 # 안전장치:
-#   - HOME 을 mktemp 디렉토리로 override → 사용자 실 ~/.config/ai-usage-agent/auth.json
+#   - HOME 을 mktemp 디렉토리로 override → 사용자 실 ~/.config/token-weather/auth.json
 #     절대 접근 안 함.
 #   - NO_COLOR=1 로 출력 deterministic.
 #   - status / usage / doctor 같은 network 의존 명령은 smoke 대상에서 제외.

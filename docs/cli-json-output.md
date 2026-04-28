@@ -24,7 +24,7 @@ token-weather status --json --account work@example.com --provider claude
   "command": "status",
   "generatedAt": "2026-04-25T08:30:00.000Z",
   "schemaVersion": "0.1.0",
-  "configPath": "/home/user/.config/ai-usage-agent/config.json",
+  "configPath": "/home/user/.config/token-weather/config.json",
   "accountFilter": null,
   "providerFilter": null,
   "providers": [
