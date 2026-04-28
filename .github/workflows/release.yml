@@ -6,9 +6,9 @@ name: Release
 #
 # 정책 / 카테고리 / SCHEMA_VERSION 기준은 docs/release-policy.md.
 #
-# provenance(OIDC) 는 #76 + #77 통합 시도에서 first publish PUT 404 로
-# 실패하여 일시 비활성화 — npm.com 에 Trusted Publisher 등록 후 후속 PR
-# 에서 재도입 예정. 자세한 이력은 docs/release-policy.md §6.
+# Trusted Publishing(npm.com 등록) + OIDC 기반 provenance 활성화 — npm CLI
+# 가 GitHub Actions OIDC identity 로 supply chain attestation 자동 생성.
+# NPM_TOKEN 은 Trusted Publishing 미적용 fallback 으로 유지.
 
 on:
   push:
@@ -24,6 +24,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write   # npm provenance (OIDC) — Trusted Publisher 등록 후 활성화
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,7 +64,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # provenance 일시 비활성화 — Trusted Publisher 미등록 상태에서
-          # OIDC publish 가 PUT 404 로 거부되는 케이스 회피. 후속 PR 에서
-          # npm.com Trusted Publisher 등록 + 'true' 로 복귀.
-          NPM_CONFIG_PROVENANCE: 'false'
+          # changesets 가 호출하는 npm publish 가 --provenance 플래그를 자동
+          # 적용하도록 한다 (npm 9.5+ 인식). id-token: write OIDC 권한 +
+          # npm.com Trusted Publisher 등록과 함께 supply chain attestation
+          # 보장. v0.1.0 (첫 publish) 은 attestation 없이 출판됐고, 본 PR
+          # 머지 후 다음 release publish 부터 attestation 적용.
+          NPM_CONFIG_PROVENANCE: 'true'
