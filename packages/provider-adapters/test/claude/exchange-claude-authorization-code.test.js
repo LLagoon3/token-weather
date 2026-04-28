@@ -39,20 +39,17 @@ describe('exchangeClaudeAuthorizationCode — argument guards', () => {
 
   it('throws when callbackUrl is empty', async () => {
     await assert.rejects(
-      () =>
-        exchangeClaudeAuthorizationCode(baseParams({ callbackUrl: '' })),
+      () => exchangeClaudeAuthorizationCode(baseParams({ callbackUrl: '' })),
       /callbackUrl이 비어/,
     );
   });
 
   it('throws when codeVerifier is empty', async () => {
     await assert.rejects(
-      () =>
-        exchangeClaudeAuthorizationCode(baseParams({ codeVerifier: '' })),
+      () => exchangeClaudeAuthorizationCode(baseParams({ codeVerifier: '' })),
       /codeVerifier가 비어/,
     );
   });
-
 });
 
 describe('exchangeClaudeAuthorizationCode', () => {

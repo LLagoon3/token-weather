@@ -23,7 +23,7 @@ export function formatAuthLoginHelp() {
     'Provider: codex, claude',
     '',
     'Options:',
-    '  --live-exchange       실제 token exchange를 수행 (기본: mock 저장)',
+    '  --mock                실제 token endpoint 호출 없이 mock 계정만 저장 (테스트/실험용)',
     '  --port <number>       localhost callback port 지정 (0~65535)',
     '  --timeout <seconds>   callback 대기 시간 (기본 120)',
     '  --label <name>        계정 라벨 지정',
@@ -32,6 +32,8 @@ export function formatAuthLoginHelp() {
     '  --device              device code flow (미구현)',
     '  --keep-legacy         legacy 중복 계정을 정리하지 않음',
     '  -h, --help            이 도움말 출력',
+    '',
+    '기본 경로는 실제 OAuth 토큰 교환을 수행합니다.',
   ];
 }
 
@@ -52,7 +54,7 @@ export async function runAuthLoginCommand(provider, args = []) {
 
   if (!provider) {
     console.log(
-      '사용법: token-weather auth login <provider> [--manual] [--no-open] [--port <number>] [--timeout <seconds>] [--live-exchange] [--label <name>] [--keep-legacy]',
+      '사용법: token-weather auth login <provider> [--manual] [--no-open] [--port <number>] [--timeout <seconds>] [--mock] [--label <name>] [--keep-legacy]',
     );
     return;
   }
@@ -97,15 +99,10 @@ const CODEX_LOGIN_SPEC = {
   providerLabel: 'Codex',
   fallbackEmailDomain: 'codex.openai.com',
   note: 'authorize → callback 경로는 OpenClaw 관찰 기준으로 동작 검증됨.',
-  liveExchangeWarning: 'client_id는 관찰된 값(observed)이며 OpenAI 공식 확정이 아닙니다.',
+  clientIdWarning: 'client_id는 관찰된 값(observed)이며 OpenAI 공식 확정이 아닙니다.',
   buildAuthorizationUrl: buildCodexAuthorizationUrl,
   exchangeCode: ({ code, callbackUrl, codeVerifier }) =>
-    exchangeCodexAuthorizationCode({
-      code,
-      callbackUrl,
-      codeVerifier,
-      allowLiveExchange: true,
-    }),
+    exchangeCodexAuthorizationCode({ code, callbackUrl, codeVerifier }),
   supportsMockCallback: true,
   saveMockAccount: async ({ code }) => {
     const account = createMockCodexAccountFromManualInput({
@@ -118,9 +115,7 @@ const CODEX_LOGIN_SPEC = {
 
     console.log('mock 계정을 auth store에 저장했어.');
     console.log(`저장 accountKey: ${account.accountKey}`);
-    console.log(
-      '기본 경로는 token exchange 없이 mock 저장만 수행. 실제 exchange는 --live-exchange 사용.',
-    );
+    console.log('실제 OAuth 토큰을 받으려면 --mock 없이 다시 실행하세요.');
   },
 };
 
@@ -157,13 +152,7 @@ const CLAUDE_LOGIN_SPEC = {
   endpointDescription: `endpoint: ${CLAUDE_AUTH.tokenEndpoint}`,
   buildAuthorizationUrl: buildClaudeAuthorizationUrl,
   exchangeCode: ({ code, callbackUrl, codeVerifier, state }) =>
-    exchangeClaudeAuthorizationCode({
-      code,
-      callbackUrl,
-      codeVerifier,
-      state,
-      allowLiveExchange: true,
-    }),
+    exchangeClaudeAuthorizationCode({ code, callbackUrl, codeVerifier, state }),
   supportsMockCallback: false,
 };
 

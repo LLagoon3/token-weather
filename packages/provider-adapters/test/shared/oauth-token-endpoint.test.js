@@ -188,4 +188,3 @@ describe('postToTokenEndpoint — fallbackRefreshToken', () => {
     assert.equal(result.refreshToken, 'old-rt');
   });
 });
-
