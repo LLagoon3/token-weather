@@ -118,11 +118,21 @@ describe('repo-policy/release — release workflow (PR #74)', () => {
     assert.match(text, /bash\s+\.\/scripts\/install-smoke\.sh/);
   });
 
-  // npm Trusted Publishing(OIDC) 은 npm CLI 11+ 를 요구한다. setup-node@v4
-  // 번들 npm (10.9.7) 으로는 publish 가 PUT 404 로 거부된다.
-  it('release.yml 이 npm 11+ 로 업그레이드한다 (Trusted Publishing OIDC 요구사항)', () => {
+  // npm Trusted Publishing(OIDC) 은 npm CLI 11+ 를 요구한다. Node 24 의
+  // 번들 npm 이 11+ 라 self-upgrade 없이 요구사항 충족 — 'npm install -g
+  // npm@latest' 자체가 node 22 번들 npm 위에서 깨졌던 회귀(release run
+  // 25079605613, MODULE_NOT_FOUND promise-retry) 회피.
+  it('release.yml 이 Node 24 를 사용한다 (Trusted Publishing OIDC + npm 11+ 번들)', () => {
     const text = readText('.github/workflows/release.yml');
-    assert.match(text, /npm install -g npm@/);
+    assert.match(text, /node-version:\s*24/);
+  });
+
+  it('release.yml 에 npm self-upgrade step 이 없다 (회귀 차단)', () => {
+    const text = readText('.github/workflows/release.yml');
+    // global npm 자기 업그레이드 패턴은 release.yml 에 다시 들어오면 안 됨.
+    // (코멘트의 historical reference 도 false-positive 가 안 되도록 코멘트
+    // 처음에 'global npm 자기 업그레이드' 한국어 표현 사용.)
+    assert.equal(/^\s*-?\s*run:\s*npm install -g npm@/m.test(text), false);
   });
 
   // npm provenance (OIDC) — Trusted Publisher 등록 완료 후 재활성화.
