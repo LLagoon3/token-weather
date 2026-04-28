@@ -13,7 +13,7 @@
   - PKCE S256 / state 검증 포함
   - 포트 충돌 시 자동 fallback (최대 3회) → manual paste 전환
 - fallback: `--manual` 플래그로 callback URL / code 직접 붙여넣기
-- token exchange: `--live-exchange` 플래그로 실 endpoint POST
+- token exchange: default 가 실제 endpoint POST (`--mock` 옵션 시 mock 저장)
 - auth store 우선순위: `agent-store > openclaw-import`
 
 ### OAuth endpoints
@@ -38,7 +38,7 @@
 
 두 경로가 공존한다.
 
-- `auth login claude --live-exchange`: 독립 OAuth (브라우저 로그인) → agent-store에 live token 저장
+- `auth login claude`: 독립 OAuth (브라우저 로그인) → agent-store에 live token 저장 (default)
 - `auth import claude`: `~/.claude/.credentials.json` reader → agent-store에 복사
 
 credential source 우선순위: `agent-store > claude-cli-import`
@@ -77,7 +77,7 @@ credential source 우선순위: `agent-store > claude-cli-import`
 
 ### refresh token
 
-- `refreshClaudeToken` 구현 (Codex와 동일한 `allowLiveExchange` guard)
+- `refreshClaudeToken` 구현 (Codex `refreshCodexToken` 와 동일 shape, #97 이후 가드 없음)
 - `doctor claude --refresh-live`로 수동 검증 가능
 - rotation 반영: 응답에 새 `refresh_token`이 오면 교체, 없으면 기존 유지
 

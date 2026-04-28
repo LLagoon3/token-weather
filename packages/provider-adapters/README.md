@@ -15,9 +15,9 @@ provider별 인증 소스, usage endpoint, 응답 정규화 로직을 모아두�
 - provider 원본 응답을 `raw` 필드에 보존
 - Codex auth metadata/constants (auth.openai.com 기반 endpoint 검증 반영)
 - Codex authorization URL generation 골격 (OpenClaw observed authorize URL과 정렬됨)
-- Codex authorization code / refresh token exchange — guarded real fetch 구현
-  - `allowLiveExchange: true` 전달 시에만 실제 POST 수행
-  - 기본 동작은 guard에 의해 에러를 던지며 외부 호출 없음
+- Codex authorization code / refresh token exchange — `postToTokenEndpoint` 공통 transport 기반
+  - 호출 시 항상 실제 POST 수행 (#97 에서 `allowLiveExchange` 가드 제거)
+  - mock 동작은 CLI(`auth login --mock`) 가 별도 흐름에서 처리
 
 ## 현재 구조
 

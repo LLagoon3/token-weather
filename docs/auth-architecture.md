@@ -29,7 +29,7 @@ runtime 기본 경로는 agent 자체 store이며, OpenClaw 의존은 제거되�
 3. PKCE(S256) / state 생성
 4. 브라우저용 authorize URL 출력 (자동 오픈은 하지 않음)
 5. 사용자 로그인 완료 → provider가 localhost callback으로 code 전달
-6. `--live-exchange` 지정 시 token endpoint에 authorization_code grant POST
+6. token endpoint 에 authorization_code grant POST (default 동작 — `--mock` 시 mock 계정만 저장)
 7. access/refresh token을 agent-store에 저장
 
 provider별 callback path:
@@ -53,12 +53,12 @@ provider별 callback path:
 
 ### Codex
 
-1. `agent-store` (live-exchange로 받은 real token)
+1. `agent-store` (auth login 으로 저장된 real token)
 2. `openclaw-import` (기존 OpenClaw auth-profiles.json)
 
 ### Claude
 
-1. `agent-store` (`auth login claude --live-exchange` 또는 `auth import claude`로 저장된 항목)
+1. `agent-store` (`auth login claude` 또는 `auth import claude`로 저장된 항목)
 2. `claude-cli-import` (`~/.claude/.credentials.json` 실시간 reader)
 
 ## 저장소 설계 원칙
@@ -103,7 +103,7 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다:
 ## CLI
 
 ```text
-token-weather auth login <codex|claude> [--live-exchange] [--port N] [--timeout SEC] [--manual] [--no-open]
+token-weather auth login <codex|claude> [--mock] [--port N] [--timeout SEC] [--manual] [--no-open]
 token-weather auth list
 token-weather auth logout <provider> [--account <id>]
 token-weather auth import <openclaw|claude>
@@ -163,15 +163,9 @@ token-weather status | usage
 - refresh token rotation 정책
 - 다른 client_id 값이 존재하는지 (`22422756-...`는 local-oauth 전용인 것으로 보임)
 
-## Guard 패턴
+## 인증 default
 
-Codex/Claude의 token exchange와 refresh 함수는 **기본적으로 guard**되어 있다.
-
-- `allowLiveExchange: false` (기본값)이면 설명적 에러를 던진다
-- `allowLiveExchange: true`를 명시적으로 전달해야 실제 POST가 수행된다
-- CLI에서는 `--live-exchange` 플래그로 opt-in
-
-이 guard는 관찰값(observed client_id, endpoint 등)이 변경될 때 실수로 live 호출이 반복되는 것을 막기 위함이다.
+Codex / Claude 의 `auth login` 은 default 로 실제 OAuth 토큰 교환을 수행한다 (token endpoint POST → access/refresh token 저장). `--mock` opt-in 으로만 mock 계정 저장. provider-adapters 라이브러리의 `exchange*` / `refresh*` 함수도 가드 없이 직접 호출 가능 — `allowLiveExchange` 매개변수는 #97 에서 제거됐다.
 
 ## 운영 방안
 

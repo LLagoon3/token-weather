@@ -46,7 +46,6 @@ Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구�
   - `buildOAuthAuthorizationUrl` — authorize URL 조립
   - `postToTokenEndpoint` — token endpoint POST (form/json, timeout, error 정규화)
   - `fetchWithTimeout` — AbortController 기반 공통 wrapper
-  - `liveExchangeDisabledError` — guard용 표준 에러
 - `codex/` — Codex (OpenAI) 인증 + usage
 - `claude/` — Claude (Anthropic) 인증 + usage + stats-cache
 
