@@ -26,7 +26,11 @@ const DOCTOR_FLAGS = {
 const DOCTOR_DEFAULTS = { refreshLive: false, account: null };
 
 function parseDoctorOptions(args) {
-  return parseCliOptions(args, { defaults: DOCTOR_DEFAULTS, flags: DOCTOR_FLAGS, includeHelp: true });
+  return parseCliOptions(args, {
+    defaults: DOCTOR_DEFAULTS,
+    flags: DOCTOR_FLAGS,
+    includeHelp: true,
+  });
 }
 
 /**
@@ -128,9 +132,13 @@ async function runDoctorRoot(args = []) {
   console.log('  token-weather doctor codex --refresh-live  실제 refresh token 재발급 시도');
   console.log('  token-weather doctor codex --account <id>  특정 계정 지정');
   console.log('  token-weather doctor claude                   claude credential 상태 점검');
-  console.log('  token-weather doctor claude --refresh-live    Claude OAuth refresh token으로 실제 재발급');
+  console.log(
+    '  token-weather doctor claude --refresh-live    Claude OAuth refresh token으로 실제 재발급',
+  );
   console.log('  token-weather doctor claude --refresh-live --account <id>');
-  console.log('                                                 특정 계정 지정 (email / accountKey / label)');
+  console.log(
+    '                                                 특정 계정 지정 (email / accountKey / label)',
+  );
 }
 
 // ─── Claude ────────────────────────────────────────────────────────────────
@@ -186,7 +194,9 @@ async function runDoctorClaudeRefreshLive(snapshot, { accountIdentifier } = {}) 
     if (isImportSource) {
       console.log('');
       console.log('ℹ claude-cli-import 출처 — agent-store에 저장하지 않습니다.');
-      console.log('  agent-store에 유지하려면 `auth login claude --live-exchange`로 재로그인하세요.');
+      console.log(
+        '  agent-store에 유지하려면 `auth login claude --live-exchange`로 재로그인하세요.',
+      );
       return;
     }
     const result = await updateClaudeStoreAfterRefresh(account, tokenResponse);
@@ -228,7 +238,11 @@ export async function resolveClaudeRefreshTargetAccount(snapshot, accountIdentif
 }
 
 export function parseDoctorClaudeOptions(args) {
-  return parseCliOptions(args, { defaults: DOCTOR_DEFAULTS, flags: DOCTOR_FLAGS, includeHelp: true });
+  return parseCliOptions(args, {
+    defaults: DOCTOR_DEFAULTS,
+    flags: DOCTOR_FLAGS,
+    includeHelp: true,
+  });
 }
 
 // ─── Codex ─────────────────────────────────────────────────────────────────
@@ -308,5 +322,9 @@ async function resolveCodexDoctorAccount(options) {
 }
 
 function parseDoctorCodexOptions(args) {
-  return parseCliOptions(args, { defaults: DOCTOR_DEFAULTS, flags: DOCTOR_FLAGS, includeHelp: true });
+  return parseCliOptions(args, {
+    defaults: DOCTOR_DEFAULTS,
+    flags: DOCTOR_FLAGS,
+    includeHelp: true,
+  });
 }

@@ -3,6 +3,7 @@
 이 문서는 **다른 Claude Code 세션**이 이 repo에서 작업할 때 구조적 일관성을 유지하기 위한 참조 문서다. 새로운 기능을 추가하거나 수정할 때 먼저 여기를 읽고, 기존 패턴을 재사용할지 / 예외를 만들지 명시적으로 결정하라.
 
 관련 문서:
+
 - `CONTRIBUTING.md` — 브랜치 / 커밋 / PR 규칙
 - `docs/architecture.md` — 고수준 구조 요약
 - `docs/auth-architecture.md` — 인증 상세 설계
@@ -11,6 +12,8 @@
 - `docs/typescript-consumers.md` — `.d.ts` 동봉 정책 + JSDoc 보강 시 따를 규약
 - `docs/release-policy.md` — semver / SCHEMA_VERSION / CHANGELOG 운영 규약 (사용자-가시 변경 PR 필독)
 - `scripts/install-smoke.sh` — publish 직전 npm install 깨짐(cross-package import / files 누락 / d.ts 부재 등)을 자동 검증하는 스크립트. PR마다 CI에서 호출.
+- `eslint.config.js` / `.prettierrc.json` — 코드 품질 / 형식 자동 enforce. CI lint job이 PR 단계에서 위반 차단. 위반 발견 시 `npm run lint:fix` 또는 `npm run format`으로 자동 수정.
+- `.git-blame-ignore-revs` — prettier 일괄 reformat commit을 git blame에서 무시하기 위한 hash 목록. 로컬에서 `git config blame.ignoreRevsFile .git-blame-ignore-revs` 한 번 실행하면 적용. GitHub web UI는 자동 인식.
 
 ---
 
@@ -35,6 +38,7 @@ packages/
 ```
 
 **원칙**
+
 - CLI는 얇게 유지. 복잡한 로직은 `services/` 또는 adapter에 둔다.
 - `provider-adapters`는 이름처럼 `packages/agent`가 import하는 **어댑터**다. 반대 방향(`provider-adapters`가 `agent`를 import) 금지.
 - `packages/schemas`는 두 패키지 모두에서 import 가능.
@@ -48,8 +52,9 @@ packages/
 ### 2.1 `shared/oauth-authorization-url.js`
 
 ```js
-buildOAuthAuthorizationUrl({ endpoint, params })
+buildOAuthAuthorizationUrl({ endpoint, params });
 ```
+
 - authorize URL 조립. `URLSearchParams` 순서 보존, null/undefined 스킵.
 - provider별 extra 파라미터는 `params` 객체 속성으로 주입.
 - Claude처럼 `code=true`같은 OAuth 스펙 외 key도 문제없이 통과.
@@ -57,9 +62,19 @@ buildOAuthAuthorizationUrl({ endpoint, params })
 ### 2.2 `shared/oauth-token-endpoint.js`
 
 ```js
-postToTokenEndpoint({ endpoint, body, encoding, extraHeaders, errorPrefix, fallbackRefreshToken, timeoutMs, fetchImpl })
-liveExchangeDisabledError({ caller, endpoint, grantType, clientIdNote })
+postToTokenEndpoint({
+  endpoint,
+  body,
+  encoding,
+  extraHeaders,
+  errorPrefix,
+  fallbackRefreshToken,
+  timeoutMs,
+  fetchImpl,
+});
+liveExchangeDisabledError({ caller, endpoint, grantType, clientIdNote });
 ```
+
 - token endpoint POST 공통 처리 (authorization_code / refresh_token 공용).
 - `encoding: 'form' | 'json'` — Codex는 form, Claude는 json.
 - `fallbackRefreshToken`: 응답에 `refresh_token`이 없을 때 기존 값 유지 (rotation 없는 경우).
@@ -69,8 +84,9 @@ liveExchangeDisabledError({ caller, endpoint, grantType, clientIdNote })
 ### 2.3 `shared/fetch-with-timeout.js`
 
 ```js
-fetchWithTimeout(fetchImpl, input, init)
+fetchWithTimeout(fetchImpl, input, init);
 ```
+
 - `AbortController` 기반 네트워크 타임아웃 (기본 15초).
 - `init.timeoutMs = 0`이면 비활성.
 - 외부 `init.signal`도 함께 존중.
@@ -150,7 +166,11 @@ import { fetchWithTimeout } from '../shared/fetch-with-timeout.js';
 export async function fetchFooUsage(profile, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? 15_000;
-  const response = await fetchWithTimeout(fetchImpl, FOO_USAGE_URL, { method: 'GET', headers, timeoutMs });
+  const response = await fetchWithTimeout(fetchImpl, FOO_USAGE_URL, {
+    method: 'GET',
+    headers,
+    timeoutMs,
+  });
   // ... 응답 파싱 → SCHEMA_VERSION 기반 공통 snapshot 반환
 }
 ```
@@ -163,11 +183,13 @@ export async function fetchFooUsage(profile, options = {}) {
 ### 3.5 Guard 패턴 (`allowLiveExchange`)
 
 관찰값(observed) 기반으로 구현한 live 호출은 기본적으로 **차단**되어야 한다.
+
 - 함수 기본값 `allowLiveExchange = false`
 - CLI에서만 `--live-exchange` 플래그로 활성화
 - 차단 시 `liveExchangeDisabledError`로 설명적 에러 반환
 
 이 guard는 다음 조건이 모두 충족되기 전까지 유지한다:
+
 1. client_id가 공식 확정됨
 2. client_secret 요구 여부가 명확해짐
 
@@ -194,6 +216,7 @@ packages/agent/src/services/
 두 가지 "선택"이 존재한다. 혼동하지 말 것.
 
 **Account 선택** — "여러 계정 중 누구를 쓸까?"
+
 ```
 store.providers[id].accounts
   → filterFn (real 계정만: mock/disabled/토큰 없음 제거)
@@ -201,10 +224,12 @@ store.providers[id].accounts
   → filterProfilesByAccount (--account / config default 매치)
   → resolveDefaultAccount (multi-account 중 기본 계정 결정)
 ```
+
 공통 runner: `provider-profile-resolver.js::resolveProviderProfiles`
 provider는 `filterFn` + `mapFn`만 선언적으로 제공한다.
 
 **Auth source 선택** — "그 토큰을 어디서 읽을까?"
+
 ```
 resolveAuthSource(agentAccounts, [
   { id: 'openclaw-import', accounts: [...] },
@@ -212,10 +237,12 @@ resolveAuthSource(agentAccounts, [
 ])
 → { accounts, authSource: 'agent-store' | '{import-id}' | 'not-found' }
 ```
+
 공통 함수: `auth-source-resolver.js::resolveAuthSource`
 우선순위: agent-store > 첫 번째 비어있지 않은 import source > not-found
 
 중요한 규칙:
+
 - source precedence는 **unfiltered 계정 집합** 기준으로 먼저 결정한다.
 - 실제 usage/status 조회 대상은 **선택된 source 위에 `accountFilter`를 다시 적용한 결과**를 사용한다.
 - agent-store 계정에 대해서만 `usage-auto-refresh.js`가 preflight refresh와 `auth` bucket 재시도를 담당한다.
@@ -240,6 +267,7 @@ resolveAuthSource(agentAccounts, [
 ```
 
 **새 provider를 status에 추가하려면:**
+
 1. `packages/provider-adapters/src/foo/` 디렉토리 생성 (파일 구성은 §3.1)
 2. `packages/agent/src/services/foo-provider.js` 생성 — `getFooSnapshot(config)` async export
 3. `services/provider-registry.js`의 `PROVIDER_REGISTRY`에 한 줄 추가
@@ -249,6 +277,7 @@ resolveAuthSource(agentAccounts, [
 ### 4.3 Snapshot shape 관례
 
 provider snapshot 최상위 구조:
+
 ```
 {
   detected: boolean,                 // 계정 또는 credential 존재
@@ -271,6 +300,7 @@ network usage snapshot은 provider adapter의 `fetchXxxUsage`가 반환하는 �
 새 provider에 OAuth login을 추가할 때는 `cli/login-runner.js`의 `runOAuthLoginFlow(spec, options)`를 쓴다. Provider 고유 분기(manual paste 등)는 커맨드 파일에 남기고, 공통 callback/exchange 흐름은 runner에 맡긴다.
 
 Provider spec shape(`LoginProviderSpec`):
+
 ```js
 {
   id, displayName, storeKey, accountKeyPrefix,
@@ -293,11 +323,13 @@ Provider spec shape(`LoginProviderSpec`):
 `parseLoginOptions(args)`를 사용. 공통 플래그: `--port`, `--timeout`, `--no-open`, `--manual`, `--device`, `--live-exchange`.
 
 반환 shape:
+
 ```js
 { noOpen, manual, device, liveExchange, port, timeoutMs, warnings: string[] }
 ```
 
 숫자 옵션은 내부에서 유효성 검증한다:
+
 - `--port`: 정수 0~65535 범위 밖이면 `warnings`에 경고 push, `port`는 기본값(null) 유지.
 - `--timeout`: 양의 정수(초)가 아니면 경고 push, `timeoutMs`는 기본값(120000) 유지.
 
@@ -309,6 +341,7 @@ Provider spec shape(`LoginProviderSpec`):
 출력 shape와 redaction 규약은 `docs/cli-json-output.md`에 stable contract로 정리되어 있다.
 
 구현 위치: `cli/status-json.js`
+
 - `redactSensitive(value)` — 토큰성 키(SENSITIVE_KEYS) 제거 deep clone, Date 통과
 - `formatStatusJson(snapshot, { command, generatedAt })` — single-line JSON 직렬화
 
@@ -333,12 +366,14 @@ export function parseStatusOptions(args) {
 ```
 
 플래그 타입: `boolean` / `string` / `int`. 부가 속성:
+
 - `trim` (string): 값을 trim하고 빈 문자열이면 skip. `emptyMessage` 있으면 warning.
 - `validate` (int): 범위/부호 검증. 실패 시 default 유지.
 - `transform` (int): 유효 값을 다른 단위로 변환 (e.g. `(n) => n * 1000`).
 - `invalidMessage` (int): 실패 시 warnings에 push. `${value}`는 입력 원문으로 치환.
 
 규약:
+
 - unknown flag는 silent skip (호출자 관점에서 기존 동작 유지).
 - `collectWarnings: true`일 때만 반환 객체에 `warnings: []`가 추가된다.
   warnings가 필요 없는 파서(`status`, `logout`, `doctor`)는 이 플래그를 생략한다.
@@ -370,6 +405,7 @@ export function parseStatusOptions(args) {
 ```
 
 `storeKey`는 provider마다 다를 수 있다. 예:
+
 - Codex: `openai-codex`
 - Claude: `claude` (snapshot provider.id는 `anthropic-claude`로 다름 — `CLAUDE_AUTH.storeProvider` 참조)
 
@@ -378,12 +414,14 @@ export function parseStatusOptions(args) {
 ```
 {accountKeyPrefix}:{sub | email | 'live'}
 ```
+
 - `accountKeyPrefix`는 snapshot의 `provider.id`와 같다 (`openai-codex`, `anthropic-claude`).
 - identity는 `extractAccountIdentity` 결과 중 `accountId`(JWT sub) 우선, 없으면 `email`, 둘 다 없으면 `'live'`.
 
 ### 6.2.1 Account label
 
 account에는 optional `label` 필드가 있다 (`createAccount({ label })`).
+
 - `auth login <provider> --label <name>`으로 저장 시 지정.
 - `auth list` 출력에 `label` 라인이 항상 포함 (미설정 시 `(없음)`).
 - `resolveAccountByIdentifier(accounts, id)`가 email / accountKey / label 세 축을 case-insensitive 매치하므로,
@@ -398,6 +436,7 @@ CLI에서 별도 `--account`를 주지 않을 때 해당 계정(또는 매치되
 ### 6.3 Import 경로
 
 각 provider에 대해 두 import 경로가 공존할 수 있다:
+
 - `auth import openclaw` — 기존 OpenClaw auth-profiles.json 흡수
 - `auth import {provider}` — provider CLI credential을 agent-store에 복사
 
@@ -406,9 +445,11 @@ Claude는 `~/.claude/.credentials.json`을 `resolveImportedClaudeSnapshot()`로 
 ### 6.4 claude-imported-account.js
 
 Claude CLI credential 파일을 agent-store에 주입할 때는 `packages/agent/src/auth/claude-imported-account.js`의 3단계를 거친다:
+
 ```
 createClaudeImportedAccountPayload → prepareClaudeImportedAccount → importClaudeAccountIntoStore
 ```
+
 이 세 함수는 같은 파일에 있고, pure transform — store 저장은 `auth-import-command.js`가 담당.
 
 ---
@@ -431,6 +472,7 @@ createClaudeImportedAccountPayload → prepareClaudeImportedAccount → importCl
 ### 7.3 Observed vs verified
 
 관찰된 값과 검증된 값을 **주석 / 문서에서 구분**한다.
+
 - `verified`: 실 네트워크 호출 또는 공식 문서로 확인된 값
 - `observed`: 바이너리 strings / 로컬 파일에서 관찰만 된 값 — 변경 가능성 있음
 
@@ -464,6 +506,7 @@ describe('functionName', () => {
   it('동사형으로 동작 설명', ...)
 })
 ```
+
 한글/영문 혼용 OK. "동작 / 결과" 관점으로 서술.
 
 ### 8.5 현재 규모
@@ -485,6 +528,7 @@ describe('functionName', () => {
 자세한 내용은 `CONTRIBUTING.md`.
 
 요약:
+
 - 커밋: `type(scope): 한글 설명`
 - type: `feat` / `fix` / `refactor` / `docs` / `chore` / `ci` / `test` / `perf`
 - PR 제목: `[type] 한글 요약`
@@ -530,6 +574,7 @@ concurrency:
 ## 11. 새 기능 추가 체크리스트
 
 **새 provider 추가할 때**:
+
 - [ ] `provider-adapters/src/{provider}/` 전체 파일 작성 (§3.1)
 - [ ] `agent/src/services/{provider}-provider.js` 작성
 - [ ] `provider-registry.js` 등록
@@ -540,12 +585,14 @@ concurrency:
 - [ ] 테스트: constants / build-url / exchange / refresh / fetch / snapshot 계열 전부
 
 **새 shared 헬퍼 추가할 때**:
+
 - [ ] `packages/provider-adapters/src/shared/` 아래 파일 추가
 - [ ] `shared/index.js`에서 export
 - [ ] provider 지식 유입 여부 재점검 (`codex`, `claude` 같은 식별자가 파일에 있으면 잘못된 위치)
 - [ ] 테스트: pure 함수면 전수 / IO 섞이면 injection 기반
 
 **새 CLI 커맨드 추가할 때**:
+
 - [ ] `packages/agent/src/cli/{name}-command.js`
 - [ ] `run-cli.js`에 dispatch 추가
 - [ ] options 파싱은 `parseLoginOptions` 스타일 (인자 파서는 pure, test 가능)
@@ -556,12 +603,14 @@ concurrency:
 ## 12. 작업 전 확인
 
 Claude 세션 시작 시:
+
 1. `git status` / `git log --oneline -10` — 현재 상태
 2. `gh issue list` / `gh pr list` — 진행 중 항목
 3. 이 문서(`docs/codebase-guide.md`)와 관련 섹션
 4. 작업 대상 파일의 기존 패턴 확인 후 일관되게 작성
 
 **작업 후 확인**:
+
 - [ ] `npm test` pass
 - [ ] CLI smoke (`status`, `doctor`) 이상 없음
 - [ ] 새 파일이 §7 네이밍과 §8 테스트 위치 규칙에 맞음

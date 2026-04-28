@@ -40,9 +40,7 @@ describe('exchangeClaudeAuthorizationCode — argument guards', () => {
   it('throws when callbackUrl is empty', async () => {
     await assert.rejects(
       () =>
-        exchangeClaudeAuthorizationCode(
-          baseParams({ callbackUrl: '', allowLiveExchange: true }),
-        ),
+        exchangeClaudeAuthorizationCode(baseParams({ callbackUrl: '', allowLiveExchange: true })),
       /callbackUrl이 비어/,
     );
   });
@@ -50,9 +48,7 @@ describe('exchangeClaudeAuthorizationCode — argument guards', () => {
   it('throws when codeVerifier is empty', async () => {
     await assert.rejects(
       () =>
-        exchangeClaudeAuthorizationCode(
-          baseParams({ codeVerifier: '', allowLiveExchange: true }),
-        ),
+        exchangeClaudeAuthorizationCode(baseParams({ codeVerifier: '', allowLiveExchange: true })),
       /codeVerifier가 비어/,
     );
   });

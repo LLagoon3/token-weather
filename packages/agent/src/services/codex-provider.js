@@ -36,12 +36,14 @@ export async function getCodexSnapshot(config, options = {}) {
   for (const entry of entries) {
     try {
       snapshots.push(
-        (await fetchUsageWithAutoRefresh(entry, {
-          fetchUsage: fetchCodexUsage,
-          refreshToken: refreshCodexToken,
-          updateStoreAfterRefresh: updateCodexStoreAfterRefresh,
-          mapAccountToProfile: codexMapAccountToProfile,
-        })).snapshot,
+        (
+          await fetchUsageWithAutoRefresh(entry, {
+            fetchUsage: fetchCodexUsage,
+            refreshToken: refreshCodexToken,
+            updateStoreAfterRefresh: updateCodexStoreAfterRefresh,
+            mapAccountToProfile: codexMapAccountToProfile,
+          })
+        ).snapshot,
       );
     } catch (error) {
       snapshots.push(createCodexFailureSnapshot(entry.profile, error));
@@ -92,9 +94,10 @@ async function resolveCodexProfiles(accountFilter) {
   // Fallback: OpenClaw import
   const openclawProfiles = readCodexAuthProfiles();
   const filtered = filterProfilesByAccount(openclawProfiles, accountFilter);
-  const { accounts, authSource } = resolveAuthSource([], [
-    { id: 'openclaw-import', accounts: filtered },
-  ]);
+  const { accounts, authSource } = resolveAuthSource(
+    [],
+    [{ id: 'openclaw-import', accounts: filtered }],
+  );
   return {
     entries: accounts.map((profile) => ({ account: null, profile })),
     authSource,

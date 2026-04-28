@@ -71,7 +71,7 @@ export async function resolveProviderAccountEntries(spec) {
   }
 
   const entries = realAccounts.map((account) => ({ account, profile: spec.mapFn(account) }));
-  return entries.filter((entry) =>
-    filterProfilesByAccount([entry.profile], spec.accountFilter ?? null).length > 0,
+  return entries.filter(
+    (entry) => filterProfilesByAccount([entry.profile], spec.accountFilter ?? null).length > 0,
   );
 }

@@ -11,7 +11,7 @@ import { CLAUDE_AUTH } from '@token-weather/provider-adapters/src/claude/claude-
 import { loadAuthStore } from '../auth/auth-store.js';
 import { buildUsageSnapshot } from '@token-weather/provider-adapters/src/shared/usage-snapshot.js';
 import { resolveProviderAccountEntries } from './provider-profile-resolver.js';
-import { filterEntriesByAccount, filterProfilesByAccount } from './account-filter.js';
+import { filterEntriesByAccount } from './account-filter.js';
 import { fetchUsageWithAutoRefresh } from './usage-auto-refresh.js';
 import { refreshClaudeToken } from '@token-weather/provider-adapters/src/claude/refresh-claude-token.js';
 import { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
@@ -107,9 +107,9 @@ export async function getClaudeSnapshot(
     // backward-compat alias: selectedAccount에 해당하는 항목을 우선 노출,
     // 없으면 첫 항목.
     networkUsage:
-      settled.find((s) => s.accountKey === base.selectedAccount?.accountKey)?.snapshot
-        ?? settled[0]?.snapshot
-        ?? null,
+      settled.find((s) => s.accountKey === base.selectedAccount?.accountKey)?.snapshot ??
+      settled[0]?.snapshot ??
+      null,
     accountFilter: options.accountFilter ?? null,
     filteredOut: false,
   };

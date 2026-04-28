@@ -150,7 +150,12 @@ describe('refreshCodexToken — live refresh', () => {
     const fetchImpl = async (_u, init) => {
       captured = init;
       return jsonResponse({
-        body: { access_token: 'at', refresh_token: 'rt-new', expires_in: 3600, token_type: 'Bearer' },
+        body: {
+          access_token: 'at',
+          refresh_token: 'rt-new',
+          expires_in: 3600,
+          token_type: 'Bearer',
+        },
       });
     };
     await refreshCodexToken({
@@ -178,7 +183,12 @@ describe('refreshCodexToken — live refresh', () => {
   it('uses rotated refreshToken when server returns one', async () => {
     const fetchImpl = async () =>
       jsonResponse({
-        body: { access_token: 'a', refresh_token: 'rt-rotated', expires_in: 1, token_type: 'Bearer' },
+        body: {
+          access_token: 'a',
+          refresh_token: 'rt-rotated',
+          expires_in: 1,
+          token_type: 'Bearer',
+        },
       });
     const result = await refreshCodexToken({
       refreshToken: 'rt-old',

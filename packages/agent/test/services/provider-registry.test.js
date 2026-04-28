@@ -1,7 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { PROVIDER_REGISTRY, PROVIDER_IDS, runProviderSnapshots } from '../../src/services/provider-registry.js';
+import {
+  PROVIDER_REGISTRY,
+  PROVIDER_IDS,
+  runProviderSnapshots,
+} from '../../src/services/provider-registry.js';
 
 describe('PROVIDER_REGISTRY', () => {
   it('is frozen (cannot be mutated)', () => {
@@ -78,10 +82,7 @@ describe('runProviderSnapshots', () => {
   });
 
   it('returns empty object when providerFilter does not match any registered id', async () => {
-    const out = await runProviderSnapshots(
-      { providers: {} },
-      { providerFilter: 'unknown' },
-    );
+    const out = await runProviderSnapshots({ providers: {} }, { providerFilter: 'unknown' });
     assert.deepEqual(out, {});
   });
 });

@@ -135,7 +135,7 @@ describe('runAuthListCommand — Claude import block', () => {
 
   it('outputs Claude import block even when store has no accounts', async () => {
     const lines = await captureOutput(() =>
-      runAuthListCommand(undefined, { claudeReadFn: () => null, loadStore: emptyStore })
+      runAuthListCommand(undefined, { claudeReadFn: () => null, loadStore: emptyStore }),
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('claude'));
@@ -145,7 +145,7 @@ describe('runAuthListCommand — Claude import block', () => {
 
   it('shows found=false when claudeReadFn returns null', async () => {
     const lines = await captureOutput(() =>
-      runAuthListCommand('claude', { claudeReadFn: () => null, loadStore: emptyStore })
+      runAuthListCommand('claude', { claudeReadFn: () => null, loadStore: emptyStore }),
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('found'));
@@ -157,7 +157,7 @@ describe('runAuthListCommand — Claude import block', () => {
       runAuthListCommand('claude', {
         claudeReadFn: () => ({ accessToken: 'tok', refreshToken: 'ref' }),
         loadStore: emptyStore,
-      })
+      }),
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('found'));
@@ -168,15 +168,17 @@ describe('runAuthListCommand — Claude import block', () => {
     const storeWithClaude = async () => ({
       providers: {
         claude: {
-          accounts: [{
-            accountKey: 'anthropic-claude:acct-123',
-            email: 'everdigm.itteam@gmail.com',
-            displayName: '에버다임 IT팀',
-            authType: 'oauth',
-            source: 'agent-store',
-            raw: {},
-            tokens: { refreshToken: 'rt' },
-          }],
+          accounts: [
+            {
+              accountKey: 'anthropic-claude:acct-123',
+              email: 'everdigm.itteam@gmail.com',
+              displayName: '에버다임 IT팀',
+              authType: 'oauth',
+              source: 'agent-store',
+              raw: {},
+              tokens: { refreshToken: 'rt' },
+            },
+          ],
         },
       },
     });
@@ -184,7 +186,7 @@ describe('runAuthListCommand — Claude import block', () => {
       runAuthListCommand('claude', {
         claudeReadFn: () => null,
         loadStore: storeWithClaude,
-      })
+      }),
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('name       : 에버다임 IT팀'));
@@ -202,7 +204,7 @@ describe('runAuthListCommand — Claude import block', () => {
       runAuthListCommand('claude', {
         claudeReadFn: () => null,
         loadStore: storeWithClaude,
-      })
+      }),
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('agent-store'));

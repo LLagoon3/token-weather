@@ -2,20 +2,20 @@ export const DEFAULT_AGENT_CONFIG = {
   version: 1,
   output: {
     format: 'table',
-    timezone: 'Asia/Seoul'
+    timezone: 'Asia/Seoul',
   },
   sync: {
     enabled: false,
     endpoint: '',
-    apiKey: ''
+    apiKey: '',
   },
   providers: {
     codex: {
-      enabled: true
+      enabled: true,
     },
     claude: {
-      enabled: true
-    }
+      enabled: true,
+    },
   },
   /**
    * 기본 프로필(계정) 선택 정책.
@@ -28,8 +28,8 @@ export const DEFAULT_AGENT_CONFIG = {
     profiles: {
       codex: null,
       claude: null,
-    }
-  }
+    },
+  },
 };
 
 export function createDefaultConfig() {

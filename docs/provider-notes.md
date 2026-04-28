@@ -19,8 +19,8 @@
 ### OAuth endpoints
 
 - authorize: `https://auth.openai.com/oauth/authorize`
-- token:     `https://auth.openai.com/oauth/token`
-- callback:  `http://localhost:1455/auth/callback`
+- token: `https://auth.openai.com/oauth/token`
+- callback: `http://localhost:1455/auth/callback`
 - client_id: `app_EMoamEEZ73f0CkXaXp7hrann` (observed, 공식 확정 아님)
 - extra authorize params: `id_token_add_organizations=true`, `codex_cli_simplified_flow=true`, `originator=pi`
 
@@ -56,7 +56,7 @@ credential source 우선순위: `agent-store > claude-cli-import`
 ### OAuth endpoints (observed — Claude Code v2.1.107 바이너리에서 추출)
 
 - authorize: `https://claude.com/cai/oauth/authorize` (claude.ai 사용자 OAuth)
-- token:     `https://platform.claude.com/v1/oauth/token`
+- token: `https://platform.claude.com/v1/oauth/token`
 - redirect_uri: `http://localhost:<port>/callback` (Codex와 경로 다름)
 - manual redirect: `https://platform.claude.com/oauth/code/callback`
 - success page: `https://platform.claude.com/oauth/code/success?app=claude-code`

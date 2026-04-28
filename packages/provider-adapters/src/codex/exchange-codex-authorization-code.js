@@ -12,13 +12,9 @@
  */
 
 import { CODEX_AUTH } from './codex-auth-constants.js';
-import {
-  postToTokenEndpoint,
-  liveExchangeDisabledError,
-} from '../shared/oauth-token-endpoint.js';
+import { postToTokenEndpoint, liveExchangeDisabledError } from '../shared/oauth-token-endpoint.js';
 
-const CLIENT_ID_NOTE =
-  'Note: client_id is an observed value and not officially confirmed.';
+const CLIENT_ID_NOTE = 'Note: client_id is an observed value and not officially confirmed.';
 
 /**
  * @typedef {object} TokenResponse

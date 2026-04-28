@@ -42,8 +42,8 @@ export function matchesFilter(profile, accountFilter) {
   if (!accountFilter) return true;
   const needle = String(accountFilter).toLowerCase();
   return (
-    (profile.id ?? '').toLowerCase() === needle
-    || (profile.email ?? '').toLowerCase() === needle
-    || (profile.label ?? '').toLowerCase() === needle
+    (profile.id ?? '').toLowerCase() === needle ||
+    (profile.email ?? '').toLowerCase() === needle ||
+    (profile.label ?? '').toLowerCase() === needle
   );
 }

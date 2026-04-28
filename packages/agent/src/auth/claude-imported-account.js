@@ -41,10 +41,7 @@ export function createClaudeImportedAccountPayload(
  * @param {string} [now]
  * @returns {{ account: object | null, reason: string }}
  */
-export function prepareClaudeImportedAccount(
-  selectedAccount,
-  now = new Date().toISOString(),
-) {
+export function prepareClaudeImportedAccount(selectedAccount, now = new Date().toISOString()) {
   if (!selectedAccount) {
     return { account: null, reason: 'no-selected-account' };
   }

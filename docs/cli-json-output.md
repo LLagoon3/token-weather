@@ -34,15 +34,15 @@ token-weather status --json --account work@example.com --provider claude
 }
 ```
 
-| 필드 | 타입 | 설명 |
-| --- | --- | --- |
-| `command` | `"status"` \| `"usage"` | 호출된 커맨드 이름. |
-| `generatedAt` | ISO-8601 string | snapshot 직렬화 시각(client-side). |
-| `schemaVersion` | string semver \| null | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.1.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
-| `configPath` | string \| null | resolved config 파일 경로. |
-| `accountFilter` | string \| null | `--account <id>` 입력 (case-insensitive 매치는 별도). |
-| `providerFilter` | string \| null | `--provider <id>` 입력. lowercase 정규화된 값. |
-| `providers` | array | 아래 §providers 참고. |
+| 필드             | 타입                    | 설명                                                                                                                                                                         |
+| ---------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `command`        | `"status"` \| `"usage"` | 호출된 커맨드 이름.                                                                                                                                                          |
+| `generatedAt`    | ISO-8601 string         | snapshot 직렬화 시각(client-side).                                                                                                                                           |
+| `schemaVersion`  | string semver \| null   | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.1.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
+| `configPath`     | string \| null          | resolved config 파일 경로.                                                                                                                                                   |
+| `accountFilter`  | string \| null          | `--account <id>` 입력 (case-insensitive 매치는 별도).                                                                                                                        |
+| `providerFilter` | string \| null          | `--provider <id>` 입력. lowercase 정규화된 값.                                                                                                                               |
+| `providers`      | array                   | 아래 §providers 참고.                                                                                                                                                        |
 
 ## providers
 

@@ -33,6 +33,7 @@ runtime 기본 경로는 agent 자체 store이며, OpenClaw 의존은 제거되�
 7. access/refresh token을 agent-store에 저장
 
 provider별 callback path:
+
 - Codex: `http://localhost:<port>/auth/callback`
 - Claude: `http://localhost:<port>/callback`
 
@@ -51,10 +52,12 @@ provider별 callback path:
 ## Credential source 우선순위
 
 ### Codex
+
 1. `agent-store` (live-exchange로 받은 real token)
 2. `openclaw-import` (기존 OpenClaw auth-profiles.json)
 
 ### Claude
+
 1. `agent-store` (`auth login claude --live-exchange` 또는 `auth import claude`로 저장된 항목)
 2. `claude-cli-import` (`~/.claude/.credentials.json` 실시간 reader)
 
@@ -113,17 +116,20 @@ token-weather status | usage
 ## Codex OAuth endpoint 검증 현황
 
 ### 검증됨
+
 - authorize: `https://auth.openai.com/oauth/authorize`
-- token:     `https://auth.openai.com/oauth/token`
-- callback:  `http://localhost:1455/auth/callback`
+- token: `https://auth.openai.com/oauth/token`
+- callback: `http://localhost:1455/auth/callback`
 - JWT issuer: `https://auth.openai.com`
 - PKCE S256, state 검증, refresh rotation 반영: 실 토큰으로 동작 확인
 
 ### observed (공식 확정 아님)
+
 - client_id: `app_EMoamEEZ73f0CkXaXp7hrann` (로컬 JWT payload 관찰)
 - extra authorize params: `id_token_add_organizations=true`, `codex_cli_simplified_flow=true`, `originator=pi`
 
 ### 미확정
+
 - client_secret 필요 여부 (현재 public client로 가정)
 - refresh token rotation 정책의 일반 규칙
 - 네트워크 호출 timeout/abort 처리 (이슈 #7)
@@ -131,24 +137,28 @@ token-weather status | usage
 ## Claude OAuth endpoint 검증 현황
 
 ### 검증됨 (실 네트워크 호출)
-- usage:     `GET https://api.anthropic.com/api/oauth/usage` (Bearer + anthropic-version + anthropic-beta) → 200 OK
-- refresh:   `POST https://platform.claude.com/v1/oauth/token` (grant_type=refresh_token, JSON body) → 표준 OAuth 에러 응답 구조 확인
+
+- usage: `GET https://api.anthropic.com/api/oauth/usage` (Bearer + anthropic-version + anthropic-beta) → 200 OK
+- refresh: `POST https://platform.claude.com/v1/oauth/token` (grant_type=refresh_token, JSON body) → 표준 OAuth 에러 응답 구조 확인
 - 독립 OAuth 전체 플로우: 브라우저 로그인 → callback → token exchange(authorization_code) → agent-store 저장 → usage endpoint 200 OK까지 end-to-end 확인
 
 ### observed (Claude Code v2.1.107 바이너리 strings에서 추출)
+
 - authorize: `https://claude.com/cai/oauth/authorize` (claude.ai 사용자 OAuth 경로)
-- token:     `https://platform.claude.com/v1/oauth/token`
+- token: `https://platform.claude.com/v1/oauth/token`
 - manual redirect: `https://platform.claude.com/oauth/code/callback`
 - client_id: `9d1c250a-e61b-44d9-88ed-5944d1962f5e`
-- scopes:    `org:create_api_key user:profile user:inference`
+- scopes: `org:create_api_key user:profile user:inference`
 
 ### Claude 관찰 기반 알림
+
 - authorize URL에 `code=true` 파라미터가 추가로 필요 (OAuth 스펙 외 확장)
 - token endpoint는 JSON body를 요구 (form-urlencoded는 Claude API 에러)
 - authorization_code grant는 body에 `state`를 포함해야 함
 - redirect_uri 경로는 `/callback` (Codex의 `/auth/callback`과 다름)
 
 ### 미확정
+
 - client_secret 필요 여부 (public client 가정)
 - refresh token rotation 정책
 - 다른 client_id 값이 존재하는지 (`22422756-...`는 local-oauth 전용인 것으로 보임)

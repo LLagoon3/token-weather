@@ -17,7 +17,7 @@ function mergeRefreshedAccount(account, tokenResponse) {
   const now = new Date();
   const expiresAt = tokenResponse.expiresIn
     ? new Date(now.getTime() + tokenResponse.expiresIn * 1000).toISOString()
-    : account.expiresAt ?? null;
+    : (account.expiresAt ?? null);
 
   return {
     ...account,
@@ -66,11 +66,7 @@ export async function fetchUsageWithAutoRefresh(entry, spec) {
   }
 
   let snapshot = await spec.fetchUsage(activeEntry.profile);
-  if (
-    canRefresh
-    && !refreshAttempted
-    && snapshot?.status?.bucket === 'auth'
-  ) {
+  if (canRefresh && !refreshAttempted && snapshot?.status?.bucket === 'auth') {
     activeEntry = await refreshEntry(activeEntry, spec);
     snapshot = await spec.fetchUsage(activeEntry.profile);
   }

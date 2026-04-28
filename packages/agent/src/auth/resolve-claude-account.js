@@ -10,11 +10,7 @@ import { resolveAuthSource } from '../services/auth-source-resolver.js';
  * @param {{ accountIdentifier?: string }} [options]
  * @returns {{ account: object | null, authSource: string, reason: string }}
  */
-export function resolveClaudeAccount(
-  agentClaudeAccounts,
-  importedClaudeAccounts,
-  options = {},
-) {
+export function resolveClaudeAccount(agentClaudeAccounts, importedClaudeAccounts, options = {}) {
   const { accounts, authSource } = resolveAuthSource(agentClaudeAccounts, [
     { id: 'claude-cli-import', accounts: importedClaudeAccounts },
   ]);

@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { findLegacyDuplicates } from '../../src/auth/find-legacy-duplicates.js';
 
 // base64url for { "sub": "google-oauth2|115", "email": "a@x.com" }
-const JWT_SUB_A = 'eyJhbGciOiJub25lIn0.eyJzdWIiOiJnb29nbGUtb2F1dGgyfDExNSIsImVtYWlsIjoiYUB4LmNvbSJ9.';
+const JWT_SUB_A =
+  'eyJhbGciOiJub25lIn0.eyJzdWIiOiJnb29nbGUtb2F1dGgyfDExNSIsImVtYWlsIjoiYUB4LmNvbSJ9.';
 
 describe('findLegacyDuplicates — empty inputs', () => {
   it('returns [] when existingAccounts is empty', () => {
@@ -17,10 +18,9 @@ describe('findLegacyDuplicates — empty inputs', () => {
   });
 
   it('returns [] when newAccount has no identity (sub/email)', () => {
-    const out = findLegacyDuplicates(
-      [{ accountKey: 'a', accountId: 's-existing' }],
-      { accountKey: 'b' },
-    );
+    const out = findLegacyDuplicates([{ accountKey: 'a', accountId: 's-existing' }], {
+      accountKey: 'b',
+    });
     assert.deepEqual(out, []);
   });
 });
@@ -28,7 +28,11 @@ describe('findLegacyDuplicates — empty inputs', () => {
 describe('findLegacyDuplicates — sub matching', () => {
   it('finds existing account with same accountId (sub)', () => {
     const existing = [
-      { accountKey: 'openai-codex:google-oauth2|115', accountId: 'google-oauth2|115', email: 'a@x.com' },
+      {
+        accountKey: 'openai-codex:google-oauth2|115',
+        accountId: 'google-oauth2|115',
+        email: 'a@x.com',
+      },
       { accountKey: 'openai-codex:other', accountId: 'google-oauth2|999', email: 'z@x.com' },
     ];
     const newAccount = {
@@ -43,9 +47,7 @@ describe('findLegacyDuplicates — sub matching', () => {
   });
 
   it('excludes same accountKey (upsert case)', () => {
-    const existing = [
-      { accountKey: 'same', accountId: 'sub1', email: 'a@x.com' },
-    ];
+    const existing = [{ accountKey: 'same', accountId: 'sub1', email: 'a@x.com' }];
     const newAccount = { accountKey: 'same', accountId: 'sub1', email: 'a@x.com' };
     assert.deepEqual(findLegacyDuplicates(existing, newAccount), []);
   });
@@ -72,9 +74,7 @@ describe('findLegacyDuplicates — sub matching', () => {
 
 describe('findLegacyDuplicates — email matching', () => {
   it('matches by email when neither has sub', () => {
-    const existing = [
-      { accountKey: 'a', email: 'a@x.com' },
-    ];
+    const existing = [{ accountKey: 'a', email: 'a@x.com' }];
     const newAccount = { accountKey: 'a-new', email: 'A@X.com' };
     const out = findLegacyDuplicates(existing, newAccount);
     assert.equal(out.length, 1);

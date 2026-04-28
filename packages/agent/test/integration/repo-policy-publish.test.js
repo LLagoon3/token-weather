@@ -45,13 +45,21 @@ describe('repo-policy/publish — 패키지 이름 (Token Weather)', () => {
 
 describe('repo-policy/publish — publishable 상태', () => {
   it('3개 패키지 모두 private 필드가 없거나 false (publish 가능)', () => {
-    for (const [label, pkg] of [['agent', AGENT], ['provider-adapters', ADAPTERS], ['schemas', SCHEMAS]]) {
+    for (const [label, pkg] of [
+      ['agent', AGENT],
+      ['provider-adapters', ADAPTERS],
+      ['schemas', SCHEMAS],
+    ]) {
       assert.notEqual(pkg.private, true, `${label} 가 private: true`);
     }
   });
 
   it('3개 패키지 모두 publishConfig.access === public (스코프 패키지 publish 필수)', () => {
-    for (const [label, pkg] of [['agent', AGENT], ['provider-adapters', ADAPTERS], ['schemas', SCHEMAS]]) {
+    for (const [label, pkg] of [
+      ['agent', AGENT],
+      ['provider-adapters', ADAPTERS],
+      ['schemas', SCHEMAS],
+    ]) {
       assert.equal(pkg.publishConfig?.access, 'public', `${label} publishConfig.access`);
     }
   });
@@ -150,7 +158,11 @@ describe('repo-policy/publish — engines / repository / homepage', () => {
   });
 
   it('3개 패키지 모두 homepage / bugs.url 선언', () => {
-    for (const [label, pkg] of [['agent', AGENT], ['provider-adapters', ADAPTERS], ['schemas', SCHEMAS]]) {
+    for (const [label, pkg] of [
+      ['agent', AGENT],
+      ['provider-adapters', ADAPTERS],
+      ['schemas', SCHEMAS],
+    ]) {
       assert.ok(pkg.homepage, `${label} homepage 누락`);
       assert.ok(pkg.bugs?.url, `${label} bugs.url 누락`);
     }
@@ -160,7 +172,11 @@ describe('repo-policy/publish — engines / repository / homepage', () => {
   // GitHub 링크가 옛 LLagoon3/ai-usage-agent 로 깨지는 회귀 차단.
   it('3개 패키지 모두 repository / homepage / bugs URL 이 LLagoon3/token-weather 호스트', () => {
     const HOST = 'github.com/LLagoon3/token-weather';
-    for (const [label, pkg] of [['agent', AGENT], ['provider-adapters', ADAPTERS], ['schemas', SCHEMAS]]) {
+    for (const [label, pkg] of [
+      ['agent', AGENT],
+      ['provider-adapters', ADAPTERS],
+      ['schemas', SCHEMAS],
+    ]) {
       assert.match(pkg.repository?.url ?? '', new RegExp(HOST), `${label} repository.url`);
       assert.match(pkg.homepage ?? '', new RegExp(HOST), `${label} homepage`);
       assert.match(pkg.bugs?.url ?? '', new RegExp(HOST), `${label} bugs.url`);

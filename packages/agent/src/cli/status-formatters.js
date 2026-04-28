@@ -113,7 +113,9 @@ export function formatClaudeNetworkUsages(usages, context = {}) {
   const lines = ['', '[live] api.anthropic.com/api/oauth/usage'];
   if (!usages || usages.length === 0) {
     if (context.filteredOut) {
-      lines.push(`  계정 필터 "${context.accountFilter}"에 해당하는 Claude 계정을 찾지 못했습니다.`);
+      lines.push(
+        `  계정 필터 "${context.accountFilter}"에 해당하는 Claude 계정을 찾지 못했습니다.`,
+      );
     } else {
       lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
     }
@@ -121,7 +123,8 @@ export function formatClaudeNetworkUsages(usages, context = {}) {
   }
 
   for (const { accountKey, snapshot, account } of usages) {
-    if (usages.length > 1) lines.push(`  - 계정: ${formatAccountDisplay(account ?? { accountKey })}`);
+    if (usages.length > 1)
+      lines.push(`  - 계정: ${formatAccountDisplay(account ?? { accountKey })}`);
     lines.push(...formatClaudeNetworkUsageBody(snapshot, usages.length > 1));
   }
   return lines;

@@ -6,20 +6,9 @@
 
 export const AUTH_STORE_VERSION = 1;
 
-export const AUTH_TYPES = [
-  'oauth',
-  'session_cookie',
-  'session_key',
-  'api_key',
-  'unknown',
-];
+export const AUTH_TYPES = ['oauth', 'session_cookie', 'session_key', 'api_key', 'unknown'];
 
-export const CREDENTIAL_SOURCES = [
-  'agent-store',
-  'openclaw-import',
-  'env',
-  'manual',
-];
+export const CREDENTIAL_SOURCES = ['agent-store', 'openclaw-import', 'env', 'manual'];
 
 export function createEmptyAuthStore() {
   return {

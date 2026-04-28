@@ -2,11 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
-const DEFAULT_CREDENTIALS_PATH = path.join(
-  os.homedir(),
-  '.claude',
-  '.credentials.json'
-);
+const DEFAULT_CREDENTIALS_PATH = path.join(os.homedir(), '.claude', '.credentials.json');
 
 export function resolveClaudeCredentialsPath(base = os.homedir()) {
   return path.join(base, '.claude', '.credentials.json');

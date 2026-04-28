@@ -1,10 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  decodeJwtPayload,
-  extractAccountIdentity,
-} from '../../src/auth/token-claims.js';
+import { decodeJwtPayload, extractAccountIdentity } from '../../src/auth/token-claims.js';
 
 // Helper: build a minimal unsigned JWT with a JSON payload.
 function makeJwt(payload) {

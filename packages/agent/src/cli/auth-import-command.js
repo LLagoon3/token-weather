@@ -1,4 +1,7 @@
-import { resolveClaudeCredentialsPath, readClaudeCredentials } from '@token-weather/provider-adapters/src/claude/read-claude-credentials.js';
+import {
+  resolveClaudeCredentialsPath,
+  readClaudeCredentials,
+} from '@token-weather/provider-adapters/src/claude/read-claude-credentials.js';
 import { buildClaudeSnapshot } from '../services/status-service.js';
 import { loadAuthStore, saveAuthStore } from '../auth/auth-store.js';
 import { importClaudeAccountIntoStore } from '../auth/claude-imported-account.js';
@@ -69,7 +72,11 @@ export async function runAuthImportCommand(
   }
 
   const store = await loadStore();
-  const { store: nextStore, account, reason } = importClaudeAccountIntoStore(store, selectedAccount);
+  const {
+    store: nextStore,
+    account,
+    reason,
+  } = importClaudeAccountIntoStore(store, selectedAccount);
 
   if (!account || reason !== 'store-updated') {
     console.log('auth import claude');

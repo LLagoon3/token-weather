@@ -14,9 +14,9 @@ export function filterProfilesByAccount(profiles, accountFilter) {
   const needle = String(accountFilter).toLowerCase();
   return profiles.filter(
     (p) =>
-      (p.id ?? '').toLowerCase() === needle
-      || (p.email ?? '').toLowerCase() === needle
-      || (p.label ?? '').toLowerCase() === needle,
+      (p.id ?? '').toLowerCase() === needle ||
+      (p.email ?? '').toLowerCase() === needle ||
+      (p.label ?? '').toLowerCase() === needle,
   );
 }
 
@@ -30,5 +30,7 @@ export function filterProfilesByAccount(profiles, accountFilter) {
  */
 export function filterEntriesByAccount(entries, accountFilter) {
   if (!accountFilter) return entries;
-  return entries.filter((entry) => filterProfilesByAccount([entry.profile], accountFilter).length > 0);
+  return entries.filter(
+    (entry) => filterProfilesByAccount([entry.profile], accountFilter).length > 0,
+  );
 }

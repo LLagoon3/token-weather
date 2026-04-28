@@ -7,6 +7,7 @@ AI 사용량 통합 대시보드의 공통 데이터 스키마 패키지.
 초기 초안 단계이며, Codex adapter를 기준으로 첫 버전을 정의했다.
 
 현재 포함:
+
 - `usage-snapshot.schema.json`
 - `usage-event.schema.json`
 - `examples/codex-usage-snapshot.example.json`
@@ -21,9 +22,11 @@ AI 사용량 통합 대시보드의 공통 데이터 스키마 패키지.
 - `source`, `authType`, `confidence`를 필수 개념으로 유지
 
 ## usage snapshot
+
 현재 상태를 표현하는 스키마.
 
 핵심 필드:
+
 - `schemaVersion`
 - `snapshotId`
 - `capturedAt`
@@ -38,9 +41,11 @@ AI 사용량 통합 대시보드의 공통 데이터 스키마 패키지.
 - `raw`
 
 ## usage event
+
 오류, 제한, 관측 이벤트를 표현하는 스키마.
 
 핵심 필드:
+
 - `schemaVersion`
 - `eventId`
 - `occurredAt`

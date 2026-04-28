@@ -1,6 +1,7 @@
 {
   "name": "token-weather",
   "private": true,
+  "type": "module",
   "version": "0.1.0",
   "description": "Token Weather — local AI usage and auth dashboard CLI (monorepo)",
   "license": "Apache-2.0",
@@ -9,9 +10,12 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "echo \"TODO: wire dev commands\"",
-    "build": "echo \"TODO: wire build commands\"",
-    "lint": "echo \"TODO: wire lint commands\"",
+    "dev": "node ./packages/agent/bin/token-weather.js status",
+    "build": "npm run build:types",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "node --test packages/agent/test/**/*.test.js packages/provider-adapters/test/**/*.test.js packages/schemas/test/**/*.test.js",
     "test:schemas": "node --test packages/schemas/test/**/*.test.js",
     "test:agent": "node --test packages/agent/test/**/*.test.js",
@@ -24,6 +28,11 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.3.0",
     "typescript": "^5.6.0"
   }
 }

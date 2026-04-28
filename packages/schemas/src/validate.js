@@ -7,9 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const snapshotSchema = JSON.parse(
   readFileSync(join(__dirname, '../usage-snapshot.schema.json'), 'utf8'),
 );
-const eventSchema = JSON.parse(
-  readFileSync(join(__dirname, '../usage-event.schema.json'), 'utf8'),
-);
+const eventSchema = JSON.parse(readFileSync(join(__dirname, '../usage-event.schema.json'), 'utf8'));
 
 /**
  * Lightweight zero-dependency JSON Schema validator.
@@ -54,7 +52,9 @@ function validateNode(data, schema, path, errors) {
   // type check
   if (schema.type) {
     if (!matchesType(data, schema.type)) {
-      errors.push(`${path || '(root)'}: expected type ${JSON.stringify(schema.type)}, got ${typeOf(data)}`);
+      errors.push(
+        `${path || '(root)'}: expected type ${JSON.stringify(schema.type)}, got ${typeOf(data)}`,
+      );
       return;
     }
   }
@@ -62,7 +62,9 @@ function validateNode(data, schema, path, errors) {
   // enum check
   if (schema.enum) {
     if (!schema.enum.includes(data)) {
-      errors.push(`${path || '(root)'}: value ${JSON.stringify(data)} not in enum ${JSON.stringify(schema.enum)}`);
+      errors.push(
+        `${path || '(root)'}: value ${JSON.stringify(data)} not in enum ${JSON.stringify(schema.enum)}`,
+      );
     }
   }
 

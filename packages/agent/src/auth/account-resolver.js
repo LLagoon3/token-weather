@@ -65,9 +65,9 @@ export function resolveAccountByIdentifier(accounts, identifier) {
   const needle = String(identifier).toLowerCase();
   const match = accounts.find(
     (a) =>
-      (a.email ?? '').toLowerCase() === needle
-      || (a.accountKey ?? '').toLowerCase() === needle
-      || (a.label ?? '').toLowerCase() === needle,
+      (a.email ?? '').toLowerCase() === needle ||
+      (a.accountKey ?? '').toLowerCase() === needle ||
+      (a.label ?? '').toLowerCase() === needle,
   );
 
   if (!match) {

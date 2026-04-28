@@ -23,7 +23,18 @@ function makeSampleSnapshot(overrides = {}) {
     data: {},
     rawText: '{}',
     fields: {
-      usageWindows: [{ kind: 'primary', label: 'primary window', usedPercent: 50, usedAmount: null, limitAmount: null, remainingAmount: null, windowSeconds: null, resetAt: null }],
+      usageWindows: [
+        {
+          kind: 'primary',
+          label: 'primary window',
+          usedPercent: 50,
+          usedAmount: null,
+          limitAmount: null,
+          remainingAmount: null,
+          windowSeconds: null,
+          resetAt: null,
+        },
+      ],
       ...overrides,
     },
   });
@@ -108,13 +119,19 @@ describe('enum compliance', () => {
   it('source is within schema enum', () => {
     const snapshot = makeSampleSnapshot();
     const allowed = snapshotSchema.properties.source.enum;
-    assert.ok(allowed.includes(snapshot.source), `source "${snapshot.source}" not in enum ${allowed}`);
+    assert.ok(
+      allowed.includes(snapshot.source),
+      `source "${snapshot.source}" not in enum ${allowed}`,
+    );
   });
 
   it('authType is within schema enum', () => {
     const snapshot = makeSampleSnapshot();
     const allowed = snapshotSchema.properties.authType.enum;
-    assert.ok(allowed.includes(snapshot.authType), `authType "${snapshot.authType}" not in ${allowed}`);
+    assert.ok(
+      allowed.includes(snapshot.authType),
+      `authType "${snapshot.authType}" not in ${allowed}`,
+    );
   });
 
   it('confidence is within schema enum', () => {
@@ -132,7 +149,10 @@ describe('enum compliance', () => {
         fields: {},
       });
       const allowed = snapshotSchema.properties.confidence.enum;
-      assert.ok(allowed.includes(snapshot.confidence), `confidence "${snapshot.confidence}" not in ${allowed}`);
+      assert.ok(
+        allowed.includes(snapshot.confidence),
+        `confidence "${snapshot.confidence}" not in ${allowed}`,
+      );
     }
   });
 

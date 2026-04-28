@@ -4,7 +4,13 @@ import assert from 'node:assert/strict';
 import { fetchWithTimeout } from '../../src/shared/fetch-with-timeout.js';
 
 function okResponse() {
-  return { status: 200, ok: true, async text() { return ''; } };
+  return {
+    status: 200,
+    ok: true,
+    async text() {
+      return '';
+    },
+  };
 }
 
 function delayedResolve(ms, value) {
@@ -53,12 +59,11 @@ describe('fetchWithTimeout — basic', () => {
         : Promise.resolve(okResponse());
     };
 
-    await assert.rejects(
-      () =>
-        fetchWithTimeout(fetchImpl, 'https://t.test', {
-          timeoutMs: 1000,
-          signal: externalController.signal,
-        }),
+    await assert.rejects(() =>
+      fetchWithTimeout(fetchImpl, 'https://t.test', {
+        timeoutMs: 1000,
+        signal: externalController.signal,
+      }),
     );
     assert.equal(receivedInit.signal.aborted, true);
   });

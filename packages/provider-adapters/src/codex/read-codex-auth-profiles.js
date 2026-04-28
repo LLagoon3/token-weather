@@ -8,7 +8,7 @@ const DEFAULT_AUTH_PROFILES_PATH = path.join(
   'agents',
   'main',
   'agent',
-  'auth-profiles.json'
+  'auth-profiles.json',
 );
 
 export function readCodexAuthProfiles(authProfilesPath = DEFAULT_AUTH_PROFILES_PATH) {
@@ -24,7 +24,7 @@ export function readCodexAuthProfiles(authProfilesPath = DEFAULT_AUTH_PROFILES_P
       accessToken: value.access,
       accountId: value.accountId ?? null,
       email: value.email ?? null,
-      expires: value.expires ?? null
+      expires: value.expires ?? null,
     }))
     .filter((profile) => Boolean(profile.accessToken));
 

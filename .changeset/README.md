@@ -11,6 +11,7 @@ npx changeset
 ```
 
 대화형 프롬프트가:
+
 1. 영향받는 패키지 선택 (3개 publishable 중 — linked되어 있어 셋이 같은 bump를 받음)
 2. bump type 선택 (major / minor / patch — 기준은 [docs/release-policy.md](../docs/release-policy.md))
 3. 사용자 노출 변경 요약 (한 줄 markdown)

@@ -240,10 +240,7 @@ describe('formatStatusJson — providers array', () => {
     });
     const parsed = JSON.parse(json);
     assert.equal(parsed.providers.length, 2);
-    assert.deepEqual(
-      parsed.providers.map((p) => p.id).sort(),
-      ['claude', 'codex'],
-    );
+    assert.deepEqual(parsed.providers.map((p) => p.id).sort(), ['claude', 'codex']);
     const codexEntry = parsed.providers.find((p) => p.id === 'codex');
     assert.deepEqual(codexEntry.snapshot, { enabled: true, snapshots: [] });
   });
@@ -260,7 +257,10 @@ describe('formatStatusJson — providers array', () => {
     });
     const parsed = JSON.parse(json);
     assert.equal(parsed.providerFilter, 'codex');
-    assert.deepEqual(parsed.providers.map((p) => p.id), ['codex']);
+    assert.deepEqual(
+      parsed.providers.map((p) => p.id),
+      ['codex'],
+    );
   });
 
   it('exposes accountFilter at top level', () => {

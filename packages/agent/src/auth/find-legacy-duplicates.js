@@ -30,19 +30,15 @@ export function findLegacyDuplicates(existingAccounts, newAccount) {
     if (isManualOrMockAccount(existing)) continue;
     const existingIdentity = extractIdentity(existing);
 
-    if (
-      newIdentity.sub
-      && existingIdentity.sub
-      && existingIdentity.sub === newIdentity.sub
-    ) {
+    if (newIdentity.sub && existingIdentity.sub && existingIdentity.sub === newIdentity.sub) {
       duplicates.push({ accountKey: existing.accountKey, reason: 'same-sub' });
       continue;
     }
 
     if (
-      newIdentity.email
-      && existingIdentity.email
-      && existingIdentity.email.toLowerCase() === newIdentity.email.toLowerCase()
+      newIdentity.email &&
+      existingIdentity.email &&
+      existingIdentity.email.toLowerCase() === newIdentity.email.toLowerCase()
     ) {
       duplicates.push({ accountKey: existing.accountKey, reason: 'same-email' });
     }

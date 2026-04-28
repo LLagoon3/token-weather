@@ -1,8 +1,5 @@
 import { CLAUDE_AUTH } from './claude-auth-constants.js';
-import {
-  postToTokenEndpoint,
-  liveExchangeDisabledError,
-} from '../shared/oauth-token-endpoint.js';
+import { postToTokenEndpoint, liveExchangeDisabledError } from '../shared/oauth-token-endpoint.js';
 
 const CLIENT_ID_NOTE =
   'Note: client_id is an observed value from the Claude Code binary and not officially confirmed.';
