@@ -40,6 +40,7 @@ describe('fetchClaudeUsage', () => {
     assert.equal(capturedInit.headers['anthropic-version'], '2023-06-01');
     assert.equal(capturedInit.headers['anthropic-beta'], 'oauth-2025-04-20');
     assert.equal(capturedInit.headers.Accept, 'application/json');
+    assert.equal(capturedInit.headers['User-Agent'], 'token-weather');
   });
 
   it('returns a snapshot with provider id anthropic-claude and ok status on 200', async () => {

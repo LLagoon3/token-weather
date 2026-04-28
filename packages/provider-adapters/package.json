@@ -15,12 +15,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/LLagoon3/ai-usage-agent.git",
+    "url": "https://github.com/LLagoon3/token-weather.git",
     "directory": "packages/provider-adapters"
   },
-  "homepage": "https://github.com/LLagoon3/ai-usage-agent#readme",
+  "homepage": "https://github.com/LLagoon3/token-weather#readme",
   "bugs": {
-    "url": "https://github.com/LLagoon3/ai-usage-agent/issues"
+    "url": "https://github.com/LLagoon3/token-weather/issues"
   },
   "keywords": [
     "token-weather",

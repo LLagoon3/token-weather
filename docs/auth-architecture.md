@@ -13,7 +13,7 @@ CLI agent가 외부 auth store(OpenClaw 등)에 의존하지 않고 독립적으
   │   ├─ OAuth localhost callback flow (Codex / Claude 공통)
   │   ├─ Manual paste fallback (Codex)
   │   └─ Device code fallback (미구현, 후순위)
-  ├─ Credential Store (~/.config/ai-usage-agent/auth.json, 0600)
+  ├─ Credential Store (~/.config/token-weather/auth.json, 0600)
   ├─ Provider Adapters (codex / claude)
   └─ Usage / Event Pipeline
 ```
@@ -60,7 +60,7 @@ provider별 callback path:
 
 ## 저장소 설계 원칙
 
-- `~/.config/ai-usage-agent/auth.json`, 권한 `0600`
+- `~/.config/token-weather/auth.json`, 권한 `0600`
 - normalized auth metadata와 민감 토큰은 논리적으로 분리 가능하게 설계
 - 이후 keychain으로 확장 가능
 - refresh token / session cookie는 외부 서버에 업로드 금지
@@ -165,7 +165,7 @@ Codex/Claude의 token exchange와 refresh 함수는 **기본적으로 guard**되
 
 ## 운영 방안
 
-- 토큰 저장: `auth.json` + `0600` (기본 경로 `~/.config/ai-usage-agent/`)
+- 토큰 저장: `auth.json` + `0600` (기본 경로 `~/.config/token-weather/`)
 - multi-account: `lastUsedAt` 자동 선택 + `--account` override
 - callback 포트 충돌 시: 기본 포트부터 최대 3회 대체 포트 시도 → 실패 시 manual paste로 전환 (Codex)
 - timeout: `--timeout <seconds>` (기본 120초)

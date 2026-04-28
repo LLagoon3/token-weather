@@ -155,4 +155,15 @@ describe('repo-policy/publish — engines / repository / homepage', () => {
       assert.ok(pkg.bugs?.url, `${label} bugs.url 누락`);
     }
   });
+
+  // GitHub repo 가 LLagoon3/token-weather 로 리네임된 후 npm registry 페이지의
+  // GitHub 링크가 옛 LLagoon3/ai-usage-agent 로 깨지는 회귀 차단.
+  it('3개 패키지 모두 repository / homepage / bugs URL 이 LLagoon3/token-weather 호스트', () => {
+    const HOST = 'github.com/LLagoon3/token-weather';
+    for (const [label, pkg] of [['agent', AGENT], ['provider-adapters', ADAPTERS], ['schemas', SCHEMAS]]) {
+      assert.match(pkg.repository?.url ?? '', new RegExp(HOST), `${label} repository.url`);
+      assert.match(pkg.homepage ?? '', new RegExp(HOST), `${label} homepage`);
+      assert.match(pkg.bugs?.url ?? '', new RegExp(HOST), `${label} bugs.url`);
+    }
+  });
 });

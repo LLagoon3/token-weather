@@ -40,7 +40,7 @@ export async function fetchClaudeOauthProfile({
       Accept: 'application/json',
       'anthropic-version': '2023-06-01',
       'anthropic-beta': 'oauth-2025-04-20',
-      'User-Agent': 'ai-usage-agent',
+      'User-Agent': 'token-weather',
     },
     timeoutMs,
   });

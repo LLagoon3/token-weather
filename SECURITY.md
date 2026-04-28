@@ -13,7 +13,7 @@
 
 GitHub Security Advisory를 통해 비공개로 신고해 주세요.
 
-- 신고 페이지: https://github.com/LLagoon3/ai-usage-agent/security/advisories/new
+- 신고 페이지: https://github.com/LLagoon3/token-weather/security/advisories/new
 - 평균 응답 SLA: 영업일 기준 5일 이내 1차 답변
 - 심각도가 높은 경우(원격 토큰 유출, 자격증명 노출 등) 우선 대응
 
@@ -25,7 +25,7 @@ GitHub Issue / PR / 외부 채널(Slack, 이메일 본문 등)에 access token, 
 2. 해당 자격증명을 즉시 **revoke** 합니다.
    - Codex (OpenAI): https://platform.openai.com/account/api-keys 또는 chatgpt.com 세션 로그아웃
    - Claude (Anthropic): https://console.anthropic.com 또는 Claude CLI 재로그인
-3. `ai-usage-agent auth logout <provider>`로 로컬 store에서도 제거 후 재로그인합니다.
+3. `token-weather auth logout <provider>`로 로컬 store에서도 제거 후 재로그인합니다.
 
 토큰 복구 / 자동 revoke 기능은 제공하지 않습니다 (provider revoke endpoint 미통합 상태).
 
