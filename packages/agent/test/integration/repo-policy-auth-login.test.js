@@ -69,6 +69,21 @@ describe('repo-policy/auth-login — Codex/Claude 일관성 (#97)', () => {
   });
 });
 
+describe('repo-policy/auth-login — --mock fail-closed 계약 (#97)', () => {
+  // mock=true 인데 spec 미지원이면 실제 OAuth 로 fall-through 하지 않고
+  // 안내 후 종료해야 한다 — 사용자의 --mock 의도 ("실제 endpoint hit 회피") 보호.
+  it('login-runner 가 --mock 미지원 시 안내 메시지 + 종료 코드 패턴을 갖는다', () => {
+    // 두 함수(runOAuthLoginFlow / runManualPasteFlow) 모두 if (options.mock) 또는
+    // if (mock) 블록 안에서 supportsMockCallback 검증 후 안내 메시지 출력 + return
+    // 패턴이어야 한다.
+    assert.match(
+      LOGIN_RUNNER,
+      /는 --mock 을 지원하지 않습니다/,
+      '--mock 미지원 안내 메시지 부재 — fail-closed 계약 회귀',
+    );
+  });
+});
+
 describe('repo-policy/auth-login — 가드 제거 (#97)', () => {
   it('login-runner.js 에 allowLiveExchange 인자 잔존 없음', () => {
     assert.equal(/allowLiveExchange/.test(LOGIN_RUNNER), false);

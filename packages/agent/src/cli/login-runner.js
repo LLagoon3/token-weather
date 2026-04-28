@@ -110,18 +110,28 @@ export async function runOAuthLoginFlow(spec, options) {
     console.log('');
     console.log(`code 수신 완료: ${result.code}`);
 
-    if (options.mock && spec.supportsMockCallback && spec.saveMockAccount) {
-      await spec.saveMockAccount({ code: result.code });
-    } else {
-      await runLiveExchangeStep(spec, {
-        code: result.code,
-        callbackUrl,
-        codeVerifier,
-        state,
-        label: options.label ?? null,
-        keepLegacy: options.keepLegacy ?? false,
-      });
+    // --mock 은 fail-closed 계약: spec 이 mock 을 지원하지 않으면 실제 OAuth
+    // 로 fall-through 하지 않고 안내 후 종료. 사용자가 --mock 을 명시한 의도
+    // ("실제 endpoint hit 회피") 를 깨지 않도록.
+    if (options.mock) {
+      if (spec.supportsMockCallback && spec.saveMockAccount) {
+        await spec.saveMockAccount({ code: result.code });
+      } else {
+        console.log('');
+        console.log(`이 provider(${spec.id}) 는 --mock 을 지원하지 않습니다.`);
+        console.log('토큰을 저장하지 않습니다.');
+      }
+      return;
     }
+
+    await runLiveExchangeStep(spec, {
+      code: result.code,
+      callbackUrl,
+      codeVerifier,
+      state,
+      label: options.label ?? null,
+      keepLegacy: options.keepLegacy ?? false,
+    });
   } catch (err) {
     console.log('');
     console.log(`콜백 수신 실패: ${err.message}`);
@@ -165,8 +175,15 @@ export async function runManualPasteFlow(
   console.log('');
   console.log(`code 수신 완료: ${extracted.code}`);
 
-  if (mock && spec.supportsMockCallback && spec.saveMockAccount) {
-    await spec.saveMockAccount({ code: extracted.code });
+  // --mock 은 fail-closed: spec 미지원 시 실제 OAuth fall-through 안 함.
+  if (mock) {
+    if (spec.supportsMockCallback && spec.saveMockAccount) {
+      await spec.saveMockAccount({ code: extracted.code });
+    } else {
+      console.log('');
+      console.log(`이 provider(${spec.id}) 는 --mock 을 지원하지 않습니다.`);
+      console.log('토큰을 저장하지 않습니다.');
+    }
     return;
   }
 

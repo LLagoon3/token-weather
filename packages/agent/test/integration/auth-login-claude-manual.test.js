@@ -37,16 +37,20 @@ const CLAUDE_LIKE_SPEC = {
 };
 
 describe('runManualPasteFlow (Claude-like, supportsMockCallback=false, mock 모드)', () => {
-  it('URL paste matching state + mock=true → supportsMockCallback=false 라 mock 분기 진입 안 함, default(live) 로 fall through', async () => {
+  it('mock=true + supportsMockCallback=false → fail-closed: 안내 + 종료, exchangeCode 호출 0회', async () => {
     let mockSaveCalls = 0;
+    let exchangeCalls = 0;
     const spec = {
       ...CLAUDE_LIKE_SPEC,
-      // mock 분기에 들어가지 않아야 함을 검증할 spy
+      // mock 분기 spy
       saveMockAccount: async () => {
         mockSaveCalls += 1;
       },
-      // mock 분기 미진입 → default 로 빠져 runLiveExchangeStep 시도. exchangeCode
-      // 정의 없으면 'is not a function' 으로 throw 되어 catch 됨.
+      // fail-closed 검증 — mock=true 인데 spec 미지원이면 exchangeCode 도 호출 안 됨
+      exchangeCode: async () => {
+        exchangeCalls += 1;
+        throw new Error('exchangeCode 가 호출되면 안 됨 (fail-closed 위반)');
+      },
     };
 
     const cap = captureConsoleLog();
@@ -75,8 +79,13 @@ describe('runManualPasteFlow (Claude-like, supportsMockCallback=false, mock 모�
     const out = cap.lines.join('\n');
     assert.match(out, /manual paste 모드입니다\./);
     assert.match(out, /code 수신 완료: test-code/);
-    // supportsMockCallback=false 라 mock=true 여도 saveMockAccount 호출되지 않음
-    assert.equal(mockSaveCalls, 0, 'supportsMockCallback=false 일 때 mock 분기 진입 안 해야 함');
+    assert.equal(
+      mockSaveCalls,
+      0,
+      'supportsMockCallback=false 일 때 saveMockAccount 호출 안 해야 함',
+    );
+    assert.equal(exchangeCalls, 0, 'mock=true 일 때 exchangeCode 로 fall-through 하지 않아야 함');
+    assert.match(out, /이 provider\(claude\) 는 --mock 을 지원하지 않습니다\./);
     assert.match(out, /토큰을 저장하지 않습니다\./);
   });
 
