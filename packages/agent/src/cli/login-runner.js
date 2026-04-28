@@ -255,7 +255,6 @@ async function saveLiveExchangeAccount(
     raw: {
       provider: spec.accountKeyPrefix,
       mock: false,
-      liveExchange: true,
       tokenType: tokenResponse.tokenType,
       scope: tokenResponse.scope ?? null,
       idToken: tokenResponse.idToken ?? null,

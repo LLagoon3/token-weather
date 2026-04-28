@@ -1,4 +1,4 @@
-import { createMockCodexAccountFromManualInput } from '../auth/mock-auth-exchange.js';
+import { createMockAccountFromInput } from '../auth/mock-auth-exchange.js';
 import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
 import {
   buildCodexAuthorizationUrl,
@@ -104,19 +104,7 @@ const CODEX_LOGIN_SPEC = {
   exchangeCode: ({ code, callbackUrl, codeVerifier }) =>
     exchangeCodexAuthorizationCode({ code, callbackUrl, codeVerifier }),
   supportsMockCallback: true,
-  saveMockAccount: async ({ code }) => {
-    const account = createMockCodexAccountFromManualInput({
-      code,
-      rawInput: `localhost-callback:${code}`,
-    });
-    const store = await loadAuthStore();
-    const nextStore = upsertProviderAccount(store, CODEX_STORE_KEY, account);
-    await saveAuthStore(nextStore);
-
-    console.log('mock 계정을 auth store에 저장했어.');
-    console.log(`저장 accountKey: ${account.accountKey}`);
-    console.log('실제 OAuth 토큰을 받으려면 --mock 없이 다시 실행하세요.');
-  },
+  saveMockAccount: ({ code }) => saveMockAccountFor(CODEX_LOGIN_SPEC, { code }),
 };
 
 // ─── Claude ─────────────────────────────────────────────────────────────────
@@ -153,8 +141,29 @@ const CLAUDE_LOGIN_SPEC = {
   buildAuthorizationUrl: buildClaudeAuthorizationUrl,
   exchangeCode: ({ code, callbackUrl, codeVerifier, state }) =>
     exchangeClaudeAuthorizationCode({ code, callbackUrl, codeVerifier, state }),
-  supportsMockCallback: false,
+  supportsMockCallback: true,
+  saveMockAccount: ({ code }) => saveMockAccountFor(CLAUDE_LOGIN_SPEC, { code }),
 };
+
+/**
+ * 공통 mock 저장 helper. spec.storeKey + spec.accountKeyPrefix 만 다르고
+ * 나머지는 동일한 흐름이라 spec 별 saveMockAccount 가 본 함수에 위임.
+ */
+async function saveMockAccountFor(spec, { code }) {
+  const account = createMockAccountFromInput({
+    provider: spec.accountKeyPrefix,
+    accountKeyPrefix: spec.accountKeyPrefix,
+    code,
+    rawInput: `localhost-callback:${code}`,
+  });
+  const store = await loadAuthStore();
+  const nextStore = upsertProviderAccount(store, spec.storeKey, account);
+  await saveAuthStore(nextStore);
+
+  console.log('mock 계정을 auth store에 저장했어.');
+  console.log(`저장 accountKey: ${account.accountKey}`);
+  console.log('실제 OAuth 토큰을 받으려면 --mock 없이 다시 실행하세요.');
+}
 
 // ─── Option validation ─────────────────────────────────────────────────────
 
