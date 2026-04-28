@@ -31,16 +31,7 @@ function baseExchangeParams(overrides = {}) {
   };
 }
 
-describe('exchangeCodexAuthorizationCode — guard', () => {
-  it('throws when allowLiveExchange is not true', async () => {
-    await assert.rejects(
-      () => exchangeCodexAuthorizationCode(baseExchangeParams()),
-      /Live exchange is disabled/,
-    );
-  });
-});
-
-describe('exchangeCodexAuthorizationCode — live exchange', () => {
+describe('exchangeCodexAuthorizationCode', () => {
   it('POSTs form-urlencoded body to CODEX_AUTH.tokenEndpoint', async () => {
     let capturedUrl, capturedInit;
     const fetchImpl = async (url, init) => {
@@ -58,7 +49,6 @@ describe('exchangeCodexAuthorizationCode — live exchange', () => {
 
     await exchangeCodexAuthorizationCode({
       ...baseExchangeParams(),
-      allowLiveExchange: true,
       fetchImpl,
     });
 
@@ -82,7 +72,6 @@ describe('exchangeCodexAuthorizationCode — live exchange', () => {
     };
     await exchangeCodexAuthorizationCode({
       ...baseExchangeParams(),
-      allowLiveExchange: true,
       clientSecret: 's3cret',
       fetchImpl,
     });
@@ -103,7 +92,6 @@ describe('exchangeCodexAuthorizationCode — live exchange', () => {
       });
     const result = await exchangeCodexAuthorizationCode({
       ...baseExchangeParams(),
-      allowLiveExchange: true,
       fetchImpl,
     });
     assert.equal(result.accessToken, 'at');
@@ -127,7 +115,6 @@ describe('exchangeCodexAuthorizationCode — live exchange', () => {
       () =>
         exchangeCodexAuthorizationCode({
           ...baseExchangeParams(),
-          allowLiveExchange: true,
           fetchImpl,
         }),
       /Token exchange failed: 400/,
@@ -135,16 +122,7 @@ describe('exchangeCodexAuthorizationCode — live exchange', () => {
   });
 });
 
-describe('refreshCodexToken — guard', () => {
-  it('throws when allowLiveExchange is not true', async () => {
-    await assert.rejects(
-      () => refreshCodexToken({ refreshToken: 'rt' }),
-      /Live exchange is disabled/,
-    );
-  });
-});
-
-describe('refreshCodexToken — live refresh', () => {
+describe('refreshCodexToken', () => {
   it('POSTs refresh_token grant with client_id', async () => {
     let captured;
     const fetchImpl = async (_u, init) => {
@@ -160,7 +138,6 @@ describe('refreshCodexToken — live refresh', () => {
     };
     await refreshCodexToken({
       refreshToken: 'rt-old',
-      allowLiveExchange: true,
       fetchImpl,
     });
     const params = new URLSearchParams(captured.body);
@@ -174,7 +151,6 @@ describe('refreshCodexToken — live refresh', () => {
       jsonResponse({ body: { access_token: 'a', expires_in: 1, token_type: 'Bearer' } });
     const result = await refreshCodexToken({
       refreshToken: 'rt-kept',
-      allowLiveExchange: true,
       fetchImpl,
     });
     assert.equal(result.refreshToken, 'rt-kept');
@@ -192,7 +168,6 @@ describe('refreshCodexToken — live refresh', () => {
       });
     const result = await refreshCodexToken({
       refreshToken: 'rt-old',
-      allowLiveExchange: true,
       fetchImpl,
     });
     assert.equal(result.refreshToken, 'rt-rotated');
@@ -211,7 +186,6 @@ describe('refreshCodexToken — live refresh', () => {
       () =>
         refreshCodexToken({
           refreshToken: 'rt',
-          allowLiveExchange: true,
           fetchImpl,
         }),
       /Token refresh failed: 401/,

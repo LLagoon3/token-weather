@@ -1,10 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  postToTokenEndpoint,
-  liveExchangeDisabledError,
-} from '../../src/shared/oauth-token-endpoint.js';
+import { postToTokenEndpoint } from '../../src/shared/oauth-token-endpoint.js';
 
 function okResponse(body = {}) {
   const text = JSON.stringify(body);
@@ -192,25 +189,3 @@ describe('postToTokenEndpoint — fallbackRefreshToken', () => {
   });
 });
 
-describe('liveExchangeDisabledError', () => {
-  it('builds a descriptive error message', () => {
-    const err = liveExchangeDisabledError({
-      caller: 'exchangeFoo',
-      endpoint: 'https://t.test/tok',
-      grantType: 'authorization_code',
-      clientIdNote: 'observed only',
-    });
-    assert.match(err.message, /\[exchangeFoo\] Live exchange is disabled/);
-    assert.match(err.message, /grant_type=authorization_code/);
-    assert.match(err.message, /observed only/);
-  });
-
-  it('omits clientIdNote when not provided', () => {
-    const err = liveExchangeDisabledError({
-      caller: 'exchangeFoo',
-      endpoint: 'https://t.test/tok',
-      grantType: 'refresh_token',
-    });
-    assert.doesNotMatch(err.message, /observed/);
-  });
-});
