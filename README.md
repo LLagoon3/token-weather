@@ -2,7 +2,7 @@
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
 [![npm version](https://img.shields.io/npm/v/%40token-weather%2Fcli.svg)](https://www.npmjs.com/package/@token-weather/cli)
-[![CI](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml)
+[![CI](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/node/v/%40token-weather%2Fcli.svg)](https://nodejs.org/)
 
 > **Local CLI dashboard for AI service usage and OAuth credentials.**
@@ -105,7 +105,7 @@ OAuth token 같은 자격증명을 다루는 도구이므로, 보안 이슈는 �
 
 ## 라이선스
 
-[Apache License 2.0](./LICENSE). PR을 제출하시면 본인의 기여가 동일 라이선스로 제공됨에 동의한 것으로 간주됩니다 (자세한 내용은 [CONTRIBUTING.md §8](./CONTRIBUTING.md)).
+[Apache License 2.0](./LICENSE). PR을 제출하시면 본인의 기여가 동일 라이선스로 제공됨에 동의한 것으로 간주됩니다 (자세한 내용은 [CONTRIBUTING.md §9](./CONTRIBUTING.md)).
 
 ## Contributing
 
