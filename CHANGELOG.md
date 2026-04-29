@@ -8,6 +8,43 @@
 
 이 섹션은 publish 시점에 root에서 **수동으로 큐레이트**합니다 — 3 패키지를 가로지르는 사용자-가시 변경의 high-level 요약. 패키지별 상세 release note는 [Changesets](https://github.com/changesets/changesets)가 `packages/*/CHANGELOG.md`를 자동 생성하고, 본 문서는 publish PR에서 그 내용을 참고해 채웁니다. 사용자-가시 변경이 있는 PR은 `npx changeset` 으로 changeset을 함께 commit 해주세요.
 
+## [0.2.0] - 2026-04-29
+
+`auth login` default 동작을 실제 OAuth 토큰 교환으로 뒤집고 Codex/Claude 일관성 정렬 + observed `client_id` 가드 제거. publish 인프라 측면에서 첫 OIDC + Trusted Publishing + SLSA provenance 적용 release.
+
+### Changed (Breaking)
+
+- **`auth login` default 가 실제 OAuth 토큰 교환** — 이전 default 였던 mock 저장은 `--mock` opt-in 으로 이동 ([#98]).
+- **`--live-exchange` flag 제거** — `--mock` 신설 (default 가 실제 OAuth 라 별도 flag 불필요) ([#98]).
+- Codex / Claude `auth login` 옵션 표면 + 라우팅 + default 동작 모두 일관성 정렬 — `runCodexManualPasteFlow` 별도 함수 제거, 공통 `runManualPasteFlow` 통합, 두 spec 모두 `supportsMockCallback: true` + `saveMockAccount` 보유 ([#98]).
+- `--mock` fail-closed 계약 — spec 미지원 시 실제 OAuth 로 fall-through 하지 않고 안내 후 종료 ([#98]).
+- `@token-weather/provider-adapters` 의 `allowLiveExchange` 매개변수 + `liveExchangeDisabledError` 함수 + 관련 export 모두 제거 ([#98]).
+- `auth list` 출력에서 `liveToken` 라인 제거 (`mock` 필드만 유지) ([#98]).
+- GitHub repo 가 `LLagoon3/token-weather` 로 리네임되어 publish 메타 / 사용자 데이터 경로 / Anthropic API User-Agent 모두 정렬 ([#91]).
+
+### Security
+
+- **첫 OIDC + Trusted Publishing publish** — `NPM_TOKEN` secret 의존성 0, GitHub Actions OIDC token 만으로 publish 인증 ([#94], [#95]).
+- **SLSA provenance v1 attestation 적용** — sigstore transparency log 등록, 외부에서 supply chain 검증 가능 ([#94]).
+
+### Internal
+
+- ESLint 9 flat config + Prettier 도입, root scripts (`lint`/`format`/`build`/`dev`) 실구현 ([#96]).
+- release workflow Node 24 + 번들 npm 11+ — Trusted Publishing OIDC 요구사항 self-upgrade 없이 충족 ([#101]).
+- install smoke (#75) + Trusted Publishing 운영 검증 흐름 정착 (release 격리/복원/token 제거 PR 시리즈 ([#92], [#93], [#94], [#95])).
+
+[Unreleased]: https://github.com/LLagoon3/token-weather/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/LLagoon3/token-weather/releases/tag/v0.2.0
+
+[#91]: https://github.com/LLagoon3/token-weather/pull/91
+[#92]: https://github.com/LLagoon3/token-weather/pull/92
+[#93]: https://github.com/LLagoon3/token-weather/pull/93
+[#94]: https://github.com/LLagoon3/token-weather/pull/94
+[#95]: https://github.com/LLagoon3/token-weather/pull/95
+[#96]: https://github.com/LLagoon3/token-weather/pull/96
+[#98]: https://github.com/LLagoon3/token-weather/pull/98
+[#101]: https://github.com/LLagoon3/token-weather/pull/101
+
 ## [0.1.0] - 2026-04-27
 
 첫 공개 publish 직전 상태 정리. v0.x 동안은 호환성 단순화를 위해 3 패키지를 linked로 유지합니다.
@@ -54,7 +91,6 @@
 - CI: `npm install --no-package-lock` → `npm run build:types` → `npm test` 흐름 정착 ([#88]).
 - README / CONTRIBUTING / `docs/codebase-guide.md` 사용자 온보딩 + 보안 신고 단락 + 라이선스 단락 ([#80], [#81], [#85]).
 
-[Unreleased]: https://github.com/LLagoon3/token-weather/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/LLagoon3/token-weather/releases/tag/v0.1.0
 
 [#6]: https://github.com/LLagoon3/token-weather/pull/6

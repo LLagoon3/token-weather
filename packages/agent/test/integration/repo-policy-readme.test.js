@@ -125,3 +125,30 @@ describe('repo-policy/readme — placeholder / 구버전 명령 부재', () => {
     );
   });
 });
+
+describe('repo-policy/readme — v0.2.0 정합 (--mock + --live-exchange 부재)', () => {
+  // #97 / v0.2.0 에서 --live-exchange 제거됨. README 에 옛 표현이 다시
+  // 들어오면 외부 사용자가 npm 페이지의 README 따라 실행 시 unknown
+  // option 으로 막히거나 동작이 v0.1.x 가정과 반대로 나옴.
+  it('README 에 --live-exchange 가 등장하지 않는다 (v0.2.0 에서 제거된 flag)', () => {
+    assert.equal(README.includes('--live-exchange'), false, 'README 에 --live-exchange 잔재');
+  });
+
+  it('README 가 --mock opt-in 안내를 포함한다 (v0.2.0 신규)', () => {
+    assert.match(README, /--mock\b/, '--mock 안내 누락');
+  });
+});
+
+describe('repo-policy/readme — Root CHANGELOG.md 정합', () => {
+  const CHANGELOG = fs.readFileSync(path.join(REPO_ROOT, 'CHANGELOG.md'), 'utf8');
+
+  // release-policy.md §4 의 'root CHANGELOG 수동 큐레이트' 정책 정합 —
+  // publish 후 v0.x.x entry 가 누락되는 회귀 차단.
+  it('CHANGELOG 에 [0.2.0] heading 이 존재', () => {
+    assert.match(CHANGELOG, /^## \[0\.2\.0\]/m);
+  });
+
+  it('CHANGELOG 에 [0.1.0] heading 이 존재 (역사 기록)', () => {
+    assert.match(CHANGELOG, /^## \[0\.1\.0\]/m);
+  });
+});
