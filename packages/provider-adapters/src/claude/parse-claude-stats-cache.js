@@ -12,8 +12,7 @@ export function parseClaudeStatsCache(raw) {
     totalSessions: num(raw.totalSessions),
     totalMessages: num(raw.totalMessages),
     hasModelUsage: raw.modelUsage !== null && typeof raw.modelUsage === 'object',
-    hasDailyModelTokens:
-      raw.dailyModelTokens !== null && typeof raw.dailyModelTokens === 'object',
+    hasDailyModelTokens: raw.dailyModelTokens !== null && typeof raw.dailyModelTokens === 'object',
     raw,
   };
 }

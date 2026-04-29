@@ -1,15 +1,25 @@
 import {
   resolveClaudeCredentialsPath,
   readClaudeCredentials,
-} from '../../../provider-adapters/src/claude/read-claude-credentials.js';
-import { resolveImportedClaudeSnapshot } from '../../../provider-adapters/src/claude/claude-imported-account.js';
+} from '@token-weather/provider-adapters/src/claude/read-claude-credentials.js';
+import { resolveImportedClaudeSnapshot } from '@token-weather/provider-adapters/src/claude/claude-imported-account.js';
 import { resolveClaudeAccount } from '../auth/resolve-claude-account.js';
-import { resolveClaudeUsageSourcePath } from '../../../provider-adapters/src/claude/resolve-claude-usage-source.js';
-import { readClaudeStatsCache } from '../../../provider-adapters/src/claude/read-claude-stats-cache.js';
-import { fetchClaudeUsage } from '../../../provider-adapters/src/claude/fetch-claude-usage.js';
-import { CLAUDE_AUTH } from '../../../provider-adapters/src/claude/claude-auth-constants.js';
-import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
+import { resolveClaudeUsageSourcePath } from '@token-weather/provider-adapters/src/claude/resolve-claude-usage-source.js';
+import { readClaudeStatsCache } from '@token-weather/provider-adapters/src/claude/read-claude-stats-cache.js';
+import { fetchClaudeUsage } from '@token-weather/provider-adapters/src/claude/fetch-claude-usage.js';
+import { CLAUDE_AUTH } from '@token-weather/provider-adapters/src/claude/claude-auth-constants.js';
 import { loadAuthStore } from '../auth/auth-store.js';
+import { buildUsageSnapshot } from '@token-weather/provider-adapters/src/shared/usage-snapshot.js';
+import { resolveProviderAccountEntries } from './provider-profile-resolver.js';
+import { filterEntriesByAccount } from './account-filter.js';
+import { fetchUsageWithAutoRefresh } from './usage-auto-refresh.js';
+import { refreshClaudeToken } from '@token-weather/provider-adapters/src/claude/refresh-claude-token.js';
+import { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
+import {
+  filterClaudeRealAccounts,
+  claudeMapAccountToProfile,
+  matchesFilter,
+} from './claude-account-spec.js';
 
 /**
  * Build the Claude section of the top-level status snapshot.
@@ -24,6 +34,7 @@ import { loadAuthStore } from '../auth/auth-store.js';
  */
 export async function getClaudeSnapshot(
   config = { providers: { claude: { enabled: true } } },
+  options = {},
 ) {
   const agentClaudeAccounts = await loadAgentStoreClaudeAccounts();
   const base = buildClaudeSnapshot(
@@ -34,24 +45,81 @@ export async function getClaudeSnapshot(
   );
 
   if (!config.providers?.claude?.enabled) {
-    return { ...base, networkUsage: null };
+    return { ...base, networkUsages: [], networkUsage: null };
   }
 
-  const profile = resolveClaudeProfileFromSnapshot(base);
-  if (!profile) {
-    return { ...base, networkUsage: null };
+  // Source 선택은 unfiltered 기준으로 먼저 결정.
+  // accountFilter가 source precedence를 바꿔서는 안 된다.
+  const allAgentEntries = await resolveProviderAccountEntries({
+    providerId: CLAUDE_AUTH.storeProvider,
+    filterFn: filterClaudeRealAccounts,
+    mapFn: claudeMapAccountToProfile,
+    accountFilter: null, // source 선택은 필터 없이
+    updateLastUsed: false,
+  });
+
+  let entries;
+  if (allAgentEntries.length > 0) {
+    entries = filterEntriesByAccount(allAgentEntries, options.accountFilter);
+  } else {
+    // cli-import fallback
+    const single = resolveClaudeProfileFromSnapshot(base);
+    if (single && (!options.accountFilter || matchesFilter(single, options.accountFilter))) {
+      entries = [{ account: null, profile: single }];
+    } else {
+      entries = [];
+    }
   }
 
-  try {
-    const networkUsage = await fetchClaudeUsage(profile);
-    return { ...base, networkUsage };
-  } catch (error) {
+  if (entries.length === 0) {
     return {
       ...base,
-      networkUsage: createClaudeNetworkFailureSnapshot(profile, error),
+      networkUsages: [],
+      networkUsage: null,
+      accountFilter: options.accountFilter ?? null,
+      filteredOut: Boolean(options.accountFilter),
     };
   }
+
+  // 각 계정에 대해 병렬로 usage 조회. 한 계정이 실패해도 다른 계정은 유지.
+  const settled = await Promise.all(
+    entries.map(async (entry) => {
+      try {
+        return await fetchUsageWithAutoRefresh(entry, {
+          fetchUsage: fetchClaudeUsage,
+          refreshToken: refreshClaudeToken,
+          updateStoreAfterRefresh: updateClaudeStoreAfterRefresh,
+          mapAccountToProfile: claudeMapAccountToProfile,
+        });
+      } catch (error) {
+        return {
+          accountKey: entry.profile.id,
+          account: entry.profile,
+          snapshot: createClaudeNetworkFailureSnapshot(entry.profile, error),
+        };
+      }
+    }),
+  );
+
+  return {
+    ...base,
+    networkUsages: settled,
+    // backward-compat alias: selectedAccount에 해당하는 항목을 우선 노출,
+    // 없으면 첫 항목.
+    networkUsage:
+      settled.find((s) => s.accountKey === base.selectedAccount?.accountKey)?.snapshot ??
+      settled[0]?.snapshot ??
+      null,
+    accountFilter: options.accountFilter ?? null,
+    filteredOut: false,
+  };
 }
+
+// Re-export from shared for backward-compat (tests import from this module).
+export { filterProfilesByAccount } from './account-filter.js';
+
+// filterClaudeRealAccounts, claudeMapAccountToProfile, matchesFilter
+// → imported from claude-account-spec.js
 
 /**
  * Pure: build a Claude credential + stats-cache snapshot.
@@ -109,17 +177,17 @@ export function resolveClaudeProfileFromSnapshot(snapshot) {
 
   return {
     id: account.accountKey ?? 'claude',
+    accountKey: account.accountKey ?? 'claude',
     accessToken,
     accountId: account.accountId ?? null,
     email: account.email ?? null,
+    displayName: account.displayName ?? null,
+    label: account.label ?? null,
   };
 }
 
 /**
- * Pure: select effective Claude auth source (Codex 쪽 selectCodexAuthSource과 유사).
- * Priority: agent-store > claude-cli-import > not-found.
- *
- * Exported for testing.
+ * @deprecated 공통 resolveAuthSource로 대체됨. 기존 테스트 import 호환용.
  */
 export function selectClaudeAuthSource(agentAccounts, importedCredential) {
   if (agentAccounts && agentAccounts.length > 0) return 'agent-store';
@@ -129,7 +197,9 @@ export function selectClaudeAuthSource(agentAccounts, importedCredential) {
 
 /**
  * agent-store에 저장된 Claude 계정 중 live token이 있는 항목만 반환.
- * claude-cli-import source는 buildClaudeSnapshot 기반 경로가 별도로 처리한다.
+ * resolveProviderProfiles의 filterFn과 동일한 기준이지만, 여기서는
+ * buildClaudeSnapshot에 agentClaudeAccounts를 넘기기 위해 별도로 로드.
+ * (runner와는 달리 profile shape가 아닌 account shape 그대로 반환.)
  */
 async function loadAgentStoreClaudeAccounts() {
   let store;
@@ -142,49 +212,25 @@ async function loadAgentStoreClaudeAccounts() {
   const provider = store.providers?.[CLAUDE_AUTH.storeProvider];
   if (!provider?.accounts?.length) return [];
 
-  return provider.accounts
-    .filter((a) => {
-      if (a.status === 'disabled') return false;
-      if (a.raw?.mock === true) return false;
-      const accessToken = a.tokens?.accessToken ?? a.accessToken ?? null;
-      if (!accessToken) return false;
-      if (a.source === 'claude-cli-import') return false;
-      return true;
-    })
-    .map((a) => ({
-      ...a,
-      provider: a.provider ?? 'claude',
-      source: a.source ?? 'agent-store',
-    }));
+  return filterClaudeRealAccounts(provider.accounts).map((a) => ({
+    ...a,
+    provider: a.provider ?? 'claude',
+    source: a.source ?? 'agent-store',
+  }));
 }
 
 function createClaudeNetworkFailureSnapshot(profile, error) {
-  const capturedAt = new Date().toISOString();
   const message = error instanceof Error ? error.message : String(error);
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    snapshotId: `claude:${profile.id}:${capturedAt}`,
-    capturedAt,
-    provider: { id: 'anthropic-claude', displayName: 'Claude', region: null },
-    account: {
-      profileId: profile.id,
-      accountId: profile.accountId ?? null,
-      email: profile.email ?? null,
-      plan: null,
-    },
-    source: 'provider_usage_endpoint',
-    authType: 'oauth',
-    confidence: 'low',
-    status: {
-      bucket: 'unknown',
-      ok: false,
-      httpStatus: null,
-      message,
-      lastSuccessAt: null,
-      lastFailureAt: capturedAt,
-    },
-    usageWindows: [],
-    credits: { balance: null, unit: null },
-    raw: { provider: 'anthropic-claude', rawError: message },
-  };
+  return buildUsageSnapshot({
+    profile,
+    providerId: 'anthropic-claude',
+    displayName: 'Claude',
+    snapshotIdPrefix: 'claude',
+    capturedAt: new Date(),
+    responseStatus: null,
+    ok: false,
+    data: null,
+    rawText: message,
+    fields: {},
+  });
 }

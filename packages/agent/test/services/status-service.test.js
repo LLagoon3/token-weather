@@ -75,7 +75,12 @@ describe('filterRealCodexAccounts', () => {
     const accounts = [
       { accountKey: 'codex:real', status: 'active', tokens: { accessToken: 'real-token' } },
       { accountKey: 'codex:mock', status: 'active', tokens: { accessToken: 'mock-token' } },
-      { accountKey: 'codex:flagged', status: 'active', tokens: { accessToken: 'token' }, raw: { mock: true } },
+      {
+        accountKey: 'codex:flagged',
+        status: 'active',
+        tokens: { accessToken: 'token' },
+        raw: { mock: true },
+      },
     ];
     const result = filterRealCodexAccounts(accounts);
     assert.equal(result.length, 1);
@@ -103,9 +108,9 @@ describe('selectCodexAuthSource', () => {
     assert.deepStrictEqual(result.profiles, [openclawProfile]);
   });
 
-  it('returns openclaw-import with empty profiles when both lists are empty', () => {
+  it('returns not-found when both lists are empty (공통 resolveAuthSource 기준)', () => {
     const result = selectCodexAuthSource([], []);
-    assert.equal(result.authSource, 'openclaw-import');
+    assert.equal(result.authSource, 'not-found');
     assert.equal(result.profiles.length, 0);
   });
 });
@@ -147,7 +152,14 @@ describe('buildClaudeSnapshot', () => {
   const FAKE_PATH = '/home/user/.claude/.credentials.json';
 
   it('returns detected=true and authSource=claude-cli-import when credentials are found', () => {
-    const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
+    const fakeCredentials = {
+      accessToken: 'tok',
+      refreshToken: 'ref',
+      expiresAt: null,
+      scopes: [],
+      subscriptionType: null,
+      rateLimitTier: null,
+    };
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials);
     assert.equal(result.detected, true);
     assert.equal(result.authSource, 'claude-cli-import');
@@ -170,7 +182,14 @@ describe('buildClaudeSnapshot', () => {
   });
 
   it('includes selectedAccount with accountKey when credentials are found', () => {
-    const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
+    const fakeCredentials = {
+      accessToken: 'tok',
+      refreshToken: 'ref',
+      expiresAt: null,
+      scopes: [],
+      subscriptionType: null,
+      rateLimitTier: null,
+    };
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials);
     assert.ok(result.selectedAccount !== null, 'selectedAccount should not be null');
     assert.equal(result.selectedAccount.accountKey, 'claude-cli-import');
@@ -179,7 +198,14 @@ describe('buildClaudeSnapshot', () => {
   });
 
   it('importedAccount is a backward-compat alias for selectedAccount', () => {
-    const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
+    const fakeCredentials = {
+      accessToken: 'tok',
+      refreshToken: 'ref',
+      expiresAt: null,
+      scopes: [],
+      subscriptionType: null,
+      rateLimitTier: null,
+    };
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials);
     assert.equal(result.importedAccount, result.selectedAccount);
   });
@@ -195,7 +221,14 @@ describe('buildClaudeSnapshot', () => {
   });
 
   it('uses agent-store authSource when agentClaudeAccounts are provided', () => {
-    const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
+    const fakeCredentials = {
+      accessToken: 'tok',
+      refreshToken: 'ref',
+      expiresAt: null,
+      scopes: [],
+      subscriptionType: null,
+      rateLimitTier: null,
+    };
     const fakeAgentAccount = { accountKey: 'claude:alice', source: 'agent-store' };
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials, [fakeAgentAccount]);
     assert.equal(result.authSource, 'agent-store');
@@ -203,8 +236,20 @@ describe('buildClaudeSnapshot', () => {
   });
 
   it('resolveClaudeAccount selects the agent-store account as selectedAccount when agent accounts provided', () => {
-    const fakeCredentials = { accessToken: 'tok', refreshToken: 'ref', expiresAt: null, scopes: [], subscriptionType: null, rateLimitTier: null };
-    const fakeAgentAccount = { accountKey: 'claude:alice', provider: 'claude', source: 'agent-store', status: 'active' };
+    const fakeCredentials = {
+      accessToken: 'tok',
+      refreshToken: 'ref',
+      expiresAt: null,
+      scopes: [],
+      subscriptionType: null,
+      rateLimitTier: null,
+    };
+    const fakeAgentAccount = {
+      accountKey: 'claude:alice',
+      provider: 'claude',
+      source: 'agent-store',
+      status: 'active',
+    };
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials, [fakeAgentAccount]);
     assert.equal(result.authSource, 'agent-store');
     assert.equal(result.selectedAccount?.accountKey, 'claude:alice');
@@ -220,7 +265,13 @@ describe('buildClaudeSnapshot', () => {
       hasDailyModelTokens: false,
       raw: {},
     };
-    const result = buildClaudeSnapshot(FAKE_PATH, () => null, [], '/fake/stats-cache.json', () => fakeStatsCache);
+    const result = buildClaudeSnapshot(
+      FAKE_PATH,
+      () => null,
+      [],
+      '/fake/stats-cache.json',
+      () => fakeStatsCache,
+    );
     assert.equal(result.usage.source, 'stats-cache-json');
     assert.equal(result.usage.totalSessions, 10);
     assert.equal(result.usage.totalMessages, 200);
@@ -229,7 +280,13 @@ describe('buildClaudeSnapshot', () => {
   });
 
   it('includes usage.source=not-found when stats-cache is unavailable', () => {
-    const result = buildClaudeSnapshot(FAKE_PATH, () => null, [], '/fake/stats-cache.json', () => null);
+    const result = buildClaudeSnapshot(
+      FAKE_PATH,
+      () => null,
+      [],
+      '/fake/stats-cache.json',
+      () => null,
+    );
     assert.equal(result.usage.source, 'not-found');
   });
 });

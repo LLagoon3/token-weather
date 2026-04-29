@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   formatClaudeImportEntry,
+  formatAuthListHelp,
   runAuthListCommand,
 } from '../../src/cli/auth-list-command.js';
 
@@ -17,6 +18,28 @@ async function captureOutput(fn) {
   }
   return lines;
 }
+
+describe('formatAuthListHelp', () => {
+  it('first line is auth list usage', () => {
+    assert.match(formatAuthListHelp()[0], /^token-weather auth list/);
+  });
+
+  it('mentions --help flag', () => {
+    assert.match(formatAuthListHelp().join('\n'), /-h, --help/);
+  });
+});
+
+describe('runAuthListCommand — --help', () => {
+  it('prints help and exits when provider is "--help"', async () => {
+    const lines = await captureOutput(() => runAuthListCommand('--help'));
+    assert.match(lines[0], /^token-weather auth list/);
+  });
+
+  it('prints help when provider is "-h"', async () => {
+    const lines = await captureOutput(() => runAuthListCommand('-h'));
+    assert.match(lines[0], /^token-weather auth list/);
+  });
+});
 
 describe('formatClaudeImportEntry', () => {
   const FAKE_PATH = '/home/user/.claude/.credentials.json';
@@ -112,7 +135,7 @@ describe('runAuthListCommand — Claude import block', () => {
 
   it('outputs Claude import block even when store has no accounts', async () => {
     const lines = await captureOutput(() =>
-      runAuthListCommand(undefined, { claudeReadFn: () => null, loadStore: emptyStore })
+      runAuthListCommand(undefined, { claudeReadFn: () => null, loadStore: emptyStore }),
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('claude'));
@@ -122,7 +145,7 @@ describe('runAuthListCommand — Claude import block', () => {
 
   it('shows found=false when claudeReadFn returns null', async () => {
     const lines = await captureOutput(() =>
-      runAuthListCommand('claude', { claudeReadFn: () => null, loadStore: emptyStore })
+      runAuthListCommand('claude', { claudeReadFn: () => null, loadStore: emptyStore }),
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('found'));
@@ -134,11 +157,39 @@ describe('runAuthListCommand — Claude import block', () => {
       runAuthListCommand('claude', {
         claudeReadFn: () => ({ accessToken: 'tok', refreshToken: 'ref' }),
         loadStore: emptyStore,
-      })
+      }),
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('found'));
     assert.ok(flat.includes('true'));
+  });
+
+  it('shows displayName as name column when present', async () => {
+    const storeWithClaude = async () => ({
+      providers: {
+        claude: {
+          accounts: [
+            {
+              accountKey: 'anthropic-claude:acct-123',
+              email: 'everdigm.itteam@gmail.com',
+              displayName: '에버다임 IT팀',
+              authType: 'oauth',
+              source: 'agent-store',
+              raw: {},
+              tokens: { refreshToken: 'rt' },
+            },
+          ],
+        },
+      },
+    });
+    const lines = await captureOutput(() =>
+      runAuthListCommand('claude', {
+        claudeReadFn: () => null,
+        loadStore: storeWithClaude,
+      }),
+    );
+    const flat = lines.join('\n');
+    assert.ok(flat.includes('name       : 에버다임 IT팀'));
   });
 
   it('authSource reflects agent-store when store has Claude accounts', async () => {
@@ -153,7 +204,7 @@ describe('runAuthListCommand — Claude import block', () => {
       runAuthListCommand('claude', {
         claudeReadFn: () => null,
         loadStore: storeWithClaude,
-      })
+      }),
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('agent-store'));

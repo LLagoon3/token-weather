@@ -32,40 +32,27 @@ function baseParams(overrides = {}) {
 describe('exchangeClaudeAuthorizationCode — argument guards', () => {
   it('throws when code is empty', async () => {
     await assert.rejects(
-      () => exchangeClaudeAuthorizationCode(baseParams({ code: '', allowLiveExchange: true })),
+      () => exchangeClaudeAuthorizationCode(baseParams({ code: '' })),
       /code가 비어/,
     );
   });
 
   it('throws when callbackUrl is empty', async () => {
     await assert.rejects(
-      () =>
-        exchangeClaudeAuthorizationCode(
-          baseParams({ callbackUrl: '', allowLiveExchange: true }),
-        ),
+      () => exchangeClaudeAuthorizationCode(baseParams({ callbackUrl: '' })),
       /callbackUrl이 비어/,
     );
   });
 
   it('throws when codeVerifier is empty', async () => {
     await assert.rejects(
-      () =>
-        exchangeClaudeAuthorizationCode(
-          baseParams({ codeVerifier: '', allowLiveExchange: true }),
-        ),
+      () => exchangeClaudeAuthorizationCode(baseParams({ codeVerifier: '' })),
       /codeVerifier가 비어/,
-    );
-  });
-
-  it('throws when allowLiveExchange is not set', async () => {
-    await assert.rejects(
-      () => exchangeClaudeAuthorizationCode(baseParams()),
-      /Live exchange is disabled/,
     );
   });
 });
 
-describe('exchangeClaudeAuthorizationCode — live exchange', () => {
+describe('exchangeClaudeAuthorizationCode', () => {
   it('POSTs authorization_code grant with required fields', async () => {
     let captured;
     const fetchImpl = async (url, init) => {
@@ -82,7 +69,6 @@ describe('exchangeClaudeAuthorizationCode — live exchange', () => {
 
     await exchangeClaudeAuthorizationCode({
       ...baseParams(),
-      allowLiveExchange: true,
       fetchImpl,
     });
 
@@ -112,7 +98,6 @@ describe('exchangeClaudeAuthorizationCode — live exchange', () => {
 
     const result = await exchangeClaudeAuthorizationCode({
       ...baseParams(),
-      allowLiveExchange: true,
       fetchImpl,
     });
 
@@ -137,7 +122,6 @@ describe('exchangeClaudeAuthorizationCode — live exchange', () => {
       () =>
         exchangeClaudeAuthorizationCode({
           ...baseParams(),
-          allowLiveExchange: true,
           fetchImpl,
         }),
       /Claude token exchange failed: 400/,

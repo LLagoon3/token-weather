@@ -1,22 +1,38 @@
 {
-  "name": "ai-usage-agent",
+  "name": "token-weather",
   "private": true,
+  "type": "module",
   "version": "0.1.0",
-  "description": "CLI agent and packages for monitoring AI service usage and auth status",
+  "description": "Token Weather — local AI usage and auth dashboard CLI (monorepo)",
+  "license": "Apache-2.0",
   "packageManager": "npm@11.6.2",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "dev": "echo \"TODO: wire dev commands\"",
-    "build": "echo \"TODO: wire build commands\"",
-    "lint": "echo \"TODO: wire lint commands\"",
-    "test": "node --test packages/agent/test/**/*.test.js packages/provider-adapters/test/**/*.test.js",
+    "dev": "node ./packages/agent/bin/token-weather.js status",
+    "build": "npm run build:types",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node --test packages/agent/test/**/*.test.js packages/provider-adapters/test/**/*.test.js packages/schemas/test/**/*.test.js",
+    "test:schemas": "node --test packages/schemas/test/**/*.test.js",
     "test:agent": "node --test packages/agent/test/**/*.test.js",
     "test:adapters": "node --test packages/provider-adapters/test/**/*.test.js",
-    "agent:status": "node ./packages/agent/bin/ai-usage-agent.js status",
-    "agent:usage": "node ./packages/agent/bin/ai-usage-agent.js usage",
-    "agent:doctor": "node ./packages/agent/bin/ai-usage-agent.js doctor",
-    "agent:config:init": "node ./packages/agent/bin/ai-usage-agent.js config init"
+    "cli:status": "node ./packages/agent/bin/token-weather.js status",
+    "cli:usage": "node ./packages/agent/bin/token-weather.js usage",
+    "cli:doctor": "node ./packages/agent/bin/token-weather.js doctor",
+    "cli:config:init": "node ./packages/agent/bin/token-weather.js config init",
+    "build:types": "npm -w @token-weather/schemas run build:types && npm -w @token-weather/provider-adapters run build:types && npm -w @token-weather/cli run build:types"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.0",
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.6.0"
   }
 }

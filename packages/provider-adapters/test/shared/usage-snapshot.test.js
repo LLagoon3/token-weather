@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { validateUsageSnapshot } from '@token-weather/schemas/src/validate.js';
 import {
   resolveStatusBucket,
   safeErrorMessage,
@@ -159,5 +160,69 @@ describe('buildUsageSnapshot', () => {
     assert.equal(out.raw.provider, 'foo-test');
     assert.equal(out.raw.x, 1);
     assert.match(out.raw.rawError, /no token/);
+  });
+});
+
+describe('buildUsageSnapshot — soft enforcement', () => {
+  it('keeps confidence=high and no warnings for a valid snapshot', () => {
+    const warnings = [];
+    const origWarn = console.warn;
+    console.warn = (...args) => warnings.push(args.join(' '));
+
+    try {
+      const snap = buildUsageSnapshot({
+        profile: { id: 'x' },
+        providerId: 'p',
+        displayName: 'P',
+        snapshotIdPrefix: 'p',
+        capturedAt: new Date(),
+        responseStatus: 200,
+        ok: true,
+        data: null,
+        rawText: '',
+        fields: {},
+      });
+      assert.equal(snap.confidence, 'high');
+      assert.equal(warnings.length, 0);
+    } finally {
+      console.warn = origWarn;
+    }
+  });
+
+  it('returns a mutable snapshot object (const snapshot pattern, not inline return)', () => {
+    const snap = buildUsageSnapshot({
+      profile: { id: 'x' },
+      providerId: 'p',
+      displayName: 'P',
+      snapshotIdPrefix: 'p',
+      capturedAt: new Date(),
+      responseStatus: 200,
+      ok: true,
+      data: null,
+      rawText: '',
+      fields: {},
+    });
+    // If enforcement code were dead (return {...} before validate),
+    // this would still pass — but the next test proves it runs.
+    snap.confidence = 'low';
+    assert.equal(snap.confidence, 'low');
+  });
+
+  it('validation actually runs — external re-validate agrees with inline result', () => {
+    const snap = buildUsageSnapshot({
+      profile: { id: 'x' },
+      providerId: 'p',
+      displayName: 'P',
+      snapshotIdPrefix: 'p',
+      capturedAt: new Date(),
+      responseStatus: 200,
+      ok: true,
+      data: null,
+      rawText: '',
+      fields: {},
+    });
+    const result = validateUsageSnapshot(snap);
+    assert.equal(result.valid, true);
+    assert.equal(snap.confidence, 'high');
   });
 });

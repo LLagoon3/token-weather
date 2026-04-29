@@ -1,20 +1,37 @@
 import { loadAuthStore } from '../auth/auth-store.js';
 import { buildClaudeSnapshot } from '../services/status-service.js';
-import { resolveClaudeCredentialsPath } from '../../../provider-adapters/src/claude/read-claude-credentials.js';
+import { resolveClaudeCredentialsPath } from '@token-weather/provider-adapters/src/claude/read-claude-credentials.js';
 
 /**
- * `ai-usage-agent auth list [provider]`
+ * `auth list` --help 출력. Pure function.
+ */
+export function formatAuthListHelp() {
+  return [
+    'token-weather auth list [provider]',
+    '',
+    '저장된 인증 계정 목록을 출력합니다.',
+    'provider를 지정하면 해당 provider 계정만 출력합니다.',
+    '',
+    'Options:',
+    '  -h, --help   이 도움말 출력',
+  ];
+}
+
+/**
+ * `token-weather auth list [provider]`
  *
  * 저장된 인증 계정 목록을 출력한다.
  * provider를 지정하면 해당 provider 계정만 출력한다.
  * options.claudeReadFn 을 주입하면 실제 파일시스템 대신 사용한다 (테스트용).
  */
 export async function runAuthListCommand(provider, options = {}) {
+  if (provider === '--help' || provider === '-h') {
+    for (const line of formatAuthListHelp()) console.log(line);
+    return;
+  }
   const loadStore = options.loadStore ?? loadAuthStore;
   const store = await loadStore();
-  const providerIds = provider
-    ? [provider]
-    : Object.keys(store.providers ?? {});
+  const providerIds = provider ? [provider] : Object.keys(store.providers ?? {});
 
   let totalCount = 0;
 
@@ -33,21 +50,19 @@ export async function runAuthListCommand(provider, options = {}) {
       totalCount += 1;
       const status = acct.status === 'disabled' ? 'disabled' : 'active';
       const isMock = acct.raw?.mock === true;
-      const isLive = acct.raw?.liveExchange === true;
       const hasRefresh = !isMock && Boolean(acct.tokens?.refreshToken);
 
-      const expired = acct.expiresAt
-        ? new Date(acct.expiresAt) < new Date()
-        : null;
+      const expired = acct.expiresAt ? new Date(acct.expiresAt) < new Date() : null;
 
       const lines = [
         `  accountKey : ${acct.accountKey}`,
         `  email      : ${acct.email ?? '(없음)'}`,
+        `  name       : ${acct.displayName ?? '(없음)'}`,
+        `  label      : ${acct.label ?? '(없음)'}`,
         `  source     : ${acct.source ?? '(알 수 없음)'}`,
         `  authType   : ${acct.authType ?? '(알 수 없음)'}`,
         `  status     : ${status}`,
         `  mock       : ${isMock ? 'yes' : 'no'}`,
-        `  liveToken  : ${isLive ? 'yes' : 'no'}`,
         `  refresh    : ${hasRefresh ? 'available' : 'none'}`,
         `  expiresAt  : ${formatExpiry(acct.expiresAt, expired)}`,
         `  createdAt  : ${acct.createdAt ?? '-'}`,

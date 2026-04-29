@@ -7,7 +7,7 @@ Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구�
 로컬 CLI agent 중심 구조. 외부 auth store(OpenClaw 등) 의존 없이 독립적으로 인증, 토큰 저장·갱신·사용량 조회를 수행한다.
 
 ```
-[ai-usage-agent CLI]
+[token-weather CLI]
   ├─ Auth Commands (login / list / logout / import)
   ├─ Auth Broker (OAuth localhost callback, manual paste fallback, PKCE S256)
   ├─ Credential Store (auth.json, 0600)
@@ -25,7 +25,11 @@ Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구�
 
 - `status`, `usage`, `doctor`, `config init`
 - `auth login/list/logout/import`
-- multi-account resolver (`lastUsedAt` 자동 선택 + `--account` override)
+- multi-account 지원
+  - 한 provider에 여러 real 계정 저장/조회 (status는 기본적으로 병렬 전체 조회)
+  - `auth login --label <name>`로 사용자 친화적 라벨 부여
+  - `status --account <email|accountKey|label>`로 필터
+  - `config.json defaults.profiles.{provider}`로 기본 필터 지정
 - login-runner(`cli/login-runner.js`)로 provider별 OAuth 흐름 공통화
 
 ### Services (`packages/agent/src/services`)
@@ -42,7 +46,6 @@ Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구�
   - `buildOAuthAuthorizationUrl` — authorize URL 조립
   - `postToTokenEndpoint` — token endpoint POST (form/json, timeout, error 정규화)
   - `fetchWithTimeout` — AbortController 기반 공통 wrapper
-  - `liveExchangeDisabledError` — guard용 표준 에러
 - `codex/` — Codex (OpenAI) 인증 + usage
 - `claude/` — Claude (Anthropic) 인증 + usage + stats-cache
 
@@ -53,6 +56,8 @@ Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구�
 - `usage-snapshot.schema.json`
 - `usage-event.schema.json`
 - 핵심 필드: `source`, `authType`, `confidence`, `usageWindows`, `status.bucket`
+- `validateUsageSnapshot` / `validateUsageEvent` — zero-dep 런타임 validator
+- `buildUsageSnapshot` 출구에서 자동 validation (soft enforcement — invalid 시 warn + confidence 하강)
 
 ### 인증 계층
 

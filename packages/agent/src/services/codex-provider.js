@@ -2,10 +2,15 @@ import {
   fetchCodexUsage,
   getDefaultAuthProfilesPath,
   readCodexAuthProfiles,
-} from '../../../provider-adapters/src/codex/index.js';
-import { SCHEMA_VERSION } from '../../../schemas/src/index.js';
-import { loadAuthStore, saveAuthStore, upsertProviderAccount } from '../auth/auth-store.js';
-import { resolveDefaultAccount } from '../auth/account-resolver.js';
+} from '@token-weather/provider-adapters/src/codex/index.js';
+import { filterEntriesByAccount, filterProfilesByAccount } from './account-filter.js';
+import { buildUsageSnapshot } from '@token-weather/provider-adapters/src/shared/usage-snapshot.js';
+import { resolveAuthSource } from './auth-source-resolver.js';
+import { resolveProviderAccountEntries } from './provider-profile-resolver.js';
+import { filterRealCodexAccounts, codexMapAccountToProfile } from './codex-account-spec.js';
+import { fetchUsageWithAutoRefresh } from './usage-auto-refresh.js';
+import { refreshCodexToken } from '@token-weather/provider-adapters/src/codex/index.js';
+import { updateCodexStoreAfterRefresh } from '../auth/codex-refresh-store.js';
 
 const CODEX_PROVIDER_ID = 'openai-codex';
 
@@ -16,7 +21,7 @@ const CODEX_PROVIDER_ID = 'openai-codex';
  * @param {object} config
  * @returns {Promise<object>}
  */
-export async function getCodexSnapshot(config) {
+export async function getCodexSnapshot(config, options = {}) {
   if (!config.providers?.codex?.enabled) {
     return {
       enabled: false,
@@ -25,14 +30,23 @@ export async function getCodexSnapshot(config) {
     };
   }
 
-  const { profiles, authSource } = await resolveCodexProfiles();
+  const { entries, authSource } = await resolveCodexProfiles(options.accountFilter);
   const snapshots = [];
 
-  for (const profile of profiles) {
+  for (const entry of entries) {
     try {
-      snapshots.push(await fetchCodexUsage(profile));
+      snapshots.push(
+        (
+          await fetchUsageWithAutoRefresh(entry, {
+            fetchUsage: fetchCodexUsage,
+            refreshToken: refreshCodexToken,
+            updateStoreAfterRefresh: updateCodexStoreAfterRefresh,
+            mapAccountToProfile: codexMapAccountToProfile,
+          })
+        ).snapshot,
+      );
     } catch (error) {
-      snapshots.push(createCodexFailureSnapshot(profile, error));
+      snapshots.push(createCodexFailureSnapshot(entry.profile, error));
     }
   }
 
@@ -41,106 +55,69 @@ export async function getCodexSnapshot(config) {
     authSource,
     authProfilesPath: authSource === 'openclaw-import' ? getDefaultAuthProfilesPath() : null,
     snapshots,
+    accountFilter: options.accountFilter ?? null,
+    filteredOut: Boolean(options.accountFilter) && entries.length === 0,
   };
 }
 
+// Re-export from shared for backward-compat (tests import from this module).
+export { filterProfilesByAccount } from './account-filter.js';
+
 /**
- * Pure selection: agent-store > openclaw-import.
- * Exported for testing.
+ * @deprecated 공통 resolveAuthSource로 대체됨. 기존 테스트 import 호환용 re-export.
  */
 export function selectCodexAuthSource(agentProfiles, openclawProfiles) {
-  if (agentProfiles.length > 0) {
-    return { profiles: agentProfiles, authSource: 'agent-store' };
-  }
-  return { profiles: openclawProfiles, authSource: 'openclaw-import' };
+  const { accounts, authSource } = resolveAuthSource(agentProfiles, [
+    { id: 'openclaw-import', accounts: openclawProfiles },
+  ]);
+  return { profiles: accounts, authSource };
 }
 
-/**
- * Pure predicate: keep active, non-mock accounts with a usable access token.
- * Exported for testing.
- */
-export function filterRealCodexAccounts(accounts) {
-  return (accounts ?? []).filter(
-    (a) => a.status !== 'disabled'
-      && a.tokens?.accessToken
-      && !a.raw?.mock
-      && !a.tokens.accessToken.startsWith('mock-'),
+// Re-export for backward compat (tests/status-service import from here).
+export { filterRealCodexAccounts } from './codex-account-spec.js';
+
+async function resolveCodexProfiles(accountFilter) {
+  // Source 선택은 unfiltered 기준으로 먼저 결정한다.
+  // accountFilter가 source precedence를 바꿔서는 안 된다.
+  const allAgentEntries = await resolveProviderAccountEntries({
+    providerId: CODEX_PROVIDER_ID,
+    filterFn: filterRealCodexAccounts,
+    mapFn: codexMapAccountToProfile,
+    accountFilter: null, // 필터 없이 전체 real 프로필 로드
+  });
+
+  if (allAgentEntries.length > 0) {
+    const filteredEntries = filterEntriesByAccount(allAgentEntries, accountFilter);
+    return { entries: filteredEntries, authSource: 'agent-store' };
+  }
+
+  // Fallback: OpenClaw import
+  const openclawProfiles = readCodexAuthProfiles();
+  const filtered = filterProfilesByAccount(openclawProfiles, accountFilter);
+  const { accounts, authSource } = resolveAuthSource(
+    [],
+    [{ id: 'openclaw-import', accounts: filtered }],
   );
-}
-
-async function resolveCodexProfiles() {
-  const agentProfiles = await getAgentStoreProfiles();
-  const openclawProfiles = agentProfiles.length === 0 ? readCodexAuthProfiles() : [];
-  return selectCodexAuthSource(agentProfiles, openclawProfiles);
-}
-
-async function getAgentStoreProfiles() {
-  let store;
-  try {
-    store = await loadAuthStore();
-  } catch {
-    return [];
-  }
-
-  const providerData = store.providers?.[CODEX_PROVIDER_ID];
-  if (!providerData?.accounts?.length) return [];
-
-  const realAccounts = filterRealCodexAccounts(providerData.accounts);
-  if (realAccounts.length === 0) return [];
-
-  const { account } = resolveDefaultAccount(realAccounts);
-  if (!account) return [];
-
-  // Keep multi-account selection stable across runs.
-  try {
-    const freshStore = await loadAuthStore();
-    const updatedAccount = { ...account, lastUsedAt: new Date().toISOString() };
-    const nextStore = upsertProviderAccount(freshStore, CODEX_PROVIDER_ID, updatedAccount);
-    await saveAuthStore(nextStore);
-  } catch {
-    // best-effort
-  }
-
-  return [mapAccountToProfile(account)];
-}
-
-function mapAccountToProfile(account) {
   return {
-    id: account.accountKey,
-    accessToken: account.tokens.accessToken,
-    accountId: account.accountId ?? null,
-    email: account.email ?? null,
-    expires: account.expiresAt ?? null,
+    entries: accounts.map((profile) => ({ account: null, profile })),
+    authSource,
   };
 }
+
+// codexMapAccountToProfile imported from codex-account-spec.js
 
 function createCodexFailureSnapshot(profile, error) {
-  const capturedAt = new Date().toISOString();
   const message = error instanceof Error ? error.message : String(error);
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    snapshotId: `codex:${profile.id}:${capturedAt}`,
-    capturedAt,
-    provider: { id: 'openai-codex', displayName: 'Codex', region: null },
-    account: {
-      profileId: profile.id,
-      accountId: profile.accountId ?? null,
-      email: profile.email ?? null,
-      plan: null,
-    },
-    source: 'provider_usage_endpoint',
-    authType: 'oauth',
-    confidence: 'low',
-    status: {
-      bucket: 'unknown',
-      ok: false,
-      httpStatus: null,
-      message,
-      lastSuccessAt: null,
-      lastFailureAt: capturedAt,
-    },
-    usageWindows: [],
-    credits: { balance: null, unit: null },
-    raw: { provider: 'openai-codex', rawError: message },
-  };
+  return buildUsageSnapshot({
+    profile,
+    providerId: 'openai-codex',
+    displayName: 'Codex',
+    snapshotIdPrefix: 'codex',
+    capturedAt: new Date(),
+    responseStatus: null,
+    ok: false,
+    data: null,
+    rawText: message,
+    fields: {},
+  });
 }

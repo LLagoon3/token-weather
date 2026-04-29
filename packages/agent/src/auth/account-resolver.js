@@ -50,10 +50,11 @@ export function resolveDefaultAccount(accounts) {
 }
 
 /**
- * Find an account by email or accountKey (for --account override).
+ * Find an account by email, accountKey, or label (for --account / --label override).
+ * 매치는 case-insensitive.
  *
  * @param {object[]} accounts - provider.accounts array
- * @param {string} identifier - email address or accountKey
+ * @param {string} identifier - email / accountKey / label
  * @returns {{ account: object | null, reason: string }}
  */
 export function resolveAccountByIdentifier(accounts, identifier) {
@@ -61,8 +62,12 @@ export function resolveAccountByIdentifier(accounts, identifier) {
     return { account: null, reason: 'no-accounts' };
   }
 
+  const needle = String(identifier).toLowerCase();
   const match = accounts.find(
-    (a) => a.email === identifier || a.accountKey === identifier,
+    (a) =>
+      (a.email ?? '').toLowerCase() === needle ||
+      (a.accountKey ?? '').toLowerCase() === needle ||
+      (a.label ?? '').toLowerCase() === needle,
   );
 
   if (!match) {

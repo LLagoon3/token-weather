@@ -1,23 +1,52 @@
 import { loadAuthStore, saveAuthStore, removeProviderAccount } from '../auth/auth-store.js';
 import { resolveAccount } from '../auth/account-resolver.js';
+import { parseCliOptions } from './parse-options.js';
 
 /**
- * `ai-usage-agent auth logout <provider> [--account <id>]`
+ * `auth logout` --help 출력. Pure function.
+ */
+export function formatAuthLogoutHelp() {
+  return [
+    'token-weather auth logout <provider> [options]',
+    '',
+    '지정 provider의 계정을 로컬 auth store에서 제거합니다.',
+    '참고: provider 측 revoke 호출은 아직 미구현(로컬 제거만 수행).',
+    '',
+    'Options:',
+    '  --account <id>    제거 대상 계정 (email / accountKey / label)',
+    '  -h, --help        이 도움말 출력',
+  ];
+}
+
+/**
+ * `token-weather auth logout <provider> [--account <id>]`
  *
  * 지정된 provider의 계정을 auth store에서 제거한다.
- * --account 옵션으로 email 또는 accountKey를 지정할 수 있다.
+ * --account 옵션은 email / accountKey / label 중 하나로 지정 가능 (case-insensitive).
  * 생략 시 기본 선택 계정(resolveDefaultAccount)을 대상으로 한다.
  *
  * 참고: revoke endpoint 호출은 아직 미구현이다. 로컬 저장소 제거만 수행한다.
  */
 export async function runAuthLogoutCommand(provider, args) {
-  if (!provider) {
-    console.error('사용법: ai-usage-agent auth logout <provider> [--account <email|accountKey>]');
-    process.exitCode = 1;
+  // `auth logout --help` (provider 자리) 또는 `auth logout <p> --help` (args 자리) 모두 먼저 처리.
+  if (provider === '--help' || provider === '-h') {
+    for (const line of formatAuthLogoutHelp()) console.log(line);
     return;
   }
 
   const options = parseLogoutOptions(args);
+  if (options.help) {
+    for (const line of formatAuthLogoutHelp()) console.log(line);
+    return;
+  }
+
+  if (!provider) {
+    console.error(
+      '사용법: token-weather auth logout <provider> [--account <email | accountKey | label>]',
+    );
+    process.exitCode = 1;
+    return;
+  }
   const store = await loadAuthStore();
 
   const providerEntry = store.providers?.[provider];
@@ -34,7 +63,7 @@ export async function runAuthLogoutCommand(provider, args) {
     const messages = {
       'no-accounts': `[${provider}] 저장된 계정이 없습니다.`,
       'all-disabled': `[${provider}] 모든 계정이 이미 비활성 상태입니다.`,
-      'not-found': `[${provider}] 계정을 찾을 수 없습니다: ${options.account}`,
+      'not-found': `[${provider}] 계정을 찾을 수 없습니다: ${options.account}\n  --account는 email / accountKey / label 중 하나로 지정할 수 있습니다.`,
       'account-disabled': `[${provider}] 해당 계정은 이미 비활성 상태입니다: ${options.account}`,
     };
     console.log(messages[reason] ?? `[${provider}] 계정을 선택할 수 없습니다 (${reason}).`);
@@ -59,12 +88,11 @@ export async function runAuthLogoutCommand(provider, args) {
 }
 
 function parseLogoutOptions(args) {
-  const options = { account: null };
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--account' && args[i + 1]) {
-      options.account = args[i + 1];
-      i += 1;
-    }
-  }
-  return options;
+  return parseCliOptions(args, {
+    defaults: { account: null },
+    flags: {
+      '--account': { key: 'account', type: 'string' },
+    },
+    includeHelp: true,
+  });
 }

@@ -1,7 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { formatClaudeSection, parseDoctorClaudeOptions } from '../../src/cli/doctor-command.js';
+import {
+  formatClaudeSection,
+  parseDoctorClaudeOptions,
+  formatDoctorHelp,
+  formatDoctorCodexHelp,
+  formatDoctorClaudeHelp,
+} from '../../src/cli/doctor-command.js';
 
 // ---------------------------------------------------------------------------
 // formatClaudeSection — pure display helper
@@ -195,7 +201,9 @@ describe('formatClaudeSection', () => {
       },
     };
     const lines = formatClaudeSection(snapshot);
-    assert.ok(lines.some((l) => l.includes('실패') && l.includes('403') && l.includes('auth_scope')));
+    assert.ok(
+      lines.some((l) => l.includes('실패') && l.includes('403') && l.includes('auth_scope')),
+    );
     assert.ok(lines.some((l) => l.includes('user:profile')));
   });
 
@@ -214,24 +222,173 @@ describe('formatClaudeSection', () => {
 });
 
 describe('parseDoctorClaudeOptions', () => {
-  it('returns refreshLive=false by default', () => {
-    assert.deepEqual(parseDoctorClaudeOptions([]), { refreshLive: false });
+  it('returns defaults', () => {
+    assert.deepEqual(parseDoctorClaudeOptions([]), {
+      refreshLive: false,
+      account: null,
+      help: false,
+    });
   });
 
   it('sets refreshLive=true when --refresh-live is present', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--refresh-live']), {
       refreshLive: true,
+      account: null,
+      help: false,
     });
   });
 
   it('handles mixed / unknown args gracefully', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--foo', '--refresh-live', 'bar']), {
       refreshLive: true,
+      account: null,
+      help: false,
     });
   });
 
   it('handles null/undefined args', () => {
-    assert.deepEqual(parseDoctorClaudeOptions(undefined), { refreshLive: false });
-    assert.deepEqual(parseDoctorClaudeOptions(null), { refreshLive: false });
+    assert.deepEqual(parseDoctorClaudeOptions(undefined), {
+      refreshLive: false,
+      account: null,
+      help: false,
+    });
+    assert.deepEqual(parseDoctorClaudeOptions(null), {
+      refreshLive: false,
+      account: null,
+      help: false,
+    });
+  });
+
+  it('parses --account <value>', () => {
+    assert.deepEqual(parseDoctorClaudeOptions(['--refresh-live', '--account', 'work']), {
+      refreshLive: true,
+      account: 'work',
+      help: false,
+    });
+  });
+
+  it('ignores --account without value', () => {
+    assert.deepEqual(parseDoctorClaudeOptions(['--account']), {
+      refreshLive: false,
+      account: null,
+      help: false,
+    });
+  });
+
+  it('treats --account "" as "no value" and lets subsequent flags parse (legacy contract)', () => {
+    // 공통 helper 전환 후에도 빈 문자열은 default 유지하고 consume하지 않아
+    // 이어지는 --refresh-live가 정상 파싱되어야 한다.
+    assert.deepEqual(parseDoctorClaudeOptions(['--account', '', '--refresh-live']), {
+      refreshLive: true,
+      account: null,
+      help: false,
+    });
+  });
+
+  it('recognizes --help and -h', () => {
+    assert.equal(parseDoctorClaudeOptions(['--help']).help, true);
+    assert.equal(parseDoctorClaudeOptions(['-h']).help, true);
+  });
+});
+
+describe('formatDoctorHelp', () => {
+  it('first line covers doctor with subcommand placeholder', () => {
+    const lines = formatDoctorHelp();
+    assert.match(lines[0], /^token-weather doctor \[subcommand\]/);
+  });
+
+  it('lists codex and claude subcommands', () => {
+    const body = formatDoctorHelp().join('\n');
+    assert.match(body, /codex/);
+    assert.match(body, /claude/);
+  });
+});
+
+describe('formatDoctorCodexHelp', () => {
+  it('first line targets codex', () => {
+    assert.match(formatDoctorCodexHelp()[0], /^token-weather doctor codex/);
+  });
+
+  it('lists --refresh-live and --account', () => {
+    const body = formatDoctorCodexHelp().join('\n');
+    assert.match(body, /--refresh-live/);
+    assert.match(body, /--account <id>/);
+  });
+});
+
+describe('formatDoctorClaudeHelp', () => {
+  it('first line targets claude', () => {
+    assert.match(formatDoctorClaudeHelp()[0], /^token-weather doctor claude/);
+  });
+
+  it('lists --refresh-live and --account', () => {
+    const body = formatDoctorClaudeHelp().join('\n');
+    assert.match(body, /--refresh-live/);
+    assert.match(body, /--account <id>/);
+  });
+});
+
+describe('formatClaudeSection — multi-account networkUsages', () => {
+  const basicSnapshot = {
+    credentialsPath: '/x/.credentials.json',
+    found: true,
+    parsed: true,
+    authSource: 'agent-store',
+    selectedAccount: { accountKey: 'a:1', authType: 'oauth' },
+    usage: { source: 'not-found' },
+  };
+
+  it('renders per-account blocks when networkUsages has multiple entries', () => {
+    const lines = formatClaudeSection({
+      ...basicSnapshot,
+      networkUsages: [
+        {
+          accountKey: 'a:1',
+          snapshot: {
+            status: { ok: true, httpStatus: 200 },
+            usageWindows: [{ kind: 'five_hour', usedPercent: 5, resetAt: '2026-04-16' }],
+          },
+        },
+        {
+          accountKey: 'a:2',
+          snapshot: {
+            status: { ok: false, httpStatus: 401, bucket: 'auth', message: 'expired' },
+            usageWindows: [],
+          },
+        },
+      ],
+    });
+    assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
+    assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+    assert.ok(lines.some((l) => l.includes('실패 (401, bucket=auth)')));
+    assert.ok(lines.some((l) => l.includes('메시지: expired')));
+  });
+
+  it('omits per-account header when single entry', () => {
+    const lines = formatClaudeSection({
+      ...basicSnapshot,
+      networkUsages: [
+        {
+          accountKey: 'a:1',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+      ],
+    });
+    assert.ok(!lines.some((l) => l.startsWith('  - 계정:')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+  });
+
+  it('falls back to legacy networkUsage when networkUsages missing', () => {
+    const lines = formatClaudeSection({
+      ...basicSnapshot,
+      networkUsage: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+    });
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+  });
+
+  it('shows "호출 안 함" when neither networkUsages nor networkUsage', () => {
+    const lines = formatClaudeSection({ ...basicSnapshot, networkUsages: [] });
+    assert.ok(lines.some((l) => l.includes('호출 안 함')));
   });
 });

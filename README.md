@@ -1,180 +1,130 @@
-# ai-usage-agent
+# Token Weather
 
-여러 AI 서비스의 사용량과 인증 상태를 로컬에서 관리하는 CLI agent + provider adapter + schema 패키지 모음.
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/%40token-weather%2Fcli.svg)](https://www.npmjs.com/package/@token-weather/cli)
+[![CI](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml)
+[![Node](https://img.shields.io/node/v/%40token-weather%2Fcli.svg)](https://nodejs.org/)
 
-외부 auth store(OpenClaw 등)에 의존하지 않고 자체 auth broker / credential store를 사용한다.
+> **Local CLI dashboard for AI service usage and OAuth credentials.**
+> 로컬에서 여러 AI 서비스(Codex / Claude)의 사용량과 인증 상태를 한 번에 확인하는 CLI. 토큰을 외부 서버로 보내지 않습니다.
 
-## 빠른 시작
-
-```bash
-# 상태 확인 (설정 / provider별 인증 / usage)
-npm run agent:status
-
-# usage만 집중해서 보기
-npm run agent:usage
-
-# 환경 점검 (credential 경로, token 상태, refresh 가능 여부)
-npm run agent:doctor
-
-# 최초 설정 파일 생성
-npm run agent:config:init
-```
-
-## 현재 지원 범위
-
-### Provider
-
-| Provider | Auth (독립 OAuth) | Auth (credential import) | Usage 조회 | Refresh | Status |
-| --- | --- | --- | --- | --- | --- |
-| Codex (OpenAI) | ✓ `auth login codex --live-exchange` | `auth import openclaw` | ✓ `wham/usage` live | ✓ `doctor codex --refresh-live` | 운영 중 |
-| Claude (Anthropic) | ✓ `auth login claude --live-exchange` | `auth import claude` (CLI 재사용) | ✓ `oauth/usage` live | ✓ `doctor claude --refresh-live` | 운영 중 |
-
-### 검증된 endpoint
-
-- Codex: `https://chatgpt.com/backend-api/wham/usage`
-- Claude OAuth: `https://api.anthropic.com/api/oauth/usage`
-- Claude web fallback (옵션, 미구현): `https://claude.ai/api/organizations/{orgId}/usage`
-
-### 공통 기능
-
-- PKCE S256 + state 검증 localhost OAuth callback
-- multi-account resolver (`lastUsedAt` 자동 선택 + `--account` override)
-- refresh token rotation 반영
-- `--live-exchange` guard (실수로 실제 token 호출이 반복되는 것 방지)
-- CLI / status-service / provider adapter 3계층 분리
-
-## 패키지 구조
-
-```text
-packages/
-  agent/               CLI 에이전트 (auth / status / doctor / config 명령)
-  provider-adapters/   provider별 인증·usage 로직
-    codex/
-    claude/
-  schemas/             공통 JSON Schema (usage snapshot / event)
-docs/                  architecture / auth / provider 문서
-scripts/poc/           experimental scripts (저위험 실험)
-```
-
-## CLI 커맨드
-
-### status / usage
+## Install
 
 ```bash
-ai-usage-agent status
-ai-usage-agent usage
+# 한 번 실행 (설치 없이)
+npx @token-weather/cli status
+
+# 글로벌 설치 후 사용
+npm install -g @token-weather/cli
+token-weather --help
 ```
 
-provider별 credential 상태, 선택된 계정, live usage window, 로컬 캐시 요약을 출력한다.
-
-### auth
+첫 명령:
 
 ```bash
-ai-usage-agent auth login codex   [--live-exchange] [--port N] [--timeout SEC] [--manual] [--no-open]
-ai-usage-agent auth login claude  [--live-exchange] [--port N] [--timeout SEC]
-ai-usage-agent auth list
-ai-usage-agent auth logout <provider> [--account <id>]
-ai-usage-agent auth import openclaw    # 기존 OpenClaw auth-profiles 흡수
-ai-usage-agent auth import claude      # ~/.claude/.credentials.json 흡수
+token-weather config init                              # ~/.config/token-weather/config.json 생성
+token-weather auth login claude                        # 브라우저 → localhost callback (PKCE + state 검증) → 실제 OAuth 토큰 저장
+token-weather status                                   # 인증 / 사용량 / 만료까지 한 번에
+token-weather status --json | jq                       # 자동화/대시보드용 정규화 JSON
 ```
 
-`--live-exchange` 없이 호출하면 mock 저장만 수행한다.
-
-### doctor
+브라우저 자동 callback이 어려운 환경(SSH, 컨테이너, 포트 충돌)에서는 `--manual`을 사용하면 콘솔에 노출된 OAuth URL을 다른 머신에서 열고 callback URL을 paste하는 흐름이 됩니다:
 
 ```bash
-ai-usage-agent doctor                        # 공통 환경 점검
-ai-usage-agent doctor codex                  # Codex 계정·refresh 가능성 점검
-ai-usage-agent doctor codex  --refresh-live  # 실제 refresh POST
-ai-usage-agent doctor codex  --account <id>
-ai-usage-agent doctor claude                 # Claude credential·live usage 점검
-ai-usage-agent doctor claude --refresh-live  # 실제 refresh POST
+token-weather auth login claude --manual
 ```
 
-### config
+테스트 / 실험 환경에서 실제 token endpoint 호출 없이 mock 계정만 저장하려면 `--mock` 옵션을 추가합니다 (default 는 실제 OAuth 토큰 교환).
+
+## Demo
+
+<!-- TOKEN_WEATHER_DEMO_PLACEHOLDER: docs/assets/demo.svg는 후속 이슈에서 추가 예정.
+     녹화 방법: bash scripts/record-demo.sh (asciinema + agg 필요).
+     녹화는 격리된 HOME에서 자동 수행, SVG 결과물에 토큰 누출 grep 검증까지 포함. -->
+
+`token-weather` 첫 1분 흐름은 `bash scripts/record-demo.sh`로 직접 녹화할 수 있습니다 ([asciinema](https://asciinema.org/) + [agg](https://github.com/asciinema/agg) 필요). 녹화는 격리된 HOME에서 수행되고, SVG 결과물은 publish 전 토큰 패턴 자동 검증을 거칩니다.
+
+## What & Why
+
+- **무엇**: AI 도구의 OAuth credential과 사용량 window를 로컬에서 통합 조회하는 CLI. Codex(OpenAI) / Claude(Anthropic) 두 provider 운영 중.
+- **왜**: 다른 대시보드들은 토큰을 외부 서버로 보내거나 별도 auth 서비스에 의존. Token Weather는 **자체 broker + 로컬 credential store**로 동작 — 토큰이 머신을 떠나지 않습니다.
+- **어떤 점이 다른가**:
+  - **Multi-account**: 한 provider에 여러 계정 저장, 병렬 조회, label 부여
+  - **자동 refresh**: 만료된 access token은 provider 호출 전 preflight refresh, auth 실패 시 1회 재시도
+  - **`status --json` stable contract**: 토큰 redaction 보장된 정규화 출력 — 외부 대시보드/수집기가 직접 소비 가능 ([docs/cli-json-output.md](./docs/cli-json-output.md))
+  - **observed `client_id` 사용**: provider 바이너리 관찰값을 그대로 사용 (공식 등록된 OAuth client 가 아님). 본 도구의 모든 publish 자체는 npm Trusted Publishing OIDC + SLSA provenance 로 검증 — 외부에서 supply chain 검증 가능
+
+## 지원 provider
+
+| Provider           | OAuth 로그인          | Usage endpoint | Refresh | Status  |
+| ------------------ | --------------------- | -------------- | ------- | ------- |
+| Codex (OpenAI)     | ✓ `auth login codex`  | `wham/usage`   | ✓       | 운영 중 |
+| Claude (Anthropic) | ✓ `auth login claude` | `oauth/usage`  | ✓       | 운영 중 |
+
+provider별 observed endpoint / client_id 상세는 [docs/provider-notes.md](./docs/provider-notes.md).
+
+## 명령
+
+전체 명령은 `token-weather <command> --help`로 확인. 요약:
 
 ```bash
-ai-usage-agent config init
+token-weather status [--account <id>] [--provider <id>] [--json]   # 사용량/인증 한 번에
+token-weather usage  [...]                                         # status와 동일 출력 (alias)
+token-weather doctor [codex|claude] [--refresh-live] [--account]   # 환경/refresh 진단
+token-weather auth login <codex|claude> [--mock] [--manual] [--label]
+token-weather auth list   [provider]
+token-weather auth logout <provider> [--account]
+token-weather auth import claude                                   # Claude CLI credential 흡수
+token-weather config init                                          # 설정 파일 생성
 ```
 
-`~/.config/ai-usage-agent/config.json`에 기본 설정을 생성한다.
+default `auth login` 은 실제 OAuth 토큰 교환을 수행합니다. `--mock` 옵션 시 token endpoint 호출 없이 mock 계정만 저장 (테스트/실험용). `--label` 로 저장된 계정에 친화적 이름 부여 → 이후 `--account <label>` 로 참조.
 
-## Credential source 우선순위
+## JSON 출력 (자동화)
 
-### Codex
-`agent-store` (live-exchange 실토큰) → `openclaw-import` (마이그레이션)
+`status` / `usage`는 `--json`으로 정규화된 JSON 한 줄을 stdout에 출력합니다 — 토큰 redaction 보장. 외부 대시보드/수집기에서 그대로 소비 가능.
 
-### Claude
-`agent-store` (live-exchange 또는 `auth import claude` 저장분) → `claude-cli-import` (`~/.claude/.credentials.json` 실시간 reader)
+```bash
+token-weather status --json | jq '.providers[0]'
+```
 
-## 스키마
-
-`packages/schemas`에 JSON Schema 정의.
-
-- `usage-snapshot.schema.json`
-- `usage-event.schema.json`
-- 핵심 필드: `source`, `authType`, `confidence`, `usageWindows`, `status.bucket`
-- `status.bucket` 값: `ok` / `rate_limit` / `usage_window` / `billing` / `auth` / `overloaded` / `unknown`
+shape / redaction 규약 / 한계: [docs/cli-json-output.md](./docs/cli-json-output.md).
 
 ## 보안 원칙
 
-- callback 서버는 `127.0.0.1`에만 bind
-- state 검증 + PKCE S256
-- refresh token / session cookie / sessionKey는 외부 서버 업로드 금지
-- access/refresh token을 로그에 출력하지 않음
-- raw prompt / raw response / 전체 transcript 업로드 금지
+- localhost callback은 `127.0.0.1`에만 bind, PKCE S256 + state 검증
+- access / refresh / id token은 로그/JSON 모두에서 redact (`SENSITIVE_KEYS` 기반)
+- raw prompt / response / transcript는 어떤 경우에도 외부로 보내지 않음
+- observed `client_id` 는 v0.2.0 부터 가드 없이 사용 (publish 자체는 npm Trusted Publishing OIDC + SLSA provenance 로 검증). 공식 client 등록 전까지는 실험적 운영
 
-## observed vs verified
+상세: [docs/auth-architecture.md](./docs/auth-architecture.md), [SECURITY.md](./SECURITY.md).
 
-바이너리 strings / 로컬 JWT에서 관찰한 값들(`client_id`, endpoint 등)은 **observed** 레벨로 구분하고 공식 확정된 값이 아님을 명시한다. provider 측 변경에 대비해 guard(`allowLiveExchange`) 뒤에서만 실 호출이 일어나도록 설계.
+## 보안 신고
 
-자세한 내용은 `docs/auth-architecture.md` 참고.
-
-## 기여자용 참고 문서
-
-- `docs/codebase-guide.md` — 다른 Claude 세션 / 기여자가 구조적 일관성을 유지하며 작업할 수 있도록 정리한 상세 가이드 (패키지 레이아웃, shared/ 헬퍼 사용법, provider adapter 패턴, 네이밍 / 테스트 / 커밋 규칙, anti-patterns, 새 기능 체크리스트).
-- `docs/architecture.md` — 고수준 구조 요약.
-- `docs/auth-cli.md` — CLI 명령 / 정책.
-- `docs/provider-notes.md` — provider별 observed endpoint / client_id.
-- `CONTRIBUTING.md` — 브랜치 / 커밋 / PR 규칙.
-
-## 개발 / 테스트
-
-```bash
-npm test              # 전체 테스트 (현재 384개)
-npm run test:agent    # agent 패키지만
-npm run test:adapters # provider adapters만
-```
-
-테스트 레이아웃:
-- `packages/provider-adapters/test/shared/` — 공용 OAuth / usage snapshot / fetch helper
-- `packages/provider-adapters/test/{codex,claude}/` — provider adapter
-- `packages/agent/test/auth/` — auth store / token claims / callback / imported-account 등
-- `packages/agent/test/cli/` — CLI 명령별 pure formatter / parser
-- `packages/agent/test/services/` — registry + provider snapshot 빌더
-- `packages/agent/test/integration/` — bin spawn smoke
-
-CI(`.github/workflows/ci.yml`):
-- pull_request에서는 항상 실행
-- push는 main / dev 브랜치에서만 (feature 브랜치 push는 PR이 열리면 한 번만 실행)
-- concurrency 그룹으로 같은 브랜치에 연속 push 시 이전 run 자동 취소
-
-## 작업 / 협업 규칙
-
-- 브랜치 흐름: `작업 브랜치 → dev → main`
-- 커밋: `type(scope): 한글 설명` (type: feat / fix / refactor / docs / chore / ci / test / perf)
-- PR 제목: `[type] 한글 요약`
-- PR 본문: 요약 / 변경 내용 / 이유 / 영향 범위 / 테스트 / 리뷰 포인트
-
-상세: `CONTRIBUTING.md` 참고.
-
-## 다음 작업 후보
-
-- Codex/Claude 네트워크 호출 timeout/abort (이슈 #7)
-- Claude Phase 4 — session cookie fallback (이슈 #14, 옵션)
-- code-base 구조 리팩터 (중복되는 provider adapter shape 통합)
-- keychain 연동 / device code flow / revoke endpoint 조사
+OAuth token 같은 자격증명을 다루는 도구이므로, 보안 이슈는 공개 이슈에 작성하지 말고 [SECURITY.md](./SECURITY.md)에 안내된 비공개 채널로 신고해 주세요. 행동 강령은 [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)를 따릅니다.
 
 ## 라이선스
 
-추후 결정.
+[Apache License 2.0](./LICENSE). PR을 제출하시면 본인의 기여가 동일 라이선스로 제공됨에 동의한 것으로 간주됩니다 (자세한 내용은 [CONTRIBUTING.md §9](./CONTRIBUTING.md)).
+
+## Contributing
+
+기여 환영합니다. PR 작성 / 브랜치 / 커밋 규칙은 [CONTRIBUTING.md](./CONTRIBUTING.md), 코드 패턴 / 네이밍 / 테스트 / anti-patterns는 [docs/codebase-guide.md](./docs/codebase-guide.md)를 참고해 주세요.
+
+```bash
+npm test              # 전체 테스트 (node:test 내장 러너)
+npm run test:agent    # agent 패키지만
+npm run test:adapters # provider adapters만
+npm run test:schemas  # schemas 패키지만
+```
+
+진행 중인 작업은 [Issues](https://github.com/LLagoon3/token-weather/issues)에서 추적합니다.
+
+### 추가 문서
+
+- [docs/architecture.md](./docs/architecture.md) — 고수준 구조 요약
+- [docs/auth-architecture.md](./docs/auth-architecture.md) — 인증 / token / source 우선순위 상세
+- [docs/auth-cli.md](./docs/auth-cli.md) — auth CLI 명령 / 정책
+- [docs/cli-json-output.md](./docs/cli-json-output.md) — `--json` stable contract + redaction 규약
+- [docs/provider-notes.md](./docs/provider-notes.md) — provider별 observed endpoint / client_id
+- [docs/codebase-guide.md](./docs/codebase-guide.md) — 기여자용 상세 가이드 (패키지 레이아웃, shared 헬퍼, 새 기능 체크리스트)

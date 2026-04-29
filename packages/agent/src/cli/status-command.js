@@ -1,138 +1,103 @@
 import { getStatusSnapshot } from '../services/status-service.js';
+import { PROVIDER_IDS } from '../services/provider-registry.js';
+import { parseCliOptions } from './parse-options.js';
+import { formatStatusJson } from './status-json.js';
+
+// 포맷터는 status-formatters.js에서 관리. 기존 import 경로 호환을 위해 re-export.
+export {
+  formatStatusOutput,
+  formatCodexSection,
+  formatClaudeSection,
+  formatClaudeNetworkUsages,
+  formatClaudeNetworkUsageBody,
+  formatClaudeNetworkUsage,
+  formatClaudeLocalUsage,
+  formatWindow,
+} from './status-formatters.js';
+
+import { formatStatusOutput } from './status-formatters.js';
 
 export const STATUS_COMMANDS = ['status', 'usage'];
 
 /**
  * `status` / `usage` 진입점.
- * 출력 라인 생성은 pure formatter에 위임하고, 본 함수는 console.log만 담당.
+ * 옵션 파싱 → snapshot 조회 → formatter → 출력.
  */
-export async function runStatusCommand(command) {
-  const snapshot = await getStatusSnapshot();
+export async function runStatusCommand(command, args = []) {
+  const options = parseStatusOptions(args);
+  if (options.help) {
+    for (const line of formatStatusHelp(command)) console.log(line);
+    return;
+  }
+  // --account가 case-insensitive(`resolveAccountByIdentifier`)인 것과 일관되게,
+  // --provider 값도 case-insensitive로 정규화한 뒤 PROVIDER_IDS와 비교한다.
+  const providerFilter = normalizeProviderFilter(options.provider);
+  if (options.provider && providerFilter === null) {
+    console.error(
+      `알 수 없는 provider: ${options.provider} (사용 가능: ${PROVIDER_IDS.join(', ')})`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+  const snapshot = await getStatusSnapshot({
+    accountFilter: options.account,
+    providerFilter,
+  });
+
+  if (options.json) {
+    // 자동화 친화: stdout에는 JSON 한 줄만, 안내·경고는 stderr로.
+    console.log(formatStatusJson(snapshot, { command }));
+    return;
+  }
+
   for (const line of formatStatusOutput(command, snapshot)) {
     console.log(line);
   }
 }
 
 /**
- * 전체 status 출력 라인 배열을 만드는 pure 함수.
- * @param {string} command
- * @param {object} snapshot - getStatusSnapshot 결과
- * @returns {string[]}
+ * --provider 입력값을 trim+lowercase한 뒤 PROVIDER_IDS와 매치되면 그 id를,
+ * 입력이 없거나 매치되지 않으면 null을 반환한다. (case-insensitive)
+ *
+ * Pure helper — runner 외부에서 검증 단위 테스트로 호출 가능.
  */
-export function formatStatusOutput(command, snapshot) {
+export function normalizeProviderFilter(raw) {
+  if (raw === null || raw === undefined) return null;
+  const normalized = String(raw).trim().toLowerCase();
+  if (normalized === '') return null;
+  return PROVIDER_IDS.includes(normalized) ? normalized : null;
+}
+
+/**
+ * `status` / `usage` 옵션 파서.
+ */
+export function parseStatusOptions(args) {
+  return parseCliOptions(args, {
+    defaults: { account: null, provider: null, json: false },
+    flags: {
+      '--account': { key: 'account', type: 'string' },
+      '--provider': { key: 'provider', type: 'string' },
+      '--json': { key: 'json', type: 'boolean' },
+    },
+    includeHelp: true,
+  });
+}
+
+/**
+ * `status` / `usage` 커맨드의 --help 출력 줄을 반환한다. Pure function.
+ */
+export function formatStatusHelp(command = 'status') {
+  const providerList = PROVIDER_IDS.join(', ');
   return [
-    `명령: ${command}`,
-    '로컬 에이전트 상태 요약',
-    '-----------------------',
-    `설정 파일: ${snapshot.configPath}`,
-    `Codex 사용: ${snapshot.providers.codex.enabled ? 'enabled' : 'disabled'}`,
-    `Claude 사용: ${snapshot.providers.claude.enabled ? 'enabled' : 'disabled'}`,
-    `서버 sync: ${snapshot.sync.enabled ? 'enabled' : 'disabled'}`,
+    `token-weather ${command} [options]`,
     '',
-    ...formatCodexSection(snapshot.codex),
+    'provider별 credential 상태와 live usage window를 출력합니다.',
+    '여러 계정이 저장되어 있으면 기본적으로 모두 병렬 조회합니다.',
     '',
-    ...formatClaudeSection(snapshot.claude),
+    'Options:',
+    '  --account <id>     특정 계정만 조회 (email / accountKey / label, case-insensitive)',
+    `  --provider <id>    특정 provider만 조회 (사용 가능: ${providerList}, case-insensitive)`,
+    '  --json             정규화된 JSON 한 줄을 stdout에 출력 (자동화/대시보드용)',
+    '  -h, --help         이 도움말 출력',
   ];
-}
-
-/** Pure formatter: Codex usage section. */
-export function formatCodexSection(codex) {
-  const lines = ['Codex usage', '-----------'];
-
-  if (!codex.enabled) {
-    lines.push('비활성화됨');
-    return lines;
-  }
-
-  lines.push(`인증 소스: ${codex.authSource ?? 'unknown'}`);
-  if (codex.authProfilesPath) {
-    lines.push(`Auth profiles 경로: ${codex.authProfilesPath}`);
-  }
-
-  if (codex.snapshots.length === 0) {
-    lines.push('발견된 Codex OAuth 프로필이 없습니다.');
-    return lines;
-  }
-
-  for (const snapshot of codex.snapshots) {
-    const label = snapshot.account.email
-      ? `${snapshot.account.profileId} (${snapshot.account.email})`
-      : snapshot.account.profileId;
-    lines.push(`- ${label}`);
-    lines.push(
-      `  상태: ${
-        snapshot.status.ok
-          ? `OK (${snapshot.status.httpStatus})`
-          : `실패 (${snapshot.status.httpStatus ?? 'network/error'})`
-      }`,
-    );
-    lines.push(
-      `  source=${snapshot.source}, authType=${snapshot.authType}, confidence=${snapshot.confidence}`,
-    );
-    if (snapshot.account.plan) lines.push(`  플랜: ${snapshot.account.plan}`);
-    for (const window of snapshot.usageWindows) {
-      lines.push(`  ${window.kind}: ${formatWindow(window)}`);
-    }
-    if (snapshot.status.message) lines.push(`  에러: ${snapshot.status.message}`);
-  }
-  return lines;
-}
-
-/** Pure formatter: Claude usage section. */
-export function formatClaudeSection(claude) {
-  const lines = ['Claude usage', '------------'];
-  lines.push(`인증 소스: ${claude.authSource}`);
-  lines.push(`credential 감지: ${claude.detected}`);
-  if (claude.selectedAccount) {
-    lines.push(`계정: ${claude.selectedAccount.accountKey}`);
-  }
-  lines.push(...formatClaudeNetworkUsage(claude.networkUsage));
-  lines.push(...formatClaudeLocalUsage(claude.usage));
-  return lines;
-}
-
-/** Pure formatter: Claude live network usage block. */
-export function formatClaudeNetworkUsage(networkUsage) {
-  const lines = ['', '[live] api.anthropic.com/api/oauth/usage'];
-  if (!networkUsage) {
-    lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
-    return lines;
-  }
-
-  if (networkUsage.status?.ok) {
-    lines.push(`  상태: OK (${networkUsage.status.httpStatus})`);
-    if (networkUsage.usageWindows.length === 0) {
-      lines.push('  usageWindows 없음 (응답에 기대한 필드가 없었음)');
-    }
-    for (const window of networkUsage.usageWindows) {
-      lines.push(`  ${window.kind}: ${formatWindow(window)}`);
-    }
-    return lines;
-  }
-
-  const http = networkUsage.status?.httpStatus ?? 'network/error';
-  const bucket = networkUsage.status?.bucket ?? 'unknown';
-  lines.push(`  상태: 실패 (${http}, bucket=${bucket})`);
-  if (networkUsage.status?.message) lines.push(`  메시지: ${networkUsage.status.message}`);
-  return lines;
-}
-
-/** Pure formatter: Claude local stats-cache block. */
-export function formatClaudeLocalUsage(usage) {
-  const lines = ['', '[local] stats-cache.json'];
-  if (!usage || usage.source === 'not-found') {
-    lines.push('  데이터 없음 (stats-cache.json 미발견)');
-    return lines;
-  }
-  lines.push(`  총 세션 수: ${usage.totalSessions ?? '알 수 없음'}`);
-  lines.push(`  총 메시지 수: ${usage.totalMessages ?? '알 수 없음'}`);
-  lines.push(`  모델별 usage: ${usage.hasModelUsage ? '있음' : '없음'}`);
-  lines.push(`  일별 token 통계: ${usage.hasDailyModelTokens ? '있음' : '없음'}`);
-  return lines;
-}
-
-export function formatWindow(window) {
-  const reset = window.resetAt ? `reset_at=${window.resetAt}` : 'reset_at=unknown';
-  const used = window.usedPercent ?? 'unknown';
-  return `used_percent=${used}, ${reset}`;
 }

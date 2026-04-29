@@ -1,8 +1,39 @@
 {
-  "name": "@llagoon3/provider-adapters",
-  "version": "0.1.0",
-  "private": true,
-  "description": "provider별 인증/endpoint 연결 및 usage 정규화 어댑터",
+  "name": "@token-weather/provider-adapters",
+  "version": "0.2.0",
+  "description": "Token Weather provider별 인증/endpoint 연결 및 usage 정규화 어댑터",
+  "license": "Apache-2.0",
   "type": "module",
-  "main": "./src/index.js"
+  "main": "./src/index.js",
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "src",
+    "dist/types"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LLagoon3/token-weather.git",
+    "directory": "packages/provider-adapters"
+  },
+  "homepage": "https://github.com/LLagoon3/token-weather#readme",
+  "bugs": {
+    "url": "https://github.com/LLagoon3/token-weather/issues"
+  },
+  "keywords": [
+    "token-weather",
+    "ai",
+    "oauth",
+    "usage",
+    "claude",
+    "codex"
+  ],
+  "dependencies": {
+    "@token-weather/schemas": "^0.2.0"
+  },
+  "scripts": {
+    "build:types": "tsc -p ./tsconfig.json"
+  }
 }

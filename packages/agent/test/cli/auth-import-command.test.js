@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { runAuthImportCommand } from '../../src/cli/auth-import-command.js';
+import { runAuthImportCommand, formatAuthImportHelp } from '../../src/cli/auth-import-command.js';
 import { runCli } from '../../src/cli/run-cli.js';
 import { createEmptyAuthStore } from '../../src/auth/auth-store-schema.js';
 
@@ -17,6 +17,28 @@ async function captureOutput(fn) {
   return lines;
 }
 
+describe('formatAuthImportHelp', () => {
+  it('first line is auth import usage', () => {
+    assert.match(formatAuthImportHelp()[0], /^token-weather auth import/);
+  });
+
+  it('mentions --help flag', () => {
+    assert.match(formatAuthImportHelp().join('\n'), /-h, --help/);
+  });
+});
+
+describe('runAuthImportCommand — --help', () => {
+  it('prints help when provider is "--help"', async () => {
+    const lines = await captureOutput(() => runAuthImportCommand('--help'));
+    assert.match(lines[0], /^token-weather auth import/);
+  });
+
+  it('prints help when --help is in args (e.g. after provider)', async () => {
+    const lines = await captureOutput(() => runAuthImportCommand('claude', ['--help']));
+    assert.match(lines[0], /^token-weather auth import/);
+  });
+});
+
 describe('runAuthImportCommand', () => {
   it('shows guidance and does not save when no selectedAccount exists', async () => {
     let saved = false;
@@ -24,8 +46,10 @@ describe('runAuthImportCommand', () => {
       runAuthImportCommand('claude', [], {
         claudeReadFn: () => null,
         loadStore: async () => createEmptyAuthStore(),
-        saveStore: async () => { saved = true; },
-      })
+        saveStore: async () => {
+          saved = true;
+        },
+      }),
     );
 
     const flat = lines.join('\n');
@@ -39,8 +63,10 @@ describe('runAuthImportCommand', () => {
       runAuthImportCommand('claude', [], {
         claudeReadFn: () => ({ accessToken: 'tok', refreshToken: 'ref' }),
         loadStore: async () => createEmptyAuthStore(),
-        saveStore: async (store) => { savedStore = store; },
-      })
+        saveStore: async (store) => {
+          savedStore = store;
+        },
+      }),
     );
 
     const flat = lines.join('\n');
@@ -64,7 +90,7 @@ describe('runCli auth import wiring', () => {
   it('routes auth import command and shows usage/provider guidance when provider missing', async () => {
     const lines = await captureOutput(() => runCli(['auth', 'import']));
     const flat = lines.join('\n');
-    assert.ok(flat.includes('사용법: ai-usage-agent auth import <provider>'));
+    assert.ok(flat.includes('사용법: token-weather auth import <provider>'));
     assert.ok(flat.includes('현재 지원 provider: claude'));
   });
 });

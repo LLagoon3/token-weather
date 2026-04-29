@@ -6,8 +6,12 @@ import {
   formatCodexSection,
   formatClaudeSection,
   formatClaudeNetworkUsage,
+  formatClaudeNetworkUsages,
   formatClaudeLocalUsage,
   formatWindow,
+  formatStatusHelp,
+  parseStatusOptions,
+  normalizeProviderFilter,
   STATUS_COMMANDS,
 } from '../../src/cli/status-command.js';
 
@@ -150,7 +154,9 @@ describe('formatClaudeNetworkUsage', () => {
 describe('formatClaudeLocalUsage', () => {
   it('shows 데이터 없음 when usage is null or not-found', () => {
     assert.ok(formatClaudeLocalUsage(null).some((l) => l.includes('데이터 없음')));
-    assert.ok(formatClaudeLocalUsage({ source: 'not-found' }).some((l) => l.includes('데이터 없음')));
+    assert.ok(
+      formatClaudeLocalUsage({ source: 'not-found' }).some((l) => l.includes('데이터 없음')),
+    );
   });
 
   it('renders totalSessions / totalMessages / model usage indicators', () => {
@@ -187,5 +193,372 @@ describe('formatStatusOutput', () => {
     assert.ok(lines.includes('설정 파일: /x/config.json'));
     assert.ok(lines.includes('Codex 사용: enabled'));
     assert.ok(lines.includes('Claude 사용: disabled'));
+  });
+});
+
+describe('formatClaudeNetworkUsages — multi-account', () => {
+  it('renders single "호출 안 함" line when usages is empty', () => {
+    const lines = formatClaudeNetworkUsages([]);
+    assert.ok(lines.some((l) => l.includes('호출 안 함')));
+  });
+
+  it('outputs a single block without account header when usages has one entry', () => {
+    const lines = formatClaudeNetworkUsages([
+      {
+        accountKey: 'a:1',
+        snapshot: {
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [{ kind: 'five_hour', usedPercent: 10, resetAt: '2026-04-16' }],
+        },
+      },
+    ]);
+    // 단일 계정 블록은 '계정:' 헤더를 붙이지 않음
+    assert.ok(!lines.some((l) => l.startsWith('  - 계정:')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+  });
+
+  it('outputs per-account header + body for multiple usages', () => {
+    const lines = formatClaudeNetworkUsages([
+      {
+        accountKey: 'a:1',
+        snapshot: {
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [{ kind: 'five_hour', usedPercent: 5 }],
+        },
+      },
+      {
+        accountKey: 'a:2',
+        snapshot: {
+          status: { ok: false, httpStatus: 401, bucket: 'auth', message: 'expired' },
+          usageWindows: [],
+        },
+      },
+    ]);
+    assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
+    assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+    assert.ok(lines.some((l) => l.includes('실패 (401, bucket=auth)')));
+    assert.ok(lines.some((l) => l.includes('메시지: expired')));
+  });
+});
+
+describe('formatClaudeSection — networkUsages array support', () => {
+  it('uses networkUsages when provided (multi-account path)', () => {
+    const lines = formatClaudeSection({
+      authSource: 'agent-store',
+      detected: true,
+      selectedAccount: { accountKey: 'a:1' },
+      networkUsages: [
+        {
+          accountKey: 'a:1',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+        {
+          accountKey: 'a:2',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+      ],
+      usage: { source: 'not-found' },
+    });
+    assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
+    assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
+  });
+
+  it('falls back to legacy networkUsage when networkUsages absent', () => {
+    const lines = formatClaudeSection({
+      authSource: 'claude-cli-import',
+      detected: true,
+      selectedAccount: null,
+      networkUsage: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+      usage: { source: 'not-found' },
+    });
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
+    // 단일 블록이므로 '- 계정:' 헤더 없어야 함
+    assert.ok(!lines.some((l) => l.startsWith('  - 계정:')));
+  });
+});
+
+describe('parseStatusOptions', () => {
+  it('returns { account: null } for empty args', () => {
+    assert.deepEqual(parseStatusOptions([]), {
+      account: null,
+      provider: null,
+      json: false,
+      help: false,
+    });
+  });
+
+  it('handles null/undefined args', () => {
+    assert.deepEqual(parseStatusOptions(undefined), {
+      account: null,
+      provider: null,
+      json: false,
+      help: false,
+    });
+  });
+
+  it('parses --account <value>', () => {
+    assert.equal(parseStatusOptions(['--account', 'alice@x.com']).account, 'alice@x.com');
+    assert.equal(parseStatusOptions(['--account', 'codex:abc']).account, 'codex:abc');
+  });
+
+  it('ignores unknown flags', () => {
+    const out = parseStatusOptions(['--unknown', '--account', 'a']);
+    assert.equal(out.account, 'a');
+  });
+
+  it('treats --account "" as "no value" (legacy contract)', () => {
+    // 공통 helper 전환 후에도 빈 문자열은 default 유지해야 한다.
+    assert.deepEqual(parseStatusOptions(['--account', '']), {
+      account: null,
+      provider: null,
+      json: false,
+      help: false,
+    });
+  });
+
+  it('recognizes --help and -h', () => {
+    assert.equal(parseStatusOptions(['--help']).help, true);
+    assert.equal(parseStatusOptions(['-h']).help, true);
+    assert.equal(parseStatusOptions([]).help, false);
+  });
+
+  it('parses --provider <id>', () => {
+    assert.equal(parseStatusOptions(['--provider', 'codex']).provider, 'codex');
+    assert.equal(parseStatusOptions(['--provider', 'claude']).provider, 'claude');
+  });
+
+  it('--provider and --account can coexist', () => {
+    const out = parseStatusOptions(['--provider', 'codex', '--account', 'work']);
+    assert.equal(out.provider, 'codex');
+    assert.equal(out.account, 'work');
+  });
+
+  it('parses --json as boolean true', () => {
+    assert.equal(parseStatusOptions(['--json']).json, true);
+    assert.equal(parseStatusOptions([]).json, false);
+  });
+
+  it('--json combines with --provider / --account', () => {
+    const out = parseStatusOptions(['--json', '--provider', 'codex', '--account', 'work']);
+    assert.equal(out.json, true);
+    assert.equal(out.provider, 'codex');
+    assert.equal(out.account, 'work');
+  });
+});
+
+describe('normalizeProviderFilter', () => {
+  it('returns null for null/undefined/empty input', () => {
+    assert.equal(normalizeProviderFilter(null), null);
+    assert.equal(normalizeProviderFilter(undefined), null);
+    assert.equal(normalizeProviderFilter(''), null);
+    assert.equal(normalizeProviderFilter('   '), null);
+  });
+
+  it('passes registered ids through unchanged', () => {
+    assert.equal(normalizeProviderFilter('codex'), 'codex');
+    assert.equal(normalizeProviderFilter('claude'), 'claude');
+  });
+
+  it('matches case-insensitively (Codex / CLAUDE / cLaUdE)', () => {
+    assert.equal(normalizeProviderFilter('Codex'), 'codex');
+    assert.equal(normalizeProviderFilter('CLAUDE'), 'claude');
+    assert.equal(normalizeProviderFilter('cLaUdE'), 'claude');
+  });
+
+  it('trims whitespace before lookup', () => {
+    assert.equal(normalizeProviderFilter('  codex  '), 'codex');
+    assert.equal(normalizeProviderFilter('\tclaude\n'), 'claude');
+  });
+
+  it('returns null when normalized value is not a registered id', () => {
+    assert.equal(normalizeProviderFilter('gemini'), null);
+    // accountKey-prefix 변형은 의도적으로 받지 않는다 (별도 결정 사안).
+    assert.equal(normalizeProviderFilter('openai-codex'), null);
+    assert.equal(normalizeProviderFilter('anthropic-claude'), null);
+  });
+});
+
+describe('formatStatusHelp', () => {
+  it('returns first line with command name and [options]', () => {
+    const lines = formatStatusHelp('status');
+    assert.match(lines[0], /^token-weather status \[options\]$/);
+  });
+
+  it('defaults command to "status" when not provided', () => {
+    const lines = formatStatusHelp();
+    assert.match(lines[0], /token-weather status/);
+  });
+
+  it('lists --account, --provider, --json and --help in Options section', () => {
+    const body = formatStatusHelp('usage').join('\n');
+    assert.match(body, /--account/);
+    assert.match(body, /--provider <id>/);
+    assert.match(body, /--json/);
+    assert.match(body, /-h, --help/);
+  });
+
+  it('shows registered provider ids in --provider hint', () => {
+    const body = formatStatusHelp().join('\n');
+    assert.match(body, /codex/);
+    assert.match(body, /claude/);
+  });
+
+  it('mentions case-insensitive matching for --provider', () => {
+    assert.match(formatStatusHelp().join('\n'), /case-insensitive/);
+  });
+});
+
+describe('formatStatusOutput — accountFilter line', () => {
+  it('omits 계정 필터 line when not set', () => {
+    const lines = formatStatusOutput('status', {
+      configPath: '/x',
+      providers: { codex: { enabled: true }, claude: { enabled: true } },
+      sync: { enabled: false },
+      codex: { enabled: false },
+      claude: {
+        authSource: 'not-found',
+        detected: false,
+        selectedAccount: null,
+        networkUsages: [],
+        usage: { source: 'not-found' },
+      },
+    });
+    assert.ok(!lines.some((l) => l.includes('계정 필터')));
+  });
+
+  it('includes 계정 필터 line when accountFilter present', () => {
+    const lines = formatStatusOutput('status', {
+      configPath: '/x',
+      providers: { codex: { enabled: true }, claude: { enabled: true } },
+      sync: { enabled: false },
+      accountFilter: 'alice@x.com',
+      codex: { enabled: false },
+      claude: {
+        authSource: 'not-found',
+        detected: false,
+        selectedAccount: null,
+        networkUsages: [],
+        usage: { source: 'not-found' },
+      },
+    });
+    assert.ok(lines.includes('계정 필터: alice@x.com'));
+  });
+});
+
+describe('formatStatusOutput — providerFilter scope', () => {
+  const baseSnapshot = {
+    configPath: '/x',
+    providers: { codex: { enabled: true }, claude: { enabled: true } },
+    sync: { enabled: false },
+  };
+  const codexSnap = { enabled: false };
+  const claudeSnap = {
+    authSource: 'not-found',
+    detected: false,
+    selectedAccount: null,
+    networkUsages: [],
+    usage: { source: 'not-found' },
+  };
+
+  it('renders only Codex usage section when providerFilter=codex (no claude key)', () => {
+    const lines = formatStatusOutput('status', {
+      ...baseSnapshot,
+      providerFilter: 'codex',
+      codex: codexSnap,
+    });
+    assert.ok(lines.includes('provider 필터: codex'));
+    assert.ok(lines.some((l) => l === 'Codex usage'));
+    assert.ok(!lines.some((l) => l === 'Claude usage'));
+  });
+
+  it('renders only Claude usage section when providerFilter=claude (no codex key)', () => {
+    const lines = formatStatusOutput('usage', {
+      ...baseSnapshot,
+      providerFilter: 'claude',
+      claude: claudeSnap,
+    });
+    assert.ok(lines.includes('provider 필터: claude'));
+    assert.ok(lines.some((l) => l === 'Claude usage'));
+    assert.ok(!lines.some((l) => l === 'Codex usage'));
+  });
+
+  it('omits "provider 필터" line when not set', () => {
+    const lines = formatStatusOutput('status', {
+      ...baseSnapshot,
+      codex: codexSnap,
+      claude: claudeSnap,
+    });
+    assert.ok(!lines.some((l) => l.startsWith('provider 필터:')));
+  });
+});
+
+describe('formatCodexSection — accountFilter empty result', () => {
+  it('shows filter-specific message when filteredOut=true and snapshots empty', () => {
+    const lines = formatCodexSection({
+      enabled: true,
+      authSource: 'agent-store',
+      accountFilter: 'nope@x.com',
+      filteredOut: true,
+      snapshots: [],
+    });
+    assert.ok(
+      lines.some((l) =>
+        l.includes('계정 필터 "nope@x.com"에 해당하는 Codex 계정을 찾지 못했습니다'),
+      ),
+    );
+  });
+
+  it('falls back to normal "프로필 없음" when filteredOut=false', () => {
+    const lines = formatCodexSection({
+      enabled: true,
+      authSource: 'agent-store',
+      snapshots: [],
+    });
+    assert.ok(lines.some((l) => l.includes('Codex OAuth 프로필이 없습니다')));
+  });
+});
+
+describe('formatClaudeNetworkUsages — filteredOut context', () => {
+  it('shows filter-specific message when context.filteredOut is set', () => {
+    const lines = formatClaudeNetworkUsages([], { filteredOut: true, accountFilter: 'nope' });
+    assert.ok(
+      lines.some((l) => l.includes('계정 필터 "nope"에 해당하는 Claude 계정을 찾지 못했습니다')),
+    );
+  });
+});
+
+describe('formatClaudeSection — 기본 계정 라인 visibility', () => {
+  const baseClaude = {
+    authSource: 'agent-store',
+    detected: true,
+    selectedAccount: { accountKey: 'a:default' },
+    usage: { source: 'not-found' },
+    networkUsages: [
+      {
+        accountKey: 'a:default',
+        snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+      },
+    ],
+  };
+
+  it('shows "기본 계정" line when accountFilter is not set', () => {
+    const lines = formatClaudeSection(baseClaude);
+    assert.ok(lines.some((l) => l.startsWith('기본 계정: a:default')));
+  });
+
+  it('hides "기본 계정" line when accountFilter is active (avoid confusion with filtered set)', () => {
+    const lines = formatClaudeSection({
+      ...baseClaude,
+      accountFilter: 'work',
+      networkUsages: [
+        {
+          accountKey: 'a:work',
+          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        },
+      ],
+    });
+    assert.ok(!lines.some((l) => l.startsWith('기본 계정:')));
+    assert.ok(lines.some((l) => l.includes('OK (200)')));
   });
 });

@@ -21,7 +21,7 @@ export async function loadAuthStore() {
 
   if (store.version !== AUTH_STORE_VERSION) {
     throw new Error(
-      `Unsupported auth store version: ${store.version} (expected ${AUTH_STORE_VERSION})`
+      `Unsupported auth store version: ${store.version} (expected ${AUTH_STORE_VERSION})`,
     );
   }
 
@@ -33,11 +33,7 @@ export async function saveAuthStore(store) {
   await fs.mkdir(dir, { recursive: true });
 
   const filePath = resolveAuthStorePath();
-  const data = JSON.stringify(
-    { ...store, updatedAt: new Date().toISOString() },
-    null,
-    2
-  );
+  const data = JSON.stringify({ ...store, updatedAt: new Date().toISOString() }, null, 2);
 
   await fs.writeFile(filePath, data + '\n', { mode: FILE_MODE });
 }
@@ -73,9 +69,7 @@ export function removeProviderAccount(store, providerId, accountKey) {
     return nextStore;
   }
 
-  provider.accounts = provider.accounts.filter(
-    (a) => a.accountKey !== accountKey,
-  );
+  provider.accounts = provider.accounts.filter((a) => a.accountKey !== accountKey);
 
   return nextStore;
 }

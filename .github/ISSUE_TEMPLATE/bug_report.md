@@ -12,9 +12,9 @@ assignees: []
 
 ## 재현 방법
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## 기대한 동작
 
@@ -32,6 +32,11 @@ assignees: []
 - [ ] `packages/provider-adapters`
 - [ ] `repo`
 - [ ] `docs`
+
+## 민감 정보 점검
+
+- [ ] 첨부한 로그, 스크린샷, 명령 출력에서 access token / refresh token / id token / session cookie / accountKey 같은 **민감값을 redact** 했음
+- [ ] 토큰을 본문에 포함했다면 즉시 revoke 후 신규 발급할 것 — 자세한 절차는 [SECURITY.md](../../SECURITY.md) 참고
 
 ## 환경 정보
 

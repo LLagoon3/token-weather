@@ -1,7 +1,136 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseLoginOptions } from '../../src/cli/login-runner.js';
+import {
+  enrichIdentityFromProviderProfile,
+  extractAndValidateManualPaste,
+  parseLoginOptions,
+} from '../../src/cli/login-runner.js';
+
+describe('extractAndValidateManualPaste', () => {
+  it('passes through code and fills expected state when raw code is pasted', () => {
+    const result = extractAndValidateManualPaste(
+      { type: 'code', value: 'code-123' },
+      'expected-state',
+    );
+    assert.equal(result.code, 'code-123');
+    assert.equal(result.state, 'expected-state');
+    assert.equal(result.error, null);
+  });
+
+  it('extracts code/state from callback URL and accepts matching state', () => {
+    const result = extractAndValidateManualPaste(
+      { type: 'url', value: 'http://localhost:1455/callback?code=abc&state=st1' },
+      'st1',
+    );
+    assert.equal(result.code, 'abc');
+    assert.equal(result.state, 'st1');
+    assert.equal(result.error, null);
+  });
+
+  it('returns state-mismatch when pasted URL state differs from expected', () => {
+    const result = extractAndValidateManualPaste(
+      { type: 'url', value: 'http://localhost:1455/callback?code=abc&state=other' },
+      'expected',
+    );
+    assert.equal(result.code, null);
+    assert.equal(result.state, 'other');
+    assert.equal(result.error, 'state-mismatch');
+  });
+});
+
+describe('enrichIdentityFromProviderProfile', () => {
+  it('returns original identity for non-claude providers', async () => {
+    const identity = {
+      email: 'fallback@example.com',
+      accountId: null,
+      displayName: null,
+      claimSource: 'fallback:code-prefix',
+    };
+
+    const result = await enrichIdentityFromProviderProfile(
+      { id: 'codex' },
+      { accessToken: 'token-123' },
+      identity,
+    );
+
+    assert.equal(result.profile, null);
+    assert.deepEqual(result.identity, identity);
+  });
+
+  it('enriches Claude identity from oauth/profile', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      status: 200,
+      statusText: 'OK',
+      ok: true,
+      async json() {
+        return {
+          account: {
+            uuid: 'acct-123',
+            display_name: '에버다임 IT팀',
+            email: 'everdigm.itteam@gmail.com',
+          },
+          organization: { uuid: 'org-123' },
+          application: { uuid: 'app-123' },
+        };
+      },
+    });
+
+    try {
+      const result = await enrichIdentityFromProviderProfile(
+        { id: 'claude' },
+        { accessToken: 'token-123' },
+        {
+          email: 'live-abc@claude.com',
+          accountId: null,
+          displayName: null,
+          claimSource: 'fallback:code-prefix',
+        },
+      );
+
+      assert.equal(result.identity.email, 'everdigm.itteam@gmail.com');
+      assert.equal(result.identity.accountId, 'acct-123');
+      assert.equal(result.identity.displayName, '에버다임 IT팀');
+      assert.equal(result.identity.claimSource, 'profile');
+      assert.equal(result.profile.organization.uuid, 'org-123');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('keeps fallback identity when profile fetch fails', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      status: 403,
+      statusText: 'Forbidden',
+      ok: false,
+      async json() {
+        return { error: { message: 'missing scope' } };
+      },
+    });
+
+    const identity = {
+      email: 'live-abc@claude.com',
+      accountId: null,
+      displayName: null,
+      claimSource: 'fallback:code-prefix',
+    };
+
+    try {
+      const result = await enrichIdentityFromProviderProfile(
+        { id: 'claude' },
+        { accessToken: 'token-123' },
+        identity,
+      );
+
+      assert.equal(result.profile, null);
+      assert.deepEqual(result.identity, identity);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
 
 describe('parseLoginOptions — defaults & flags', () => {
   it('returns defaults for empty args', () => {
@@ -9,11 +138,19 @@ describe('parseLoginOptions — defaults & flags', () => {
       noOpen: false,
       manual: false,
       device: false,
-      liveExchange: false,
+      mock: false,
       port: null,
       timeoutMs: 120_000,
+      label: null,
+      keepLegacy: false,
       warnings: [],
+      help: false,
     });
+  });
+
+  it('recognizes --help and -h', () => {
+    assert.equal(parseLoginOptions(['--help']).help, true);
+    assert.equal(parseLoginOptions(['-h']).help, true);
   });
 
   it('handles null/undefined args', () => {
@@ -24,10 +161,10 @@ describe('parseLoginOptions — defaults & flags', () => {
   });
 
   it('toggles boolean flags', () => {
-    const opts = parseLoginOptions(['--no-open', '--manual', '--live-exchange']);
+    const opts = parseLoginOptions(['--no-open', '--manual', '--mock']);
     assert.equal(opts.noOpen, true);
     assert.equal(opts.manual, true);
-    assert.equal(opts.liveExchange, true);
+    assert.equal(opts.mock, true);
     assert.equal(opts.device, false);
   });
 
@@ -104,19 +241,47 @@ describe('parseLoginOptions — --timeout validation', () => {
 
 describe('parseLoginOptions — combined', () => {
   it('combines valid flags + invalid values yields both options and warnings', () => {
-    const opts = parseLoginOptions([
-      '--port', 'foo',
-      '--timeout', '60',
-      '--live-exchange',
-    ]);
-    assert.equal(opts.port, null);        // invalid, stays null
+    const opts = parseLoginOptions(['--port', 'foo', '--timeout', '60', '--mock']);
+    assert.equal(opts.port, null); // invalid, stays null
     assert.equal(opts.timeoutMs, 60_000); // valid
-    assert.equal(opts.liveExchange, true);
+    assert.equal(opts.mock, true);
     assert.equal(opts.warnings.length, 1);
   });
 
   it('collects multiple warnings independently', () => {
     const opts = parseLoginOptions(['--port', 'x', '--timeout', 'y']);
     assert.equal(opts.warnings.length, 2);
+  });
+});
+
+describe('parseLoginOptions — --keep-legacy', () => {
+  it('toggles keepLegacy=true', () => {
+    const opts = parseLoginOptions(['--keep-legacy']);
+    assert.equal(opts.keepLegacy, true);
+  });
+
+  it('defaults to false when not provided', () => {
+    assert.equal(parseLoginOptions([]).keepLegacy, false);
+  });
+});
+
+describe('parseLoginOptions — --label', () => {
+  it('stores trimmed label value', () => {
+    const opts = parseLoginOptions(['--label', '  work  ']);
+    assert.equal(opts.label, 'work');
+    assert.deepEqual(opts.warnings, []);
+  });
+
+  it('warns when label is empty string', () => {
+    const opts = parseLoginOptions(['--label', '   ']);
+    assert.equal(opts.label, null);
+    assert.equal(opts.warnings.length, 1);
+    assert.match(opts.warnings[0], /--label 값이 비어/);
+  });
+
+  it('accepts --label together with --mock', () => {
+    const opts = parseLoginOptions(['--label', 'personal', '--mock']);
+    assert.equal(opts.label, 'personal');
+    assert.equal(opts.mock, true);
   });
 });

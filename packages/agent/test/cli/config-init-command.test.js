@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { runConfigInitCommand } from '../../src/cli/config-init-command.js';
+import { runConfigInitCommand, formatConfigInitHelp } from '../../src/cli/config-init-command.js';
 
 let tmpHome;
 let originalHome;
@@ -28,13 +28,36 @@ function withTmpHome() {
   });
 }
 
+describe('formatConfigInitHelp', () => {
+  it('first line is config init usage', () => {
+    assert.match(formatConfigInitHelp()[0], /^token-weather config init/);
+  });
+
+  it('mentions --help flag', () => {
+    assert.match(formatConfigInitHelp().join('\n'), /-h, --help/);
+  });
+});
+
+describe('runConfigInitCommand — --help', () => {
+  withTmpHome();
+
+  it('prints help and does not create config file', async () => {
+    logged.length = 0;
+    await runConfigInitCommand(['--help']);
+    assert.ok(logged.some((l) => l.startsWith('token-weather config init')));
+    // --help 경로는 파일을 쓰지 않는다.
+    const configPath = path.join(tmpHome, '.config', 'token-weather', 'config.json');
+    assert.equal(fs.existsSync(configPath), false);
+  });
+});
+
 describe('runConfigInitCommand — fresh init', () => {
   withTmpHome();
 
-  it('creates ~/.config/ai-usage-agent/config.json with default contents', async () => {
+  it('creates ~/.config/token-weather/config.json with default contents', async () => {
     await runConfigInitCommand();
 
-    const configPath = path.join(tmpHome, '.config', 'ai-usage-agent', 'config.json');
+    const configPath = path.join(tmpHome, '.config', 'token-weather', 'config.json');
     assert.ok(fs.existsSync(configPath), 'config file should exist');
 
     const raw = fs.readFileSync(configPath, 'utf8');
@@ -58,7 +81,7 @@ describe('runConfigInitCommand — overwrite behavior', () => {
   withTmpHome();
 
   it('overwrites existing file (current contract — caller responsible for backup)', async () => {
-    const configPath = path.join(tmpHome, '.config', 'ai-usage-agent', 'config.json');
+    const configPath = path.join(tmpHome, '.config', 'token-weather', 'config.json');
     fs.mkdirSync(path.dirname(configPath), { recursive: true });
     fs.writeFileSync(configPath, '{"custom":"value"}');
 

@@ -23,3 +23,4 @@ export { refreshClaudeToken } from './refresh-claude-token.js';
 export { CLAUDE_AUTH } from './claude-auth-constants.js';
 export { buildClaudeAuthorizationUrl } from './build-claude-authorization-url.js';
 export { exchangeClaudeAuthorizationCode } from './exchange-claude-authorization-code.js';
+export { fetchClaudeOauthProfile } from './fetch-claude-oauth-profile.js';

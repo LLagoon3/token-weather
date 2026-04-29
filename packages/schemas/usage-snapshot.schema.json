@@ -60,7 +60,16 @@
       "properties": {
         "bucket": {
           "type": "string",
-          "enum": ["ok", "rate_limit", "usage_window", "billing", "auth", "overloaded", "unknown"]
+          "enum": [
+            "ok",
+            "rate_limit",
+            "usage_window",
+            "billing",
+            "auth",
+            "auth_scope",
+            "overloaded",
+            "unknown"
+          ]
         },
         "ok": { "type": "boolean" },
         "httpStatus": { "type": ["integer", "null"] },

@@ -45,7 +45,7 @@ export async function fetchCodexUsage(profile, options = {}) {
         normalizeWindow('primary', data?.rate_limit?.primary_window),
         normalizeWindow('secondary', data?.rate_limit?.secondary_window),
       ].filter(Boolean),
-      credits: { balance: data?.credits?.balance ?? null, unit: null },
+      credits: { balance: toNumberOrNull(data?.credits?.balance), unit: null },
       raw: {
         rate_limit: data?.rate_limit ?? null,
         credits: data?.credits ?? null,
@@ -67,4 +67,11 @@ function normalizeWindow(kind, window) {
     windowSeconds: window.limit_window_seconds ?? null,
     resetAt: toIsoFromEpochSeconds(window.reset_at),
   };
+}
+
+function toNumberOrNull(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') return value;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }

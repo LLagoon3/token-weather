@@ -1,0 +1,63 @@
+name: Release
+
+# dev 브랜치 push 시 누적된 .changeset/*.md 를 모아 release PR(version bump +
+# CHANGELOG entry)을 자동 생성/갱신한다. 그 release PR이 머지되면 install
+# smoke 통과 후 changesets/action 이 npm publish 를 자동 실행한다.
+#
+# 정책 / 카테고리 / SCHEMA_VERSION 기준은 docs/release-policy.md.
+#
+# 인증: Trusted Publishing(OIDC) 단독 운영 — npm.com 의 3 패키지에 GitHub
+# Actions provider(LLagoon3/token-weather + release.yml) 가 등록되어 있어,
+# id-token: write OIDC 권한만으로 npm publish 가 인증된다. NPM_TOKEN /
+# NODE_AUTH_TOKEN 의존성은 모두 제거했다 (long-lived secret 관리 부담 해소).
+
+on:
+  push:
+    branches: [dev]
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write # npm provenance (OIDC) + Trusted Publishing 인증
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Node 24 — 번들 npm 이 11+ 라 npm Trusted Publishing(OIDC) 요구사항을
+      # 자기 업그레이드 없이 충족한다. node 22 번들 npm 위에서 npm 자기 업그레이드
+      # step 자체가 native module 캐시 충돌(promise-retry 누락)로 깨졌던 회귀
+      # (release run 25079605613)를 회피.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          scope: '@token-weather'
+
+      - run: node --version && npm --version
+
+      - run: npm install --no-package-lock
+
+      # publish 직전 안전벨트 — #75 에서 도입한 install smoke 스크립트 재사용.
+      # release PR 머지 직후 changesets/action 이 publish 를 호출하기 전에
+      # 한 번 더 npm pack → tmp install → bin smoke + d.ts/import 검증.
+      # smoke fail 시 set -e 로 publish 차단.
+      - run: bash ./scripts/install-smoke.sh
+
+      - uses: changesets/action@v1
+        with:
+          version: npx changeset version
+          publish: npx changeset publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # changesets 가 호출하는 npm publish 가 --provenance 플래그를 자동
+          # 적용하도록 한다 (npm 9.5+ 인식). id-token: write OIDC 권한 +
+          # Trusted Publisher 등록과 함께 supply chain attestation 보장.
+          NPM_CONFIG_PROVENANCE: 'true'

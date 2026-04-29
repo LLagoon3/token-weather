@@ -5,8 +5,8 @@
  * 문자열 배열을 반환한다. 실제 출력은 doctor-command에서 처리.
  */
 
-import { refreshClaudeToken } from '../../../provider-adapters/src/claude/refresh-claude-token.js';
-import { refreshCodexToken } from '../../../provider-adapters/src/codex/index.js';
+import { refreshClaudeToken } from '@token-weather/provider-adapters/src/claude/refresh-claude-token.js';
+import { refreshCodexToken } from '@token-weather/provider-adapters/src/codex/index.js';
 
 /**
  * Claude credential snapshot을 한글 출력 라인 배열로 변환.
@@ -36,27 +36,60 @@ export function formatClaudeSection(snapshot) {
     lines.push('  usage: 데이터 없음 (stats-cache.json 미발견)');
   }
 
-  const network = snapshot.networkUsage;
   lines.push('');
   lines.push('Claude live usage (api.anthropic.com/api/oauth/usage):');
-  if (!network) {
+
+  // multi-account: networkUsages 배열 우선. 없으면 legacy networkUsage 단일값으로 흡수.
+  const usages = Array.isArray(snapshot.networkUsages)
+    ? snapshot.networkUsages
+    : snapshot.networkUsage
+      ? [
+          {
+            accountKey: snapshot.selectedAccount?.accountKey ?? null,
+            snapshot: snapshot.networkUsage,
+          },
+        ]
+      : [];
+
+  if (usages.length === 0) {
     lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
-  } else if (network.status?.ok) {
-    lines.push(`  상태: OK (${network.status.httpStatus})`);
-    lines.push(`  usageWindows: ${network.usageWindows.length}개`);
-    for (const window of network.usageWindows) {
-      const reset = window.resetAt ? ` reset=${window.resetAt}` : '';
-      lines.push(`    - ${window.kind}: ${window.usedPercent ?? 'unknown'}%${reset}`);
-    }
-  } else {
-    const http = network.status?.httpStatus ?? 'network/error';
-    const bucket = network.status?.bucket ?? 'unknown';
-    lines.push(`  상태: 실패 (${http}, bucket=${bucket})`);
-    if (network.status?.message) {
-      lines.push(`  메시지: ${network.status.message}`);
-    }
+    return lines;
   }
 
+  const multi = usages.length > 1;
+  for (const { accountKey, snapshot: network } of usages) {
+    if (multi) lines.push(`  - 계정: ${accountKey ?? '(unknown)'}`);
+    lines.push(...formatClaudeNetworkSnapshot(network, multi ? '    ' : '  '));
+  }
+
+  return lines;
+}
+
+/**
+ * 단일 Claude live usage snapshot → 출력 라인 배열.
+ * indent는 multi-account 블록일 때 2칸 더 들여쓴다.
+ */
+export function formatClaudeNetworkSnapshot(network, indent = '  ') {
+  const lines = [];
+  if (!network) {
+    lines.push(`${indent}호출 안 함`);
+    return lines;
+  }
+  if (network.status?.ok) {
+    lines.push(`${indent}상태: OK (${network.status.httpStatus})`);
+    lines.push(`${indent}usageWindows: ${network.usageWindows.length}개`);
+    for (const window of network.usageWindows) {
+      const reset = window.resetAt ? ` reset=${window.resetAt}` : '';
+      lines.push(`${indent}  - ${window.kind}: ${window.usedPercent ?? 'unknown'}%${reset}`);
+    }
+    return lines;
+  }
+  const http = network.status?.httpStatus ?? 'network/error';
+  const bucket = network.status?.bucket ?? 'unknown';
+  lines.push(`${indent}상태: 실패 (${http}, bucket=${bucket})`);
+  if (network.status?.message) {
+    lines.push(`${indent}메시지: ${network.status.message}`);
+  }
   return lines;
 }
 
@@ -98,14 +131,14 @@ export function formatRefreshSuccess(tokenResponse, prevRefreshToken) {
  * provider별 refresh 함수를 호출하고, 성공/실패 출력을 통합한다.
  * 성공 시 호출자가 store 갱신 등을 수행할 수 있도록 onSuccess 콜백을 제공.
  *
- * @param {{ providerLabel: string, refreshFn: (params: { refreshToken: string, allowLiveExchange: boolean }) => Promise<object> }} spec
+ * @param {{ providerLabel: string, refreshFn: (params: { refreshToken: string }) => Promise<object> }} spec
  * @param {string} refreshToken
  * @param {(tokenResponse: object) => Promise<void>|void} [onSuccess]
  * @returns {Promise<void>}
  */
 export async function runRefreshLiveAttempt(spec, refreshToken, onSuccess) {
   try {
-    const tokenResponse = await spec.refreshFn({ refreshToken, allowLiveExchange: true });
+    const tokenResponse = await spec.refreshFn({ refreshToken });
     console.log('✓ refresh 성공');
     for (const line of formatRefreshSuccess(tokenResponse, refreshToken)) {
       console.log(line);
@@ -125,7 +158,7 @@ export const CODEX_REFRESH_SPEC = {
   providerLabel: 'Codex',
   refreshFn: refreshCodexToken,
   failureNote:
-    '저장된 토큰을 변경하지 않았습니다.\n계정 상태를 확인하거나 `ai-usage-agent auth login codex --live-exchange`로 재인증하세요.',
+    '저장된 토큰을 변경하지 않았습니다.\n계정 상태를 확인하거나 `token-weather auth login codex`로 재인증하세요.',
 };
 
 export const CLAUDE_REFRESH_SPEC = {

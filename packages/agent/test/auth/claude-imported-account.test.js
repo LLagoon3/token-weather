@@ -145,7 +145,11 @@ describe('importClaudeAccountIntoStore', () => {
     const store = createEmptyAuthStore();
     const { store: storeAfterFirst } = importClaudeAccountIntoStore(store, baseAccount, NOW);
     const updatedAccount = { ...baseAccount, email: 'updated@example.com' };
-    const { store: storeAfterSecond } = importClaudeAccountIntoStore(storeAfterFirst, updatedAccount, NOW2);
+    const { store: storeAfterSecond } = importClaudeAccountIntoStore(
+      storeAfterFirst,
+      updatedAccount,
+      NOW2,
+    );
     const accounts = storeAfterSecond.providers['claude'].accounts;
     assert.equal(accounts.length, 1);
     assert.equal(accounts[0].email, 'updated@example.com');

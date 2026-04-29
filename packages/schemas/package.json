@@ -1,8 +1,38 @@
 {
-  "name": "@llagoon3/usage-schemas",
-  "version": "0.1.0",
-  "private": true,
-  "description": "공통 데이터 계약 (usage snapshot, usage event JSON Schema)",
+  "name": "@token-weather/schemas",
+  "version": "0.2.0",
+  "description": "Token Weather 공통 데이터 계약 (usage snapshot / usage event JSON Schema)",
+  "license": "Apache-2.0",
   "type": "module",
-  "main": "./src/index.js"
+  "main": "./src/index.js",
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "src",
+    "usage-event.schema.json",
+    "usage-snapshot.schema.json",
+    "examples",
+    "dist/types"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LLagoon3/token-weather.git",
+    "directory": "packages/schemas"
+  },
+  "homepage": "https://github.com/LLagoon3/token-weather#readme",
+  "bugs": {
+    "url": "https://github.com/LLagoon3/token-weather/issues"
+  },
+  "keywords": [
+    "token-weather",
+    "json-schema",
+    "ai",
+    "usage",
+    "schema"
+  ],
+  "scripts": {
+    "build:types": "tsc -p ./tsconfig.json"
+  }
 }

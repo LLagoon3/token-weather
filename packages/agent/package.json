@@ -1,20 +1,52 @@
 {
-  "name": "@llagoon3/ai-usage-agent",
-  "version": "0.1.0",
-  "private": true,
-  "description": "로컬 AI 사용량 수집 및 확인용 CLI 에이전트",
+  "name": "@token-weather/cli",
+  "version": "0.2.0",
+  "description": "Token Weather — 로컬 AI 사용량 / 인증 상태 확인 CLI",
+  "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "ai-usage-agent": "./bin/ai-usage-agent.js"
+    "token-weather": "./bin/token-weather.js"
   },
   "main": "./src/index.js",
+  "types": "./dist/types/index.d.ts",
   "files": [
     "bin",
-    "src"
+    "src",
+    "dist/types"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LLagoon3/token-weather.git",
+    "directory": "packages/agent"
+  },
+  "homepage": "https://github.com/LLagoon3/token-weather#readme",
+  "bugs": {
+    "url": "https://github.com/LLagoon3/token-weather/issues"
+  },
+  "keywords": [
+    "token-weather",
+    "cli",
+    "ai",
+    "oauth",
+    "usage",
+    "dashboard",
+    "claude",
+    "codex"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@token-weather/provider-adapters": "^0.2.0",
+    "@token-weather/schemas": "^0.2.0"
+  },
   "scripts": {
-    "dev": "node ./bin/ai-usage-agent.js status",
-    "status": "node ./bin/ai-usage-agent.js status",
-    "doctor": "node ./bin/ai-usage-agent.js doctor"
+    "dev": "node ./bin/token-weather.js status",
+    "status": "node ./bin/token-weather.js status",
+    "doctor": "node ./bin/token-weather.js doctor",
+    "build:types": "tsc -p ./tsconfig.json"
   }
 }

@@ -1,0 +1,12 @@
+# git blame 시 의도적으로 무시할 commit 목록.
+#
+# 사용:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# (GitHub web UI 의 blame 보기는 본 파일을 자동 인식한다.)
+#
+# 등록 기준: 코드 의미 변경 없이 형식만 변경한 대량 reformat commit.
+# 의미 변경이 일부라도 섞인 commit 은 등록하지 않는다.
+
+# 2026-04-28: prettier --write 일괄 적용 (#53) — 91 files, 의미 변경 0
+151c1bcd8637dc35b872026740c23566f76cdea1

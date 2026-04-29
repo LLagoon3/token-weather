@@ -6,7 +6,9 @@ import {
   resolveClaudeProfileFromSnapshot,
   selectClaudeAuthSource,
   getClaudeSnapshot,
+  filterProfilesByAccount,
 } from '../../src/services/claude-provider.js';
+import { filterEntriesByAccount } from '../../src/services/account-filter.js';
 
 const FAKE_PATH = '/tmp/fake-claude-credentials.json';
 
@@ -20,7 +22,13 @@ describe('selectClaudeAuthSource (via claude-provider)', () => {
 
 describe('buildClaudeSnapshot (via claude-provider)', () => {
   it('returns detected=false when no credentials and no agent accounts', () => {
-    const snap = buildClaudeSnapshot(FAKE_PATH, () => null, [], '/tmp/no-stats.json', () => null);
+    const snap = buildClaudeSnapshot(
+      FAKE_PATH,
+      () => null,
+      [],
+      '/tmp/no-stats.json',
+      () => null,
+    );
     assert.equal(snap.detected, false);
     assert.equal(snap.authSource, 'not-found');
     assert.equal(snap.usage.source, 'not-found');
@@ -106,11 +114,16 @@ describe('resolveClaudeProfileFromSnapshot (via claude-provider)', () => {
         accountKey: 'claude-cli-import',
         accessToken: 'sk-ant-cli',
         email: 'x@example.com',
+        displayName: 'Claude Import',
+        label: 'personal',
       },
     });
     assert.equal(profile.id, 'claude-cli-import');
+    assert.equal(profile.accountKey, 'claude-cli-import');
     assert.equal(profile.accessToken, 'sk-ant-cli');
     assert.equal(profile.email, 'x@example.com');
+    assert.equal(profile.displayName, 'Claude Import');
+    assert.equal(profile.label, 'personal');
   });
 
   it('extracts accessToken from tokens.accessToken (agent-store)', () => {
@@ -124,18 +137,55 @@ describe('resolveClaudeProfileFromSnapshot (via claude-provider)', () => {
   });
 
   it('returns null when no accessToken anywhere', () => {
-    assert.equal(
-      resolveClaudeProfileFromSnapshot({ selectedAccount: { accountKey: 'x' } }),
-      null,
-    );
+    assert.equal(resolveClaudeProfileFromSnapshot({ selectedAccount: { accountKey: 'x' } }), null);
   });
 });
 
 describe('getClaudeSnapshot — disabled config contract', () => {
-  it('returns networkUsage=null when claude provider is disabled', async () => {
+  it('returns networkUsage=null and networkUsages=[] when claude provider is disabled', async () => {
     const snap = await getClaudeSnapshot({ providers: { claude: { enabled: false } } });
     assert.equal(snap.networkUsage, null);
-    // base snapshot도 포함
+    assert.deepEqual(snap.networkUsages, []);
     assert.ok(typeof snap.authSource === 'string');
+  });
+});
+
+describe('filterEntriesByAccount (claude-provider)', () => {
+  it('filters agent-store entry arrays by mapped profile fields', () => {
+    const entries = [
+      {
+        account: { accountKey: 'a' },
+        profile: { id: 'anthropic-claude:a', email: 'a@x.com', label: 'work' },
+      },
+      {
+        account: { accountKey: 'b' },
+        profile: { id: 'anthropic-claude:b', email: 'b@x.com', label: 'personal' },
+      },
+    ];
+
+    assert.equal(filterEntriesByAccount(entries, 'anthropic-claude:a').length, 1);
+    assert.equal(filterEntriesByAccount(entries, 'B@X.COM').length, 1);
+    assert.equal(filterEntriesByAccount(entries, 'personal').length, 1);
+    assert.equal(filterEntriesByAccount(entries, 'nope').length, 0);
+  });
+});
+
+describe('filterProfilesByAccount (claude-provider)', () => {
+  const profiles = [
+    { id: 'anthropic-claude:a', email: 'a@x.com' },
+    { id: 'anthropic-claude:b', email: 'b@x.com' },
+  ];
+
+  it('returns all when filter falsy', () => {
+    assert.deepEqual(filterProfilesByAccount(profiles, null), profiles);
+  });
+
+  it('filters by accountKey or email (case-insensitive)', () => {
+    assert.equal(filterProfilesByAccount(profiles, 'anthropic-claude:a').length, 1);
+    assert.equal(filterProfilesByAccount(profiles, 'A@X.COM').length, 1);
+  });
+
+  it('returns empty for no match', () => {
+    assert.deepEqual(filterProfilesByAccount(profiles, 'nope'), []);
   });
 });

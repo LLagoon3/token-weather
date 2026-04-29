@@ -1,13 +1,25 @@
-import { STATUS_COMMANDS, runStatusCommand } from './status-command.js';
-import { runDoctorCommand } from './doctor-command.js';
-import { runConfigInitCommand } from './config-init-command.js';
-import { runAuthLoginCommand } from './auth-login-command.js';
-import { runAuthListCommand } from './auth-list-command.js';
-import { runAuthLogoutCommand } from './auth-logout-command.js';
-import { runAuthImportCommand } from './auth-import-command.js';
+import { STATUS_COMMANDS, runStatusCommand, formatStatusHelp } from './status-command.js';
+import { runDoctorCommand, formatDoctorHelp } from './doctor-command.js';
+import { runConfigInitCommand, formatConfigInitHelp } from './config-init-command.js';
+import { runAuthLoginCommand, formatAuthLoginHelp } from './auth-login-command.js';
+import { runAuthListCommand, formatAuthListHelp } from './auth-list-command.js';
+import { runAuthLogoutCommand, formatAuthLogoutHelp } from './auth-logout-command.js';
+import { runAuthImportCommand, formatAuthImportHelp } from './auth-import-command.js';
 
+/**
+ * CLI 진입점. `bin/token-weather.js`가 process.argv.slice(2)를 그대로 전달.
+ *
+ * @param {string[]} argv - CLI 인자 배열 (`['status', '--json']` 등).
+ * @returns {Promise<void>} 모든 서브커맨드는 stdout/stderr로 출력하고 void 반환.
+ */
 export async function runCli(argv) {
   const [command = 'status', ...rest] = argv;
+
+  // 전역 --help / -h: 커맨드 없이 주면 global help 출력.
+  if (command === '--help' || command === '-h') {
+    for (const line of formatGlobalHelp()) console.log(line);
+    return;
+  }
 
   if (STATUS_COMMANDS.includes(command)) {
     await runStatusCommand(command, rest);
@@ -21,9 +33,9 @@ export async function runCli(argv) {
   }
 
   if (command === 'config') {
-    const [subcommand] = rest;
+    const [subcommand, ...args] = rest;
     if (subcommand === 'init') {
-      await runConfigInitCommand();
+      await runConfigInitCommand(args);
       return;
     }
   }
@@ -48,9 +60,33 @@ export async function runCli(argv) {
     }
   }
 
-  printHelp();
+  for (const line of formatGlobalHelp()) console.log(line);
 }
 
-function printHelp() {
-  console.log(`ai-usage-agent\n\n사용법:\n  ai-usage-agent status\n  ai-usage-agent usage\n  ai-usage-agent doctor\n  ai-usage-agent config init\n  ai-usage-agent auth login <provider>\n  ai-usage-agent auth list [provider]\n  ai-usage-agent auth import <provider>\n  ai-usage-agent auth logout <provider> [--account <id>]\n  ai-usage-agent inspect <provider>    # 예정\n  ai-usage-agent sync                 # 예정`);
+/**
+ * 전역 help — 각 서브커맨드의 첫 줄(one-liner)을 모아 요약 목록을 출력한다.
+ * 상세 옵션은 각 서브커맨드의 `--help`로 확인.
+ * Pure function.
+ */
+export function formatGlobalHelp() {
+  const subcommands = [
+    formatStatusHelp('status')[0],
+    formatStatusHelp('usage')[0],
+    formatDoctorHelp()[0],
+    formatConfigInitHelp()[0],
+    formatAuthLoginHelp()[0],
+    formatAuthListHelp()[0],
+    formatAuthImportHelp()[0],
+    formatAuthLogoutHelp()[0],
+  ];
+  return [
+    'token-weather',
+    '',
+    '사용법:',
+    ...subcommands.map((line) => `  ${line}`),
+    '  token-weather inspect <provider>    # 예정',
+    '  token-weather sync                  # 예정',
+    '',
+    '각 커맨드의 상세 옵션은 `<command> --help`로 확인하세요.',
+  ];
 }

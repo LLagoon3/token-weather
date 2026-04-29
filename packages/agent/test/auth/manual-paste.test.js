@@ -57,8 +57,7 @@ describe('extractCodeFromPaste — type=url', () => {
   it('preserves additional query params intact (code still extracted)', () => {
     const out = extractCodeFromPaste({
       type: 'url',
-      value:
-        'http://localhost:1455/auth/callback?scope=openid+email&code=ac_42&state=st1',
+      value: 'http://localhost:1455/auth/callback?scope=openid+email&code=ac_42&state=st1',
     });
     assert.equal(out.code, 'ac_42');
     assert.equal(out.state, 'st1');

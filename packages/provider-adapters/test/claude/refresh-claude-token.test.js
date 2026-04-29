@@ -19,23 +19,13 @@ function jsonResponse({ status = 200, body = {} } = {}) {
   };
 }
 
-describe('refreshClaudeToken — guard', () => {
-  it('throws when allowLiveExchange is not set (default guard)', async () => {
-    await assert.rejects(
-      () => refreshClaudeToken({ refreshToken: 'rt-123' }),
-      /Live exchange is disabled/,
-    );
-  });
-
+describe('refreshClaudeToken — input validation', () => {
   it('throws when refreshToken is missing', async () => {
-    await assert.rejects(
-      () => refreshClaudeToken({ refreshToken: '', allowLiveExchange: true }),
-      /refreshToken.*비어/,
-    );
+    await assert.rejects(() => refreshClaudeToken({ refreshToken: '' }), /refreshToken.*비어/);
   });
 });
 
-describe('refreshClaudeToken — live exchange', () => {
+describe('refreshClaudeToken', () => {
   it('POSTs form-encoded body to the configured token endpoint', async () => {
     let capturedUrl = null;
     let capturedInit = null;
@@ -54,7 +44,6 @@ describe('refreshClaudeToken — live exchange', () => {
 
     await refreshClaudeToken({
       refreshToken: 'old-rt',
-      allowLiveExchange: true,
       fetchImpl,
     });
 
@@ -80,7 +69,6 @@ describe('refreshClaudeToken — live exchange', () => {
 
     await refreshClaudeToken({
       refreshToken: 'rt',
-      allowLiveExchange: true,
       clientSecret: 'secret!',
       fetchImpl,
     });
@@ -103,7 +91,6 @@ describe('refreshClaudeToken — live exchange', () => {
 
     const result = await refreshClaudeToken({
       refreshToken: 'rt-old',
-      allowLiveExchange: true,
       fetchImpl,
     });
 
@@ -127,7 +114,6 @@ describe('refreshClaudeToken — live exchange', () => {
 
     const result = await refreshClaudeToken({
       refreshToken: 'rt-kept',
-      allowLiveExchange: true,
       fetchImpl,
     });
 
@@ -150,7 +136,6 @@ describe('refreshClaudeToken — live exchange', () => {
       () =>
         refreshClaudeToken({
           refreshToken: 'rt',
-          allowLiveExchange: true,
           fetchImpl,
         }),
       /Claude token refresh failed: 400/,

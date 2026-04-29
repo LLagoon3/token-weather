@@ -135,3 +135,31 @@ PR 본문에는 최소한 아래 내용을 포함한다.
 - PR 본문도 한글 기준
 - `dev`를 통합 브랜치로 우선 사용
 - `main`은 비교적 안정적인 상태만 반영
+
+## 7. 행동 강령 / 보안
+
+- 모든 기여자는 [Code of Conduct](./CODE_OF_CONDUCT.md)를 준수한다.
+- 보안 이슈(토큰 유출, 자격증명 처리 결함 등)는 GitHub Issue에 직접 작성하지 말고 [SECURITY.md](./SECURITY.md)에 안내된 비공개 신고 채널을 사용한다.
+- PR / issue 본문에 access token / refresh token / id token / session cookie / accountKey 같은 민감값을 절대 첨부하지 않는다. 실수로 노출한 경우 즉시 revoke 후 재발급한다(절차는 SECURITY.md).
+- 새로운 토큰성 필드를 provider adapter / auth schema에 도입하는 PR은 동일 PR 안에서 `packages/agent/src/cli/status-json.js::SENSITIVE_KEYS`를 갱신하고 redaction 회귀 테스트를 추가한다 (`docs/cli-json-output.md` §한계 참고).
+
+## 8. Release / changeset
+
+사용자-가시 변경(public API / CLI / `--json` shape / d.ts 등)을 포함하는 PR은 [Changesets](https://github.com/changesets/changesets)로 release note를 함께 commit한다.
+
+```bash
+npx changeset
+```
+
+대화형 프롬프트가 (1) 영향받는 패키지 (3개 publishable이 linked되어 있어 셋이 같은 bump를 받음) (2) bump type (major / minor / patch) (3) 사용자 노출 변경 한 줄 요약을 묻는다. 생성된 `.changeset/<random-name>.md`를 PR에 함께 commit하면 dev 머지 시 `changesets/action`이 누적된 changeset을 모아 release PR을 자동 생성/갱신한다 — 이때 `packages/<name>/CHANGELOG.md`가 자동 생성된다. root [CHANGELOG.md](./CHANGELOG.md)는 publish 시점에 release PR 작성자가 per-package CHANGELOG를 참고해 수동으로 큐레이트한다.
+
+- bump type 기준은 [docs/release-policy.md](./docs/release-policy.md). 모르면 PR 본문에 후보를 적고 리뷰에서 결정.
+- chore / docs only PR은 changeset 추가 안 함. CHANGELOG는 사용자 영향이 있는 변경만 기록.
+
+## 9. 기여자 라이선스
+
+이 저장소는 [Apache License 2.0](./LICENSE)으로 배포됩니다.
+
+PR을 제출하시면 본인의 기여(코드, 문서, 설정 등)가 동일하게 Apache-2.0 조건으로 라이선스됨에 동의한 것으로 간주됩니다. 별도의 CLA / DCO 절차는 운영하지 않습니다 — Apache-2.0 §5(Submission of Contributions)에 따른 묵시적 grant를 그대로 따릅니다.
+
+다른 라이선스로 기여하고자 하는 경우, PR 본문에 명시해 주시면 별도로 검토합니다.
