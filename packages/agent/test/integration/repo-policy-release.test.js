@@ -147,4 +147,24 @@ describe('repo-policy/release — release workflow (PR #74)', () => {
     const text = readText('.github/workflows/release.yml');
     assert.match(text, /NPM_CONFIG_PROVENANCE:\s*['"]?true['"]?/);
   });
+
+  // FF sync — publish 직후 main 을 dev tip 으로 자동 FF push 하는 step 이
+  // main 의 자동 동기 mirror 보장의 핵심. 이 step 이 사라지면 main 이 다시
+  // 정체되어 docs/*-merge-followup 같은 수동 정합 PR 패턴이 부활한다.
+  it('release.yml 에 publish 후 main FF sync step 이 있다', () => {
+    const text = readText('.github/workflows/release.yml');
+    // step 식별 — "FF sync main = dev tip" 표현 + main 으로의 git push
+    assert.match(text, /FF sync main.*dev tip/);
+    assert.match(text, /git push origin HEAD:main/);
+    // published gate — version mode (release PR 갱신만) 에서는 동작 안 함
+    assert.match(text, /steps\.changesets\.outputs\.published/);
+  });
+
+  // 위 FF sync 의 published gate 가 동작하려면 changesets/action step 에
+  // id 가 부여되어야 한다. id 가 없으면 outputs 참조가 깨져 gate 가
+  // 항상 false 가 되거나 syntax 오류가 발생한다.
+  it('release.yml 의 changesets/action step 에 id: changesets 가 있다', () => {
+    const text = readText('.github/workflows/release.yml');
+    assert.match(text, /uses:\s*changesets\/action@v1\s*\n\s*id:\s*changesets/);
+  });
 });
