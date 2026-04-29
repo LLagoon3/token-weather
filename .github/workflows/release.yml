@@ -1,8 +1,10 @@
 name: Release
 
 # dev 브랜치 push 시 누적된 .changeset/*.md 를 모아 release PR(version bump +
-# CHANGELOG entry)을 자동 생성/갱신한다. 그 release PR이 머지되면 install
-# smoke 통과 후 changesets/action 이 npm publish 를 자동 실행한다.
+# CHANGELOG entry)을 자동 생성/갱신한다. release PR 이 dev 로 머지되면 install
+# smoke 통과 후 changesets/action 이 npm publish 를 자동 실행하고, 직후 main
+# 이 dev tip (= 방금 publish 된 commit) 으로 자동 FF 동기화된다 — main 은
+# 사람이 직접 push/PR 하지 않는 자동 mirror.
 #
 # 정책 / 카테고리 / SCHEMA_VERSION 기준은 docs/release-policy.md.
 #
@@ -52,6 +54,7 @@ jobs:
       - run: bash ./scripts/install-smoke.sh
 
       - uses: changesets/action@v1
+        id: changesets
         with:
           version: npx changeset version
           publish: npx changeset publish
@@ -61,3 +64,20 @@ jobs:
           # 적용하도록 한다 (npm 9.5+ 인식). id-token: write OIDC 권한 +
           # Trusted Publisher 등록과 함께 supply chain attestation 보장.
           NPM_CONFIG_PROVENANCE: 'true'
+
+      # publish 성공 직후 main 을 dev tip 으로 자동 FF.
+      # GITHUB_SHA = release PR 의 dev 머지 commit = 방금 npm 으로 publish 된
+      # tarball 의 source commit. 같은 commit 을 main 의 새 tip 으로 push 하면
+      # main 이 npm latest 와 항상 정합되는 자동 mirror 로 유지된다.
+      #
+      # gate: changesets/action 이 publish mode 로 동작한 run 에서만 실행 —
+      # version mode (release PR 갱신만) 에서는 published=false 라 step skip.
+      # 이 덕분에 일반 feature PR 머지로는 main 이 안 움직인다.
+      #
+      # 본 step 이 사라지면 main 이 다시 정체되어 docs/*-merge-followup 같은
+      # 수동 정합 PR 패턴이 부활한다 — repo-policy-release.test.js 가 가드.
+      - name: FF sync main = dev tip (post-publish)
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          set -e
+          git push origin HEAD:main
