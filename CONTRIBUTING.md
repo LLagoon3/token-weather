@@ -6,15 +6,18 @@
 
 기본 브랜치는 다음처럼 사용한다.
 
-- `main`: 배포 가능하거나 기준이 되는 안정 브랜치
-- `dev`: 다음 작업들을 모아두는 통합 브랜치
-- 작업 브랜치: 기능/수정 단위 브랜치
+- `main`: 마지막 publish 된 commit 의 자동 동기 mirror — npm latest 와 정합. release.yml 의 FF sync step 이 publish 직후 자동 갱신하므로 사람이 직접 PR/push 하지 않는다.
+- `dev`: 통합 trunk — 모든 feature PR 의 base, release PR 도 dev 로 머지되며 publish 트리거.
+- 작업 브랜치: 기능/수정 단위 브랜치 — `dev` 에서 cut.
 
 권장 흐름:
 
-1. `dev`에서 작업 브랜치를 만든다.
-2. 작업이 끝나면 `dev`로 PR을 연다.
-3. 검증이 끝난 뒤 `dev -> main`으로 올린다.
+1. `dev` 에서 작업 브랜치를 만든다.
+2. 작업이 끝나면 `dev` 로 PR 을 연다.
+3. release 시점에는 `changesets/action` 이 누적된 changeset 으로 release PR (`changeset-release/dev`) 을 자동 생성/갱신한다.
+4. release PR 을 `dev` 로 머지하면 publish + GitHub Release tag 자동 실행, 직후 main 이 dev tip 으로 자동 FF 동기화된다.
+
+상세 흐름은 [docs/release-policy.md §5](./docs/release-policy.md).
 
 브랜치 이름 예시:
 
@@ -133,8 +136,8 @@ PR 본문에는 최소한 아래 내용을 포함한다.
 - 커밋 타입은 영어로 유지
 - 설명은 한글 기준
 - PR 본문도 한글 기준
-- `dev`를 통합 브랜치로 우선 사용
-- `main`은 비교적 안정적인 상태만 반영
+- `dev` 가 통합 trunk — feature PR base + publish trigger
+- `main` 은 publish 후 자동 FF 되는 mirror — npm latest 와 정합 (직접 PR/push 안 함)
 
 ## 7. 행동 강령 / 보안
 
@@ -151,7 +154,7 @@ PR 본문에는 최소한 아래 내용을 포함한다.
 npx changeset
 ```
 
-대화형 프롬프트가 (1) 영향받는 패키지 (3개 publishable이 linked되어 있어 셋이 같은 bump를 받음) (2) bump type (major / minor / patch) (3) 사용자 노출 변경 한 줄 요약을 묻는다. 생성된 `.changeset/<random-name>.md`를 PR에 함께 commit하면 dev 머지 시 `changesets/action`이 누적된 changeset을 모아 release PR을 자동 생성/갱신한다 — 이때 `packages/<name>/CHANGELOG.md`가 자동 생성된다. root [CHANGELOG.md](./CHANGELOG.md)는 publish 시점에 release PR 작성자가 per-package CHANGELOG를 참고해 수동으로 큐레이트한다.
+대화형 프롬프트가 (1) 영향받는 패키지 (3개 publishable이 linked되어 있어 셋이 같은 bump를 받음) (2) bump type (major / minor / patch) (3) 사용자 노출 변경 한 줄 요약을 묻는다. 생성된 `.changeset/<random-name>.md`를 PR에 함께 commit하면 dev 머지 시 `changesets/action`이 누적된 changeset을 모아 release PR을 자동 생성/갱신한다 — 이때 `packages/<name>/CHANGELOG.md`가 자동 생성된다. root [CHANGELOG.md](./CHANGELOG.md)는 publish 시점에 release PR 작성자가 per-package CHANGELOG를 참고해 수동으로 큐레이트한다. publish 직후 release.yml 의 FF sync step 이 main 을 dev tip 으로 자동 갱신한다.
 
 - bump type 기준은 [docs/release-policy.md](./docs/release-policy.md). 모르면 PR 본문에 후보를 적고 리뷰에서 결정.
 - chore / docs only PR은 changeset 추가 안 함. CHANGELOG는 사용자 영향이 있는 변경만 기록.
