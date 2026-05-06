@@ -266,13 +266,13 @@ provider snapshot 최상위 구조:
   detected: boolean,                 // 계정 또는 credential 존재
   authSource: 'agent-store' | '{provider}-cli-import' | 'openclaw-import' | 'not-found',
   selectedAccount: object | null,
-  usage: { source: 'stats-cache-json' | 'not-found', ... } | null,  // 로컬 캐시 기반 (옵션)
   networkUsage: SnapshotObject | null,                              // live endpoint 기반 (fetchXxxUsage 결과)
+  networkUsages: Array<{ accountKey, snapshot }>,                   // multi-account 시 per-account 결과
   // 기타 provider별 필드
 }
 ```
 
-network usage snapshot은 provider adapter의 `fetchXxxUsage`가 반환하는 정규화 결과를 그대로 담는다.
+network usage snapshot은 provider adapter의 `fetchXxxUsage`가 반환하는 정규화 결과를 그대로 담는다. v0.3.0 (issue #110) 에서 Claude 의 로컬 `stats-cache.json` 기반 `usage` 필드는 제거됐다 — window 사용률은 `networkUsage` (network endpoint 결과) 만 노출.
 
 ---
 

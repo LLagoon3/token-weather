@@ -47,7 +47,7 @@ Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구�
   - `postToTokenEndpoint` — token endpoint POST (form/json, timeout, error 정규화)
   - `fetchWithTimeout` — AbortController 기반 공통 wrapper
 - `codex/` — Codex (OpenAI) 인증 + usage
-- `claude/` — Claude (Anthropic) 인증 + usage + stats-cache
+- `claude/` — Claude (Anthropic) 인증 + usage
 
 각 provider는 동일한 파일 구성 패턴을 따른다 (constants / build-authorization-url / exchange-code / refresh-token / fetch-usage). 상세는 `docs/codebase-guide.md §3`.
 

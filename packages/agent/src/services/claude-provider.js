@@ -4,8 +4,6 @@ import {
 } from '@token-weather/provider-adapters/src/claude/read-claude-credentials.js';
 import { resolveImportedClaudeSnapshot } from '@token-weather/provider-adapters/src/claude/claude-imported-account.js';
 import { resolveClaudeAccount } from '../auth/resolve-claude-account.js';
-import { resolveClaudeUsageSourcePath } from '@token-weather/provider-adapters/src/claude/resolve-claude-usage-source.js';
-import { readClaudeStatsCache } from '@token-weather/provider-adapters/src/claude/read-claude-stats-cache.js';
 import { fetchClaudeUsage } from '@token-weather/provider-adapters/src/claude/fetch-claude-usage.js';
 import { CLAUDE_AUTH } from '@token-weather/provider-adapters/src/claude/claude-auth-constants.js';
 import { loadAuthStore } from '../auth/auth-store.js';
@@ -41,7 +39,6 @@ export async function getClaudeSnapshot(
     resolveClaudeCredentialsPath(),
     readClaudeCredentials,
     agentClaudeAccounts,
-    resolveClaudeUsageSourcePath(),
   );
 
   if (!config.providers?.claude?.enabled) {
@@ -122,16 +119,17 @@ export { filterProfilesByAccount } from './account-filter.js';
 // → imported from claude-account-spec.js
 
 /**
- * Pure: build a Claude credential + stats-cache snapshot.
- * readFn / readStatsCacheFn 주입 가능 (테스트 편의).
+ * Pure: build a Claude credential snapshot.
+ * readFn 주입 가능 (테스트 편의).
  * Exported for testing.
+ *
+ * v0.3.0 (issue #110): `~/.claude/stats-cache.json` 의존 제거 — `usage` 필드
+ * 부재. window 사용률은 `networkUsage` (network endpoint 결과) 에서만 노출.
  */
 export function buildClaudeSnapshot(
   credentialsPath,
   readFn = readClaudeCredentials,
   agentClaudeAccounts = [],
-  usageSourcePath = resolveClaudeUsageSourcePath(),
-  readStatsCacheFn = readClaudeStatsCache,
 ) {
   const credentials = readFn(credentialsPath);
   const found = credentials !== null;
@@ -140,7 +138,6 @@ export function buildClaudeSnapshot(
     agentClaudeAccounts,
     imported.accounts,
   );
-  const statsCache = readStatsCacheFn(usageSourcePath);
   return {
     detected: found || agentClaudeAccounts.length > 0,
     authSource,
@@ -149,15 +146,6 @@ export function buildClaudeSnapshot(
     parsed: found,
     selectedAccount,
     importedAccount: selectedAccount, // backward-compat alias — prefer selectedAccount
-    usage: statsCache
-      ? {
-          source: 'stats-cache-json',
-          totalSessions: statsCache.totalSessions,
-          totalMessages: statsCache.totalMessages,
-          hasModelUsage: statsCache.hasModelUsage,
-          hasDailyModelTokens: statsCache.hasDailyModelTokens,
-        }
-      : { source: 'not-found' },
   };
 }
 

@@ -7,7 +7,6 @@ import {
   formatClaudeSection,
   formatClaudeNetworkUsage,
   formatClaudeNetworkUsages,
-  formatClaudeLocalUsage,
   formatWindow,
   formatStatusHelp,
   parseStatusOptions,
@@ -151,28 +150,10 @@ describe('formatClaudeNetworkUsage', () => {
   });
 });
 
-describe('formatClaudeLocalUsage', () => {
-  it('shows 데이터 없음 when usage is null or not-found', () => {
-    assert.ok(formatClaudeLocalUsage(null).some((l) => l.includes('데이터 없음')));
-    assert.ok(
-      formatClaudeLocalUsage({ source: 'not-found' }).some((l) => l.includes('데이터 없음')),
-    );
-  });
-
-  it('renders totalSessions / totalMessages / model usage indicators', () => {
-    const lines = formatClaudeLocalUsage({
-      source: 'stats-cache-json',
-      totalSessions: 10,
-      totalMessages: 200,
-      hasModelUsage: true,
-      hasDailyModelTokens: false,
-    });
-    assert.ok(lines.some((l) => l.includes('총 세션 수: 10')));
-    assert.ok(lines.some((l) => l.includes('총 메시지 수: 200')));
-    assert.ok(lines.some((l) => l.includes('모델별 usage: 있음')));
-    assert.ok(lines.some((l) => l.includes('일별 token 통계: 없음')));
-  });
-});
+// issue #110 — formatClaudeLocalUsage / [local] stats-cache.json 블록은
+// v0.3.0 에서 제거됐다. 이전 두 테스트 (`shows 데이터 없음 ...`, `renders
+// totalSessions / totalMessages / model usage indicators`) 는 함수 자체가
+// 사라져 적용 안 됨.
 
 describe('formatStatusOutput', () => {
   it('contains the command name and config summary lines', () => {
@@ -186,7 +167,6 @@ describe('formatStatusOutput', () => {
         detected: false,
         selectedAccount: null,
         networkUsage: null,
-        usage: { source: 'not-found' },
       },
     });
     assert.ok(lines.includes('명령: status'));
@@ -258,7 +238,6 @@ describe('formatClaudeSection — networkUsages array support', () => {
           snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
         },
       ],
-      usage: { source: 'not-found' },
     });
     assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
     assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
@@ -270,7 +249,6 @@ describe('formatClaudeSection — networkUsages array support', () => {
       detected: true,
       selectedAccount: null,
       networkUsage: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
-      usage: { source: 'not-found' },
     });
     assert.ok(lines.some((l) => l.includes('OK (200)')));
     // 단일 블록이므로 '- 계정:' 헤더 없어야 함
@@ -421,7 +399,6 @@ describe('formatStatusOutput — accountFilter line', () => {
         detected: false,
         selectedAccount: null,
         networkUsages: [],
-        usage: { source: 'not-found' },
       },
     });
     assert.ok(!lines.some((l) => l.includes('계정 필터')));
@@ -439,7 +416,6 @@ describe('formatStatusOutput — accountFilter line', () => {
         detected: false,
         selectedAccount: null,
         networkUsages: [],
-        usage: { source: 'not-found' },
       },
     });
     assert.ok(lines.includes('계정 필터: alice@x.com'));
@@ -458,7 +434,6 @@ describe('formatStatusOutput — providerFilter scope', () => {
     detected: false,
     selectedAccount: null,
     networkUsages: [],
-    usage: { source: 'not-found' },
   };
 
   it('renders only Codex usage section when providerFilter=codex (no claude key)', () => {
@@ -533,7 +508,6 @@ describe('formatClaudeSection — 기본 계정 라인 visibility', () => {
     authSource: 'agent-store',
     detected: true,
     selectedAccount: { accountKey: 'a:default' },
-    usage: { source: 'not-found' },
     networkUsages: [
       {
         accountKey: 'a:default',

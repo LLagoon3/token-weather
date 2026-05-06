@@ -11,7 +11,6 @@ export {
   formatClaudeNetworkUsages,
   formatClaudeNetworkUsageBody,
   formatClaudeNetworkUsage,
-  formatClaudeLocalUsage,
   formatWindow,
 } from './status-formatters.js';
 

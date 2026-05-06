@@ -24,18 +24,6 @@ export function formatClaudeSection(snapshot) {
   lines.push(`  accountKey:      ${snapshot.selectedAccount?.accountKey ?? '(없음)'}`);
   lines.push(`  authType:        ${snapshot.selectedAccount?.authType ?? '(알 수 없음)'}`);
 
-  const usage = snapshot.usage;
-  if (usage && usage.source !== 'not-found') {
-    lines.push('');
-    lines.push('Claude usage (stats-cache.json):');
-    lines.push(`  totalSessions:       ${usage.totalSessions ?? '알 수 없음'}`);
-    lines.push(`  totalMessages:       ${usage.totalMessages ?? '알 수 없음'}`);
-    lines.push(`  hasModelUsage:       ${usage.hasModelUsage}`);
-    lines.push(`  hasDailyModelTokens: ${usage.hasDailyModelTokens}`);
-  } else {
-    lines.push('  usage: 데이터 없음 (stats-cache.json 미발견)');
-  }
-
   lines.push('');
   lines.push('Claude live usage (api.anthropic.com/api/oauth/usage):');
 

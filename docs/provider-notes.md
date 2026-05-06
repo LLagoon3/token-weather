@@ -81,31 +81,11 @@ credential source 우선순위: `agent-store > claude-cli-import`
 - `doctor claude --refresh-live`로 수동 검증 가능
 - rotation 반영: 응답에 새 `refresh_token`이 오면 교체, 없으면 기존 유지
 
-### 로컬 usage (stats-cache)
+### 로컬 usage (stats-cache) — v0.3.0 에서 제거됨
 
-- 파일: `~/.claude/stats-cache.json`
-- Claude Code가 실행될 때 자동 갱신
-- 구조:
-  ```json
-  {
-    "version": 3,
-    "totalSessions": 42,
-    "totalMessages": 1200,
-    "modelUsage": { "claude-opus-4-6": 10 },
-    "dailyModelTokens": {
-      "2026-04-14": {
-        "claude-opus-4-6": {
-          "inputTokens": 5000,
-          "outputTokens": 2000,
-          "cacheCreation": 300,
-          "cacheRead": 1500
-        }
-      }
-    }
-  }
-  ```
-- 상태: 감지 및 최소 파싱 완료 (totalSessions, totalMessages, modelUsage/dailyModelTokens 유무)
-- 상세 토큰 수치 파싱은 후속 작업
+`~/.claude/stats-cache.json` (Claude Code 의 client-side telemetry artifact) 의존은 v0.3.0 (issue #110) 에서 제거됐다. 누적 통계 (totalSessions, totalMessages, per-model) 가 필요한 사용자는 이 파일을 직접 파싱하면 된다 — Anthropic 의 internal artifact 라 본 도구가 추상화하지 않는다.
+
+본 도구는 이제 network endpoint (`/api/oauth/usage`) 의 window 기반 사용률 정보 (five_hour / seven_day) 만 노출한다 — Codex 의 server-side rate-limit 모델과 architectural symmetry.
 
 ### 알려진 제한 / 미확정
 
