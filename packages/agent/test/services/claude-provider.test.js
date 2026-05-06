@@ -22,16 +22,9 @@ describe('selectClaudeAuthSource (via claude-provider)', () => {
 
 describe('buildClaudeSnapshot (via claude-provider)', () => {
   it('returns detected=false when no credentials and no agent accounts', () => {
-    const snap = buildClaudeSnapshot(
-      FAKE_PATH,
-      () => null,
-      [],
-      '/tmp/no-stats.json',
-      () => null,
-    );
+    const snap = buildClaudeSnapshot(FAKE_PATH, () => null, []);
     assert.equal(snap.detected, false);
     assert.equal(snap.authSource, 'not-found');
-    assert.equal(snap.usage.source, 'not-found');
   });
 
   it('detects credentials from injected readFn', () => {
@@ -43,36 +36,17 @@ describe('buildClaudeSnapshot (via claude-provider)', () => {
       subscriptionType: null,
       rateLimitTier: null,
     };
-    const snap = buildClaudeSnapshot(
-      FAKE_PATH,
-      () => fakeCreds,
-      [],
-      '/tmp/no-stats.json',
-      () => null,
-    );
+    const snap = buildClaudeSnapshot(FAKE_PATH, () => fakeCreds, []);
     assert.equal(snap.detected, true);
     assert.equal(snap.authSource, 'claude-cli-import');
     assert.equal(snap.selectedAccount?.accountKey, 'claude-cli-import');
   });
 
-  it('includes stats-cache usage when readStatsCacheFn returns data', () => {
-    const snap = buildClaudeSnapshot(
-      FAKE_PATH,
-      () => null,
-      [],
-      '/tmp/stats.json',
-      () => ({
-        version: 3,
-        totalSessions: 10,
-        totalMessages: 42,
-        hasModelUsage: true,
-        hasDailyModelTokens: false,
-        raw: {},
-      }),
-    );
-    assert.equal(snap.usage.source, 'stats-cache-json');
-    assert.equal(snap.usage.totalSessions, 10);
-    assert.equal(snap.usage.hasModelUsage, true);
+  // issue #110 — `~/.claude/stats-cache.json` 의존 제거 회귀 가드.
+  // 우발적으로 usage 필드가 부활하면 즉시 fail.
+  it('snapshot 에 usage 필드가 부재한다 (issue #110)', () => {
+    const snap = buildClaudeSnapshot(FAKE_PATH, () => null, []);
+    assert.equal('usage' in snap, false, 'usage 필드는 v0.3.0 에서 제거됨');
   });
 
   it('prefers agent-store account over claude-cli-import credentials', () => {
