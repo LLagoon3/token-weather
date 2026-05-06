@@ -219,6 +219,28 @@ describe('findDuplicateGroups — manual / mock 제외', () => {
 });
 
 describe('findDuplicateGroups — transitive grouping', () => {
+  // PR #108 review 가 발견한 bridge 케이스 회귀 가드.
+  // 입력 순서: A(sub1) → C(sub2) → B(sub1+emailMatch C) — B 가 두 그룹의
+  // bridge 가 되어 A/B/C 가 한 그룹으로 병합되어야 한다. 이전 break 구현은
+  // B 를 첫 매칭 그룹(A)에만 합류시키고 C 를 단독 잔존 → 길이 1 필터로
+  // 사라지게 만들어 일부 duplicate 가 감지 누락됐었음.
+  it('bridge 케이스: A↔B sub 매칭 + B↔C email 매칭, 입력 순서 A→C→B 여도 한 그룹', () => {
+    const accounts = [
+      { accountKey: 'A', accountId: 'sub1', email: 'a@x.com', source: 'agent-store' },
+      { accountKey: 'C', accountId: 'sub2', email: 'b@x.com', source: 'agent-store' },
+      { accountKey: 'B', accountId: 'sub1', email: 'b@x.com', source: 'agent-store' },
+    ];
+    const groups = findDuplicateGroups(accounts);
+    assert.equal(groups.length, 1, 'bridge 합쳐져 단일 그룹이어야 함');
+    const allKeys = [
+      groups[0].primary.accountKey,
+      ...groups[0].duplicates.map((d) => d.accountKey),
+    ].sort();
+    assert.deepEqual(allKeys, ['A', 'B', 'C']);
+    // sub 매칭 (A↔B) 이 존재하므로 reason 은 same-sub
+    assert.equal(groups[0].reason, 'same-sub');
+  });
+
   it('A↔B sub 매칭 + B↔C email 매칭 → 한 그룹으로 묶임 (sub 우선 reason)', () => {
     const accounts = [
       {

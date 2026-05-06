@@ -38,51 +38,73 @@ export function findDuplicateGroups(accounts) {
   const eligible = accounts.filter((a) => a && !isManualOrMockAccount(a));
   if (eligible.length < 2) return [];
 
-  // 단순 iterative grouping — 각 계정을 기존 그룹 중 하나라도 매칭되면 합친다.
+  // Iterative grouping with merge — 새 계정이 여러 기존 그룹에 매칭되면 그
+  // 그룹들을 하나로 병합한다. 매칭이 첫 그룹에서 break 되던 이전 구현은
+  // 입력 순서에 따라 bridge 케이스가 누락됐다 (PR #108 review):
+  //   A(sub1, email=a) → group [A]
+  //   C(sub2, email=b) → group [C]
+  //   B(sub1, email=b) → A 그룹에만 합류, C 그룹과 merge 누락 → C 가 단독
+  //   잔존 → 길이 1 필터로 사라짐.
+  // 새 account 가 매칭되는 모든 그룹을 수집한 뒤 인덱스 0 으로 합쳐 해결.
   // 계정 수가 작아 (<50) O(n²) 충분.
-  /** @type {Array<{ accounts: object[], reason: 'same-sub'|'same-email'|null }>} */
+  /** @type {Array<{ accounts: object[] }>} */
   const groups = [];
   for (const account of eligible) {
-    let placed = false;
-    for (const group of groups) {
-      let hitReason = null;
-      for (const member of group.accounts) {
-        const matched = sameIdentity(member, account);
-        if (matched) {
-          hitReason = matched;
+    const matchedIndices = [];
+    for (let i = 0; i < groups.length; i += 1) {
+      for (const member of groups[i].accounts) {
+        if (sameIdentity(member, account)) {
+          matchedIndices.push(i);
           break;
         }
       }
-      if (hitReason) {
-        group.accounts.push(account);
-        // sub 매칭이 등장하면 그룹 reason 을 same-sub 로 승격
-        if (group.reason !== 'same-sub' && hitReason === 'same-sub') {
-          group.reason = 'same-sub';
-        } else if (group.reason == null) {
-          group.reason = hitReason;
-        }
-        placed = true;
-        break;
-      }
     }
-    if (!placed) {
-      groups.push({ accounts: [account], reason: null });
+
+    if (matchedIndices.length === 0) {
+      groups.push({ accounts: [account] });
+      continue;
+    }
+
+    const target = groups[matchedIndices[0]];
+    target.accounts.push(account);
+    // 두 번째 이후 매칭 그룹들을 target 으로 흡수 후 제거 (descending index 로
+    // splice 안전).
+    for (let j = matchedIndices.length - 1; j >= 1; j -= 1) {
+      const merging = groups[matchedIndices[j]];
+      target.accounts.push(...merging.accounts);
+      groups.splice(matchedIndices[j], 1);
     }
   }
 
   return groups
     .filter((g) => g.accounts.length >= 2)
     .map((g) => {
+      const reason = determineGroupReason(g.accounts);
       const sorted = [...g.accounts].sort(comparePrimaryPriority);
       const primary = sorted[0];
       const duplicates = sorted.slice(1);
-      const reason = g.reason ?? 'same-email';
       const identityKey =
         reason === 'same-sub'
           ? (primary.accountId ?? extractIdentity(primary).sub ?? '?')
           : (primary.email ?? extractIdentity(primary).email ?? '?');
       return { reason, identityKey, primary, duplicates };
     });
+}
+
+/**
+ * 그룹 내부 어떤 페어라도 sub 매칭이면 'same-sub', 아니면 'same-email'.
+ * 그룹은 이미 동일 identity 라 보장됐으므로 두 결과 중 하나는 반드시 나옴.
+ *
+ * @param {object[]} accounts - 동일 그룹 안의 계정들 (length >= 2)
+ * @returns {'same-sub' | 'same-email'}
+ */
+function determineGroupReason(accounts) {
+  for (let i = 0; i < accounts.length; i += 1) {
+    for (let j = i + 1; j < accounts.length; j += 1) {
+      if (sameIdentity(accounts[i], accounts[j]) === 'same-sub') return 'same-sub';
+    }
+  }
+  return 'same-email';
 }
 
 /**
