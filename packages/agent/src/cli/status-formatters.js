@@ -104,7 +104,6 @@ export function formatClaudeSection(claude) {
       accountFilter: claude.accountFilter,
     }),
   );
-  lines.push(...formatClaudeLocalUsage(claude.usage));
   return lines;
 }
 
@@ -163,20 +162,6 @@ export function formatClaudeNetworkUsageBody(networkUsage, indented = false) {
 export function formatClaudeNetworkUsage(networkUsage) {
   const header = ['', '[live] api.anthropic.com/api/oauth/usage'];
   return [...header, ...formatClaudeNetworkUsageBody(networkUsage, false)];
-}
-
-/** Claude local stats-cache block. */
-export function formatClaudeLocalUsage(usage) {
-  const lines = ['', '[local] stats-cache.json'];
-  if (!usage || usage.source === 'not-found') {
-    lines.push('  데이터 없음 (stats-cache.json 미발견)');
-    return lines;
-  }
-  lines.push(`  총 세션 수: ${usage.totalSessions ?? '알 수 없음'}`);
-  lines.push(`  총 메시지 수: ${usage.totalMessages ?? '알 수 없음'}`);
-  lines.push(`  모델별 usage: ${usage.hasModelUsage ? '있음' : '없음'}`);
-  lines.push(`  일별 token 통계: ${usage.hasDailyModelTokens ? '있음' : '없음'}`);
-  return lines;
 }
 
 function formatAccountDisplay(account) {
