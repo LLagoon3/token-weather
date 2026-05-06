@@ -23,7 +23,7 @@ token-weather status --json --account work@example.com --provider claude
 {
   "command": "status",
   "generatedAt": "2026-04-25T08:30:00.000Z",
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "configPath": "/home/user/.config/token-weather/config.json",
   "accountFilter": null,
   "providerFilter": null,
@@ -38,7 +38,7 @@ token-weather status --json --account work@example.com --provider claude
 | ---------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `command`        | `"status"` \| `"usage"` | 호출된 커맨드 이름.                                                                                                                                                          |
 | `generatedAt`    | ISO-8601 string         | snapshot 직렬화 시각(client-side).                                                                                                                                           |
-| `schemaVersion`  | string semver \| null   | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.1.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
+| `schemaVersion`  | string semver \| null   | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.2.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
 | `configPath`     | string \| null          | resolved config 파일 경로.                                                                                                                                                   |
 | `accountFilter`  | string \| null          | `--account <id>` 입력 (case-insensitive 매치는 별도).                                                                                                                        |
 | `providerFilter` | string \| null          | `--provider <id>` 입력. lowercase 정규화된 값.                                                                                                                               |
