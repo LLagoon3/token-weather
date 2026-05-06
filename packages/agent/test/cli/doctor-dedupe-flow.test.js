@@ -20,9 +20,7 @@ describe('findBackfillCandidates', () => {
   });
 
   it('skips accounts with accountId set', () => {
-    const accounts = [
-      { accountKey: 'a', accountId: 'sub1', raw: { idToken: JWT_SUB_A } },
-    ];
+    const accounts = [{ accountKey: 'a', accountId: 'sub1', raw: { idToken: JWT_SUB_A } }];
     assert.deepEqual(findBackfillCandidates(accounts), []);
   });
 

@@ -277,15 +277,12 @@ describe('parseDoctorClaudeOptions', () => {
   });
 
   it('parses --dedupe / --apply / --backfill-account-id (issue #37)', () => {
-    assert.deepEqual(
-      parseDoctorClaudeOptions(['--dedupe', '--apply', '--backfill-account-id']),
-      {
-        ...DEFAULTS,
-        dedupe: true,
-        apply: true,
-        backfillAccountId: true,
-      },
-    );
+    assert.deepEqual(parseDoctorClaudeOptions(['--dedupe', '--apply', '--backfill-account-id']), {
+      ...DEFAULTS,
+      dedupe: true,
+      apply: true,
+      backfillAccountId: true,
+    });
   });
 
   it('recognizes --help and -h', () => {

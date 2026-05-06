@@ -259,7 +259,9 @@ describe('findDuplicateGroups — 다중 그룹', () => {
     ];
     const groups = findDuplicateGroups(accounts);
     assert.equal(groups.length, 2);
-    const allKeys = groups.flatMap((g) => [g.primary.accountKey, ...g.duplicates.map((d) => d.accountKey)]).sort();
+    const allKeys = groups
+      .flatMap((g) => [g.primary.accountKey, ...g.duplicates.map((d) => d.accountKey)])
+      .sort();
     assert.deepEqual(allKeys, ['g1-a', 'g1-b', 'g2-a', 'g2-b']);
     // lone 계정은 어느 그룹에도 속하지 않음
     assert.ok(!allKeys.includes('lone'));

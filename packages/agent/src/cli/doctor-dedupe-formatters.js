@@ -51,7 +51,10 @@ export function formatDedupeProposal({ providerId, accounts, plan, options }) {
 
   if (!options.apply) {
     lines.push('');
-    if (plan.groups.length === 0 && (!options.backfillAccountId || plan.backfillCandidates.length === 0)) {
+    if (
+      plan.groups.length === 0 &&
+      (!options.backfillAccountId || plan.backfillCandidates.length === 0)
+    ) {
       lines.push('변경 사항이 없습니다 (dry-run).');
     } else {
       lines.push('실제 반영을 원하면 --apply 옵션을 추가하세요:');
@@ -87,7 +90,8 @@ export function formatDedupeApplied(plan) {
   lines.push('');
   const summary = [];
   if (removedCount > 0) summary.push(`${removedCount}건 제거`);
-  if (plan.backfillCandidates.length > 0) summary.push(`${plan.backfillCandidates.length}건 backfill`);
+  if (plan.backfillCandidates.length > 0)
+    summary.push(`${plan.backfillCandidates.length}건 backfill`);
   lines.push(`총 ${summary.join(' + ')}. auth.json 갱신 완료.`);
   return lines;
 }
