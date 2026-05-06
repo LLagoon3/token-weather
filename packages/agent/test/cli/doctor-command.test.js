@@ -222,67 +222,70 @@ describe('formatClaudeSection', () => {
 });
 
 describe('parseDoctorClaudeOptions', () => {
+  // 모든 default 필드 — issue #37 에서 dedupe / apply / backfillAccountId 추가.
+  const DEFAULTS = {
+    refreshLive: false,
+    account: null,
+    dedupe: false,
+    apply: false,
+    backfillAccountId: false,
+    help: false,
+  };
+
   it('returns defaults', () => {
-    assert.deepEqual(parseDoctorClaudeOptions([]), {
-      refreshLive: false,
-      account: null,
-      help: false,
-    });
+    assert.deepEqual(parseDoctorClaudeOptions([]), DEFAULTS);
   });
 
   it('sets refreshLive=true when --refresh-live is present', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--refresh-live']), {
+      ...DEFAULTS,
       refreshLive: true,
-      account: null,
-      help: false,
     });
   });
 
   it('handles mixed / unknown args gracefully', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--foo', '--refresh-live', 'bar']), {
+      ...DEFAULTS,
       refreshLive: true,
-      account: null,
-      help: false,
     });
   });
 
   it('handles null/undefined args', () => {
-    assert.deepEqual(parseDoctorClaudeOptions(undefined), {
-      refreshLive: false,
-      account: null,
-      help: false,
-    });
-    assert.deepEqual(parseDoctorClaudeOptions(null), {
-      refreshLive: false,
-      account: null,
-      help: false,
-    });
+    assert.deepEqual(parseDoctorClaudeOptions(undefined), DEFAULTS);
+    assert.deepEqual(parseDoctorClaudeOptions(null), DEFAULTS);
   });
 
   it('parses --account <value>', () => {
     assert.deepEqual(parseDoctorClaudeOptions(['--refresh-live', '--account', 'work']), {
+      ...DEFAULTS,
       refreshLive: true,
       account: 'work',
-      help: false,
     });
   });
 
   it('ignores --account without value', () => {
-    assert.deepEqual(parseDoctorClaudeOptions(['--account']), {
-      refreshLive: false,
-      account: null,
-      help: false,
-    });
+    assert.deepEqual(parseDoctorClaudeOptions(['--account']), DEFAULTS);
   });
 
   it('treats --account "" as "no value" and lets subsequent flags parse (legacy contract)', () => {
     // 공통 helper 전환 후에도 빈 문자열은 default 유지하고 consume하지 않아
     // 이어지는 --refresh-live가 정상 파싱되어야 한다.
     assert.deepEqual(parseDoctorClaudeOptions(['--account', '', '--refresh-live']), {
+      ...DEFAULTS,
       refreshLive: true,
-      account: null,
-      help: false,
     });
+  });
+
+  it('parses --dedupe / --apply / --backfill-account-id (issue #37)', () => {
+    assert.deepEqual(
+      parseDoctorClaudeOptions(['--dedupe', '--apply', '--backfill-account-id']),
+      {
+        ...DEFAULTS,
+        dedupe: true,
+        apply: true,
+        backfillAccountId: true,
+      },
+    );
   });
 
   it('recognizes --help and -h', () => {

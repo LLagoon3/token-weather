@@ -18,12 +18,22 @@ import {
 import { updateCodexStoreAfterRefresh } from '../auth/codex-refresh-store.js';
 import { updateClaudeStoreAfterRefresh } from '../auth/claude-refresh-store.js';
 import { parseCliOptions } from './parse-options.js';
+import { runDedupeFlow } from './doctor-dedupe-flow.js';
 
 const DOCTOR_FLAGS = {
   '--refresh-live': { key: 'refreshLive', type: 'boolean' },
   '--account': { key: 'account', type: 'string' },
+  '--dedupe': { key: 'dedupe', type: 'boolean' },
+  '--apply': { key: 'apply', type: 'boolean' },
+  '--backfill-account-id': { key: 'backfillAccountId', type: 'boolean' },
 };
-const DOCTOR_DEFAULTS = { refreshLive: false, account: null };
+const DOCTOR_DEFAULTS = {
+  refreshLive: false,
+  account: null,
+  dedupe: false,
+  apply: false,
+  backfillAccountId: false,
+};
 
 function parseDoctorOptions(args) {
   return parseCliOptions(args, {
@@ -66,9 +76,13 @@ export function formatDoctorCodexHelp() {
     'Codex 계정 상태와 refresh 가능성을 점검합니다.',
     '',
     'Options:',
-    '  --refresh-live        실제 token endpoint에 refresh POST 시도',
-    '  --account <id>        특정 계정 지정 (email / accountKey / label)',
-    '  -h, --help            이 도움말 출력',
+    '  --refresh-live           실제 token endpoint에 refresh POST 시도',
+    '  --account <id>           특정 계정 지정 (email / accountKey / label)',
+    '  --dedupe                 같은 sub/email 의 중복 레코드를 dry-run 으로 감지',
+    '  --apply                  --dedupe 와 함께 사용 — 실제 제거 반영',
+    '  --backfill-account-id    --dedupe 와 함께 사용 — accountId 빈 레코드를',
+    '                           raw.idToken 의 sub 로 채움',
+    '  -h, --help               이 도움말 출력',
   ];
 }
 
@@ -82,9 +96,13 @@ export function formatDoctorClaudeHelp() {
     'Claude credential 상태와 live usage를 점검합니다.',
     '',
     'Options:',
-    '  --refresh-live        Claude OAuth refresh token으로 실제 재발급 시도',
-    '  --account <id>        특정 계정 지정 (email / accountKey / label)',
-    '  -h, --help            이 도움말 출력',
+    '  --refresh-live           Claude OAuth refresh token으로 실제 재발급 시도',
+    '  --account <id>           특정 계정 지정 (email / accountKey / label)',
+    '  --dedupe                 같은 sub/email 의 중복 레코드를 dry-run 으로 감지',
+    '  --apply                  --dedupe 와 함께 사용 — 실제 제거 반영',
+    '  --backfill-account-id    --dedupe 와 함께 사용 — accountId 빈 레코드를',
+    '                           raw.idToken 의 sub 로 채움',
+    '  -h, --help               이 도움말 출력',
   ];
 }
 
@@ -149,6 +167,12 @@ async function runDoctorClaude(args = []) {
     for (const line of formatDoctorClaudeHelp()) console.log(line);
     return;
   }
+
+  if (options.dedupe) {
+    await runDedupeFlow({ providerId: CLAUDE_AUTH.storeProvider, options });
+    return;
+  }
+
   const snapshot = await getClaudeSnapshot();
 
   console.log('token-weather doctor claude');
@@ -249,6 +273,11 @@ async function runDoctorCodex(args) {
   const options = parseDoctorCodexOptions(args);
   if (options.help) {
     for (const line of formatDoctorCodexHelp()) console.log(line);
+    return;
+  }
+
+  if (options.dedupe) {
+    await runDedupeFlow({ providerId: 'openai-codex', options });
     return;
   }
 
