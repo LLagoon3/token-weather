@@ -73,3 +73,37 @@ export function removeProviderAccount(store, providerId, accountKey) {
 
   return nextStore;
 }
+
+/**
+ * 특정 accountKey 의 레코드를 partial patch 로 갱신한다.
+ * 매칭되는 레코드가 없으면 원본 store 를 그대로 반환 (no-op).
+ *
+ * upsertProviderAccount 와 차이:
+ *   - upsert 는 "신규 또는 전체 갱신" — 없으면 push, 있으면 spread merge.
+ *   - update 는 "있을 때만 부분 갱신" — 없으면 noop, 있으면 spread merge.
+ *
+ * 주 용도: doctor --dedupe --backfill-account-id 가 accountId 만 채울 때.
+ *
+ * @param {object} store
+ * @param {string} providerId
+ * @param {string} accountKey
+ * @param {object} patch - 병합할 부분 필드들
+ * @returns {object} 새 store (원본 불변)
+ */
+export function updateProviderAccount(store, providerId, accountKey, patch) {
+  const nextStore = structuredClone(store);
+
+  const provider = nextStore.providers?.[providerId];
+  if (!provider || !provider.accounts) return nextStore;
+
+  const index = provider.accounts.findIndex((a) => a.accountKey === accountKey);
+  if (index < 0) return nextStore;
+
+  provider.accounts[index] = {
+    ...provider.accounts[index],
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+
+  return nextStore;
+}

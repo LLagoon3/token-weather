@@ -95,6 +95,48 @@ token-weather doctor claude --refresh-live --account <id>  # 특정 계정 지�
 
 `doctor --refresh-live`는 수동 진단/검증용 경로다. `status` / `usage`의 자동 refresh와는 별도로 동작한다.
 
+### `--dedupe` (issue #37)
+
+같은 OAuth subject (sub 또는 email) 를 가진 stale 레코드를 store 에서 정리한다. login 시점 자동 정리(PR #38) 이전에 누적된 legacy accountKey, 또는 id_token 파싱이 부분적으로 실패했던 케이스를 retroactive 로 청소.
+
+```bash
+token-weather doctor codex  --dedupe                              # dry-run: 후보만 출력
+token-weather doctor codex  --dedupe --apply                      # 실제 제거 반영
+token-weather doctor codex  --dedupe --backfill-account-id        # backfill 후보까지 dry-run
+token-weather doctor codex  --dedupe --backfill-account-id --apply  # 실제 반영
+token-weather doctor claude --dedupe ...                          # 동일 옵션
+```
+
+동작:
+
+- `--dedupe` 단독: 중복 그룹 + 유지/제거 후보를 콘솔에 출력만 (auth.json 변경 없음)
+- `--dedupe --apply`: 그룹마다 primary 1개를 유지하고 나머지를 `removeProviderAccount` 로 제거
+- `--backfill-account-id`: `accountId` 가 빈 레코드 중 `raw.idToken` 의 `sub` 로 채울 수 있는 후보를 함께 처리
+
+primary 선택 우선순위 (낮을수록 keep):
+
+1. `accountId` 가 set 된 쪽
+2. `status === 'active'` (vs `disabled`)
+3. `source === 'agent-store'` (vs `claude-cli-import` / `manual` 등)
+4. `updatedAt` 가 가장 최근
+5. `accountKey` lexicographic (안정 정렬)
+
+필터:
+
+- `source === 'manual'` 또는 `raw.mock === true` 인 레코드는 그룹화 대상에서 제외
+- 합성 email (`live-*@codex.openai.com`) 은 email 기반 매칭에서 배제
+
+상호작용:
+
+- `--account` 와 `--dedupe` 를 동시 지정하면 `--account` 는 무시되고 모든 계정을 검사한다 (warning 출력)
+- `--dedupe` 와 `--refresh-live` 가 동시에 오면 `--dedupe` 가 우선되어 dedupe 만 실행
+
+안전 가이드:
+
+- 항상 dry-run 먼저 (`--dedupe` 단독) 실행해 후보를 검토 후 `--apply`
+- 한 번 제거된 레코드는 자동 복구 안 됨 — 필요하면 사전에 `~/.config/token-weather/auth.json` 백업
+- v1 은 `doctor codex` / `doctor claude` 별도 실행 — provider 통합 dedupe 는 미지원
+
 ## 포트 충돌 정책 (Codex)
 
 - 기본 포트: `1455`
