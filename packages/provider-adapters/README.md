@@ -29,6 +29,7 @@ src/
     read-codex-auth-profiles.js
     fetch-codex-usage.js
     exchange-codex-authorization-code.js
+    refresh-codex-token.js
     index.js
   index.js
 ```
