@@ -55,9 +55,7 @@ describe('formatCodexSection', () => {
       credentialsPath: '/home/u/.codex/auth.json',
       snapshots: [],
     });
-    assert.ok(
-      lines.some((l) => l.includes('Codex CLI credential 경로: /home/u/.codex/auth.json')),
-    );
+    assert.ok(lines.some((l) => l.includes('Codex CLI credential 경로: /home/u/.codex/auth.json')));
   });
 
   it('renders snapshot details + windows + plan + error', () => {
