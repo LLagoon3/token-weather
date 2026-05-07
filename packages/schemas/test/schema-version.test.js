@@ -20,12 +20,15 @@ import { SCHEMA_VERSION } from '../src/index.js';
  * 변경 이력:
  *  - 0.1.0 (초기) — v0.1.0 publish 시점
  *  - 0.2.0 (PR #112, issue #110) — `status --json` 의 `claude.usage` 키 제거
+ *  - 0.3.0 (issue #113) — `status --json` 의 `authSource` enum value
+ *    'openclaw-import' 제거 + 'codex-cli-import' 추가 +
+ *    `codex.authProfilesPath` 필드를 `codex.credentialsPath` 로 변경
  */
 describe('SCHEMA_VERSION lock', () => {
   it('현재 값이 정책과 일치한다', () => {
     assert.equal(
       SCHEMA_VERSION,
-      '0.2.0',
+      '0.3.0',
       'SCHEMA_VERSION 변경 시 docs/release-policy.md §3 / docs/cli-json-output.md / 본 테스트를 같이 갱신',
     );
   });
