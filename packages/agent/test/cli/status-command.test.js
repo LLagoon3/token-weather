@@ -48,14 +48,16 @@ describe('formatCodexSection', () => {
     assert.ok(lines.some((l) => l.includes('Codex OAuth 프로필이 없습니다')));
   });
 
-  it('shows Auth profiles 경로 when openclaw-import', () => {
+  it('shows Codex CLI credential 경로 when codex-cli-import (issue #113)', () => {
     const lines = formatCodexSection({
       enabled: true,
-      authSource: 'openclaw-import',
-      authProfilesPath: '/path/openclaw.json',
+      authSource: 'codex-cli-import',
+      credentialsPath: '/home/u/.codex/auth.json',
       snapshots: [],
     });
-    assert.ok(lines.some((l) => l.includes('Auth profiles 경로: /path/openclaw.json')));
+    assert.ok(
+      lines.some((l) => l.includes('Codex CLI credential 경로: /home/u/.codex/auth.json')),
+    );
   });
 
   it('renders snapshot details + windows + plan + error', () => {

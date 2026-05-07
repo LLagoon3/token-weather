@@ -94,18 +94,22 @@ describe('filterRealCodexAccounts', () => {
 
 describe('selectCodexAuthSource', () => {
   const agentProfile = { id: 'codex:alice', accessToken: 'real-token' };
-  const openclawProfile = { id: 'openclaw-profile', accessToken: 'oc-token' };
+  // issue #113 — OpenClaw `auth-profiles.json` 폴백을 Codex CLI `~/.codex/auth.json`
+  // (`codex-cli-import`) 으로 교체. 폴백 import 의 shape 은 buildImportedCodexAccount
+  // 의 결과와 같지만, 본 테스트는 selectCodexAuthSource 의 source-priority 만 검증
+  // 하므로 임의 profile 객체로 충분.
+  const importedProfile = { id: 'codex-cli-import', accessToken: 'imported-token' };
 
   it('uses agent-store when real agent profiles exist', () => {
-    const result = selectCodexAuthSource([agentProfile], [openclawProfile]);
+    const result = selectCodexAuthSource([agentProfile], [importedProfile]);
     assert.equal(result.authSource, 'agent-store');
     assert.deepStrictEqual(result.profiles, [agentProfile]);
   });
 
-  it('falls back to openclaw-import when agent profiles list is empty', () => {
-    const result = selectCodexAuthSource([], [openclawProfile]);
-    assert.equal(result.authSource, 'openclaw-import');
-    assert.deepStrictEqual(result.profiles, [openclawProfile]);
+  it('falls back to codex-cli-import when agent profiles list is empty (issue #113)', () => {
+    const result = selectCodexAuthSource([], [importedProfile]);
+    assert.equal(result.authSource, 'codex-cli-import');
+    assert.deepStrictEqual(result.profiles, [importedProfile]);
   });
 
   it('returns not-found when both lists are empty (공통 resolveAuthSource 기준)', () => {

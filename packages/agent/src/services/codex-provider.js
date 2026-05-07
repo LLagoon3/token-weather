@@ -1,7 +1,8 @@
 import {
   fetchCodexUsage,
-  getDefaultAuthProfilesPath,
-  readCodexAuthProfiles,
+  readCodexCliCredentials,
+  resolveCodexCliCredentialsPath,
+  resolveImportedCodexAccounts,
 } from '@token-weather/provider-adapters/src/codex/index.js';
 import { filterEntriesByAccount, filterProfilesByAccount } from './account-filter.js';
 import { buildUsageSnapshot } from '@token-weather/provider-adapters/src/shared/usage-snapshot.js';
@@ -16,7 +17,12 @@ const CODEX_PROVIDER_ID = 'openai-codex';
 
 /**
  * Build the Codex section of the top-level status snapshot.
- * Reads auth-store first, falls back to OpenClaw auth-profiles.
+ * Reads auth-store first, falls back to Codex CLI credential
+ * (`~/.codex/auth.json`) — claude 의 claude-cli-import 폴백과 1:1 대칭.
+ *
+ * v0.3.0 (issue #113): OpenClaw `auth-profiles.json` 폴백은 `codex-cli-import`
+ * 로 교체됨. authSource enum 의 `openclaw-import` 값도 제거됨. `authProfilesPath`
+ * 필드는 `credentialsPath` 로 정렬 (claude 와 동일 표면).
  *
  * @param {object} config
  * @returns {Promise<object>}
@@ -25,7 +31,7 @@ export async function getCodexSnapshot(config, options = {}) {
   if (!config.providers?.codex?.enabled) {
     return {
       enabled: false,
-      authProfilesPath: getDefaultAuthProfilesPath(),
+      credentialsPath: resolveCodexCliCredentialsPath(),
       snapshots: [],
     };
   }
@@ -53,7 +59,7 @@ export async function getCodexSnapshot(config, options = {}) {
   return {
     enabled: true,
     authSource,
-    authProfilesPath: authSource === 'openclaw-import' ? getDefaultAuthProfilesPath() : null,
+    credentialsPath: authSource === 'codex-cli-import' ? resolveCodexCliCredentialsPath() : null,
     snapshots,
     accountFilter: options.accountFilter ?? null,
     filteredOut: Boolean(options.accountFilter) && entries.length === 0,
@@ -66,9 +72,9 @@ export { filterProfilesByAccount } from './account-filter.js';
 /**
  * @deprecated 공통 resolveAuthSource로 대체됨. 기존 테스트 import 호환용 re-export.
  */
-export function selectCodexAuthSource(agentProfiles, openclawProfiles) {
+export function selectCodexAuthSource(agentProfiles, importedProfiles) {
   const { accounts, authSource } = resolveAuthSource(agentProfiles, [
-    { id: 'openclaw-import', accounts: openclawProfiles },
+    { id: 'codex-cli-import', accounts: importedProfiles },
   ]);
   return { profiles: accounts, authSource };
 }
@@ -91,12 +97,13 @@ async function resolveCodexProfiles(accountFilter) {
     return { entries: filteredEntries, authSource: 'agent-store' };
   }
 
-  // Fallback: OpenClaw import
-  const openclawProfiles = readCodexAuthProfiles();
-  const filtered = filterProfilesByAccount(openclawProfiles, accountFilter);
+  // Fallback: Codex CLI 자체 credential (~/.codex/auth.json) — claude-cli-import 와 대칭.
+  const tokens = readCodexCliCredentials();
+  const importedAccounts = resolveImportedCodexAccounts(tokens);
+  const filtered = filterProfilesByAccount(importedAccounts, accountFilter);
   const { accounts, authSource } = resolveAuthSource(
     [],
-    [{ id: 'openclaw-import', accounts: filtered }],
+    [{ id: 'codex-cli-import', accounts: filtered }],
   );
   return {
     entries: accounts.map((profile) => ({ account: null, profile })),

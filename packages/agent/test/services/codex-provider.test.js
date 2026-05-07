@@ -21,9 +21,9 @@ describe('selectCodexAuthSource (via codex-provider)', () => {
     assert.deepEqual(result.profiles, [{ id: 'a' }]);
   });
 
-  it('falls back to openclaw-import when agent list is empty', () => {
-    const result = selectCodexAuthSource([], [{ id: 'oc' }]);
-    assert.equal(result.authSource, 'openclaw-import');
+  it('falls back to codex-cli-import when agent list is empty (issue #113)', () => {
+    const result = selectCodexAuthSource([], [{ id: 'imported' }]);
+    assert.equal(result.authSource, 'codex-cli-import');
   });
 });
 
@@ -55,7 +55,9 @@ describe('getCodexSnapshot — disabled config contract', () => {
     const snap = await getCodexSnapshot({ providers: { codex: { enabled: false } } });
     assert.equal(snap.enabled, false);
     assert.deepEqual(snap.snapshots, []);
-    assert.equal(typeof snap.authProfilesPath, 'string');
+    // issue #113 — authProfilesPath (OpenClaw 전용) → credentialsPath (Codex CLI 와 정렬, claude 와 대칭)
+    assert.equal(typeof snap.credentialsPath, 'string');
+    assert.match(snap.credentialsPath, /\/\.codex\/auth\.json$/);
   });
 });
 
