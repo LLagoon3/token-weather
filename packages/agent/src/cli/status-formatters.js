@@ -47,8 +47,8 @@ export function formatCodexSection(codex) {
   }
 
   lines.push(`인증 소스: ${codex.authSource ?? 'unknown'}`);
-  if (codex.authProfilesPath) {
-    lines.push(`Auth profiles 경로: ${codex.authProfilesPath}`);
+  if (codex.credentialsPath) {
+    lines.push(`Codex CLI credential 경로: ${codex.credentialsPath}`);
   }
 
   if (codex.snapshots.length === 0) {

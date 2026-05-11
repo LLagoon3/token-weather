@@ -1,7 +1,8 @@
 import {
   fetchCodexUsage,
-  getDefaultAuthProfilesPath,
-  readCodexAuthProfiles,
+  readCodexCliCredentials,
+  resolveCodexCliCredentialsPath,
+  resolveImportedCodexAccounts,
 } from '@token-weather/provider-adapters/src/codex/index.js';
 import { filterEntriesByAccount, filterProfilesByAccount } from './account-filter.js';
 import { buildUsageSnapshot } from '@token-weather/provider-adapters/src/shared/usage-snapshot.js';
@@ -16,7 +17,12 @@ const CODEX_PROVIDER_ID = 'openai-codex';
 
 /**
  * Build the Codex section of the top-level status snapshot.
- * Reads auth-store first, falls back to OpenClaw auth-profiles.
+ * Reads auth-store first, falls back to Codex CLI credential
+ * (`~/.codex/auth.json`) — claude 의 claude-cli-import 폴백과 1:1 대칭.
+ *
+ * v0.3.0 (issue #113): OpenClaw `auth-profiles.json` 폴백은 `codex-cli-import`
+ * 로 교체됨. authSource enum 의 `openclaw-import` 값도 제거됨. `authProfilesPath`
+ * 필드는 `credentialsPath` 로 정렬 (claude 와 동일 표면).
  *
  * @param {object} config
  * @returns {Promise<object>}
@@ -25,7 +31,7 @@ export async function getCodexSnapshot(config, options = {}) {
   if (!config.providers?.codex?.enabled) {
     return {
       enabled: false,
-      authProfilesPath: getDefaultAuthProfilesPath(),
+      credentialsPath: resolveCodexCliCredentialsPath(),
       snapshots: [],
     };
   }
@@ -53,7 +59,7 @@ export async function getCodexSnapshot(config, options = {}) {
   return {
     enabled: true,
     authSource,
-    authProfilesPath: authSource === 'openclaw-import' ? getDefaultAuthProfilesPath() : null,
+    credentialsPath: authSource === 'codex-cli-import' ? resolveCodexCliCredentialsPath() : null,
     snapshots,
     accountFilter: options.accountFilter ?? null,
     filteredOut: Boolean(options.accountFilter) && entries.length === 0,
@@ -66,9 +72,9 @@ export { filterProfilesByAccount } from './account-filter.js';
 /**
  * @deprecated 공통 resolveAuthSource로 대체됨. 기존 테스트 import 호환용 re-export.
  */
-export function selectCodexAuthSource(agentProfiles, openclawProfiles) {
+export function selectCodexAuthSource(agentProfiles, importedProfiles) {
   const { accounts, authSource } = resolveAuthSource(agentProfiles, [
-    { id: 'openclaw-import', accounts: openclawProfiles },
+    { id: 'codex-cli-import', accounts: importedProfiles },
   ]);
   return { profiles: accounts, authSource };
 }
@@ -91,16 +97,53 @@ async function resolveCodexProfiles(accountFilter) {
     return { entries: filteredEntries, authSource: 'agent-store' };
   }
 
-  // Fallback: OpenClaw import
-  const openclawProfiles = readCodexAuthProfiles();
-  const filtered = filterProfilesByAccount(openclawProfiles, accountFilter);
+  // Fallback: Codex CLI 자체 credential (~/.codex/auth.json) — claude-cli-import 와 대칭.
+  // imported account 는 fetchCodexUsage / buildUsageSnapshot 호환 profile shape 으로
+  // normalize 한 뒤 filter 에 넘긴다 — claude 측 resolveClaudeProfileFromSnapshot 과 대칭.
+  // (account record 의 accountKey 만으로는 filterProfilesByAccount(id/email/label)
+  // 매칭이 안 되고, buildUsageSnapshot 의 profile.id 도 비기 때문.)
+  const tokens = readCodexCliCredentials();
+  const importedAccounts = resolveImportedCodexAccounts(tokens);
+  const importedProfiles = importedAccounts
+    .map((account) => resolveCodexProfileFromAccount(account))
+    .filter(Boolean);
+  const filtered = filterProfilesByAccount(importedProfiles, accountFilter);
   const { accounts, authSource } = resolveAuthSource(
     [],
-    [{ id: 'openclaw-import', accounts: filtered }],
+    [{ id: 'codex-cli-import', accounts: filtered }],
   );
   return {
     entries: accounts.map((profile) => ({ account: null, profile })),
     authSource,
+  };
+}
+
+/**
+ * Imported Codex account record → fetchCodexUsage 호환 profile shape.
+ * claude 측의 `resolveClaudeProfileFromSnapshot` 와 1:1 대칭.
+ *
+ * imported account (top-level accessToken) 와 agent-store account (tokens.accessToken)
+ * 두 shape 모두 허용. accessToken 부재 시 `null`.
+ *
+ * Exported for testing.
+ *
+ * @param {object|null} account
+ * @returns {object|null}
+ */
+export function resolveCodexProfileFromAccount(account) {
+  if (!account) return null;
+
+  const accessToken = account.accessToken ?? account.tokens?.accessToken ?? null;
+  if (!accessToken) return null;
+
+  return {
+    id: account.accountKey ?? 'codex',
+    accountKey: account.accountKey ?? 'codex',
+    accessToken,
+    accountId: account.accountId ?? null,
+    email: account.email ?? null,
+    label: account.label ?? null,
+    expires: account.expiresAt ?? null,
   };
 }
 

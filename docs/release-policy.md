@@ -80,7 +80,7 @@ contract는 [docs/cli-json-output.md](./cli-json-output.md)에 stable로 명시�
 
 ## 3. SCHEMA_VERSION 규약
 
-`packages/schemas/src/index.js::SCHEMA_VERSION`은 현재 `'0.2.0'` (string semver).
+`packages/schemas/src/index.js::SCHEMA_VERSION`은 현재 `'0.3.0'` (string semver).
 
 - 본 패키지의 `version`과는 **독립**. 패키지가 0.5.0이어도 SCHEMA_VERSION은 0.1.0일 수 있음.
 - bump 트리거: §1의 **major** 항목 중 `status --json` shape 또는 `packages/schemas` JSON Schema의 breaking 변경이 발생할 때.
@@ -130,3 +130,4 @@ CHANGELOG는 두 layer로 운영한다 — Changesets 기본 동작에 맞춰서
 - 2026-04-29 (v0.2.0 publish 성공): OIDC + Trusted Publishing 단독 publish + SLSA provenance v1 적용 검증 완료. `NPM_TOKEN` 없이 publish 자동화 + supply chain attestation. 인프라 측면에서 epic #79 의 publish 모델 완전 전환 (long-lived secret 0). release workflow 의 Node 22 → 24 + npm 11+ 번들 사용으로 Trusted Publishing OIDC 요구사항 self-upgrade 없이 충족 ([#101]). root CHANGELOG `[0.2.0]` entry 도 수동 큐레이트로 추가 — 본 §4 운영 정책 첫 적용 사례.
 - 2026-04-29 (FF sync 도입): release.yml 에 publish 직후 `git push origin HEAD:main` FF push step 추가 + `changesets/action` 에 `id: changesets` 부여 (gate 용). trigger / baseBranch 는 `dev` 그대로 유지하고, main 만 자동 동기 mirror 로 복귀. PR #33 이후 정체된 main 이 npm latest 와 정합되는 외부 stable pointer 로 복귀, `docs/*-merge-followup` 같은 수동 정합 PR 패턴 영구 제거. 검토 단계에서 trigger 를 `[main]` 으로 옮기는 GitFlow lite 모델도 후보로 평가했으나 — `changesets/action` 의 trunk 가정과 충돌해 매 release 마다 `dev → main` 승격 PR 의 manual friction 이 발생, 1 인 maintainer + 빈번 release 인 본 repo 운영 패턴엔 부적합으로 판단해 폐기. CONTRIBUTING.md §1 / §6 / §8 + 본 §5 step 6 / §6 + repo-policy-release 회귀 가드 2건 (FF sync step / changesets step id) 동반.
 - 2026-05-06 (#110 — SCHEMA_VERSION 0.1.0 → 0.2.0): claude `~/.claude/stats-cache.json` 의존 제거 PR 의 일부로 `status --json` 에서 `claude.usage` 키가 제거됨 (release-policy §1 의 major 트리거 — 키 제거). v0.x convention 상 package version 은 minor bump 지만 **`status --json` 의 `schemaVersion` 자체는 별도 계약**이라 같이 bump (`docs/cli-json-output.md` §변경 정책 일관). 회귀 가드 신설 — `packages/schemas/test/schema-version.test.js` 가 SCHEMA_VERSION 값을 lock 해서 미래 우발적 bump 차단. PR #112 review 가 본 누락을 짚어 같은 PR 안에서 정정.
+- 2026-05-07 (#113 — SCHEMA_VERSION 0.2.0 → 0.3.0): codex 폴백을 OpenClaw `auth-profiles.json` 에서 Codex CLI `~/.codex/auth.json` 으로 전환 (claude 와 architectural symmetry). `status --json` shape 변경: `authSource` enum 의 `'openclaw-import'` 값 제거 + `'codex-cli-import'` 추가 (release-policy §1 의 키/의미 변경 = major 트리거); `codex.authProfilesPath` 필드 → `codex.credentialsPath` 로 정렬 (claude 측의 `claude.credentialsPath` 와 동일 표면). 외부 consumer 의 `authSource` 분기 + `authProfilesPath` 참조 둘 다 갱신 필요. v0.x convention 상 package version 은 minor + `!` prefix.

@@ -26,7 +26,9 @@ src/
   codex/
     codex-auth-constants.js
     build-codex-authorization-url.js
-    read-codex-auth-profiles.js
+    read-codex-cli-credentials.js
+    map-codex-credentials.js
+    codex-imported-account.js
     fetch-codex-usage.js
     exchange-codex-authorization-code.js
     refresh-codex-token.js
@@ -38,18 +40,13 @@ src/
 
 ### auth source
 
-기본적으로 아래 경로를 읽는다:
+우선순위 (claude 측 `claude-cli-import` 와 1:1 대칭, v0.3.0 / issue #113 정합):
 
-```text
-~/.openclaw/agents/main/agent/auth-profiles.json
-```
+1. **agent-store** (`~/.config/token-weather/auth.json`) — token-weather 자체 OAuth 로그인 결과
+2. **codex-cli-import** (`~/.codex/auth.json`) — Codex CLI 가 저장한 자체 credential 폴백
+3. **not-found**
 
-여기서:
-
-- `provider === "openai-codex"`
-- `type === "oauth"`
-
-인 프로필만 추출한다.
+`codex-cli-import` 는 사용자가 별도 `auth login codex` 안 해도 Codex CLI 의 기존 로그인을 흡수해 status / usage 표시 가능. token-weather 가 이 파일에 쓰지는 않음 (Codex CLI 영역 침범 X — refresh 결과는 agent-store 에만 저장).
 
 ### endpoint
 

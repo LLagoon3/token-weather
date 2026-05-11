@@ -7,15 +7,15 @@ describe('resolveAuthSource', () => {
   it('returns agent-store when agentAccounts is non-empty', () => {
     const result = resolveAuthSource(
       [{ id: 'agent-1' }],
-      [{ id: 'openclaw-import', accounts: [{ id: 'oc-1' }] }],
+      [{ id: 'codex-cli-import', accounts: [{ id: 'oc-1' }] }],
     );
     assert.equal(result.authSource, 'agent-store');
     assert.deepEqual(result.accounts, [{ id: 'agent-1' }]);
   });
 
   it('falls back to first non-empty import source', () => {
-    const result = resolveAuthSource([], [{ id: 'openclaw-import', accounts: [{ id: 'oc-1' }] }]);
-    assert.equal(result.authSource, 'openclaw-import');
+    const result = resolveAuthSource([], [{ id: 'codex-cli-import', accounts: [{ id: 'oc-1' }] }]);
+    assert.equal(result.authSource, 'codex-cli-import');
     assert.deepEqual(result.accounts, [{ id: 'oc-1' }]);
   });
 
@@ -50,7 +50,7 @@ describe('resolveAuthSource', () => {
   it('prefers agent-store even when import sources also have accounts', () => {
     const agent = [{ id: 'a1' }, { id: 'a2' }];
     const result = resolveAuthSource(agent, [
-      { id: 'openclaw-import', accounts: [{ id: 'oc' }] },
+      { id: 'codex-cli-import', accounts: [{ id: 'oc' }] },
       { id: 'claude-cli-import', accounts: [{ id: 'cli' }] },
     ]);
     assert.equal(result.authSource, 'agent-store');
