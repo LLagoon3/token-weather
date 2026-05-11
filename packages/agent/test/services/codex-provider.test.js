@@ -6,8 +6,11 @@ import {
   selectCodexAuthSource,
   filterRealCodexAccounts,
   filterProfilesByAccount,
+  resolveCodexProfileFromAccount,
 } from '../../src/services/codex-provider.js';
 import { filterEntriesByAccount } from '../../src/services/account-filter.js';
+import { buildImportedCodexAccount } from '@token-weather/provider-adapters/src/codex/index.js';
+import { buildUsageSnapshot } from '@token-weather/provider-adapters/src/shared/usage-snapshot.js';
 
 // ── pure helpers ─────────────────────────────────────────────────────────────
 // selectCodexAuthSource / filterRealCodexAccounts는 순수 함수로 이미 일부
@@ -131,5 +134,106 @@ describe('getCodexSnapshot — accountFilter flow', () => {
     );
     assert.equal(snap.enabled, false);
     // disabled path는 accountFilter 노출하지 않음 (provider 진입 전 short-circuit)
+  });
+});
+
+// ── PR #114 review follow-up — codex-cli-import profile normalize 회귀 가드 ──
+// 코멘트 요지: imported codex account 가 raw 그대로 profile 로 전달되면
+//   (a) filterProfilesByAccount(id/email/label) 에서 --account codex-cli-import 미매칭
+//   (b) buildUsageSnapshot 의 snapshotId / account.profileId 가 `codex:undefined:...`
+// 두 문제 모두 발생. resolveCodexProfileFromAccount 가 1차 normalize 단계.
+// claude 의 resolveClaudeProfileFromSnapshot 과 1:1 대칭.
+
+describe('resolveCodexProfileFromAccount (via codex-provider)', () => {
+  it('returns null when account is missing', () => {
+    assert.equal(resolveCodexProfileFromAccount(null), null);
+    assert.equal(resolveCodexProfileFromAccount(undefined), null);
+  });
+
+  it('returns null when no accessToken anywhere', () => {
+    assert.equal(resolveCodexProfileFromAccount({ accountKey: 'x' }), null);
+  });
+
+  it('extracts accessToken from imported codex account (top-level)', () => {
+    const profile = resolveCodexProfileFromAccount({
+      provider: 'codex',
+      source: 'codex-cli-import',
+      accountKey: 'codex-cli-import',
+      accessToken: 'cli-at',
+      refreshToken: 'cli-rt',
+      idToken: 'jwt-x',
+      accountId: 'acc-1',
+    });
+    assert.equal(profile.id, 'codex-cli-import');
+    assert.equal(profile.accountKey, 'codex-cli-import');
+    assert.equal(profile.accessToken, 'cli-at');
+    assert.equal(profile.accountId, 'acc-1');
+  });
+
+  it('extracts accessToken from tokens.accessToken (agent-store shape)', () => {
+    const profile = resolveCodexProfileFromAccount({
+      accountKey: 'codex:alice',
+      tokens: { accessToken: 'store-at' },
+    });
+    assert.equal(profile.accessToken, 'store-at');
+    assert.equal(profile.id, 'codex:alice');
+  });
+});
+
+describe('codex-cli-import profile → filterProfilesByAccount (PR #114)', () => {
+  it('matches when --account codex-cli-import is requested', () => {
+    const imported = buildImportedCodexAccount({
+      id_token: 'jwt-1',
+      access_token: 'at',
+      refresh_token: 'rt',
+      account_id: 'acc-1',
+    });
+    const profile = resolveCodexProfileFromAccount(imported);
+    const matched = filterProfilesByAccount([profile], 'codex-cli-import');
+    assert.equal(matched.length, 1);
+    assert.equal(matched[0].id, 'codex-cli-import');
+  });
+
+  it('does not match an unrelated filter value', () => {
+    const imported = buildImportedCodexAccount({
+      id_token: 'jwt-1',
+      access_token: 'at',
+      refresh_token: 'rt',
+      account_id: 'acc-1',
+    });
+    const profile = resolveCodexProfileFromAccount(imported);
+    assert.equal(filterProfilesByAccount([profile], 'nope').length, 0);
+  });
+});
+
+describe('codex-cli-import profile → buildUsageSnapshot id stability (PR #114)', () => {
+  it('snapshotId / account.profileId are stable strings, never undefined', () => {
+    const imported = buildImportedCodexAccount({
+      id_token: 'jwt-1',
+      access_token: 'at',
+      refresh_token: 'rt',
+      account_id: 'acc-1',
+    });
+    const profile = resolveCodexProfileFromAccount(imported);
+
+    const snap = buildUsageSnapshot({
+      profile,
+      providerId: 'openai-codex',
+      displayName: 'Codex',
+      snapshotIdPrefix: 'codex',
+      capturedAt: new Date('2026-05-11T00:00:00.000Z'),
+      responseStatus: 200,
+      ok: true,
+      data: {},
+      rawText: '',
+      fields: {},
+    });
+
+    assert.equal(typeof snap.snapshotId, 'string');
+    assert.equal(typeof snap.account.profileId, 'string');
+    assert.equal(snap.account.profileId, 'codex-cli-import');
+    assert.equal(snap.snapshotId, 'codex:codex-cli-import:2026-05-11T00:00:00.000Z');
+    // `codex:undefined:` substring 부재 — regression guard
+    assert.ok(!snap.snapshotId.includes('undefined'));
   });
 });

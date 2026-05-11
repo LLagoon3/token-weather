@@ -98,9 +98,16 @@ async function resolveCodexProfiles(accountFilter) {
   }
 
   // Fallback: Codex CLI 자체 credential (~/.codex/auth.json) — claude-cli-import 와 대칭.
+  // imported account 는 fetchCodexUsage / buildUsageSnapshot 호환 profile shape 으로
+  // normalize 한 뒤 filter 에 넘긴다 — claude 측 resolveClaudeProfileFromSnapshot 과 대칭.
+  // (account record 의 accountKey 만으로는 filterProfilesByAccount(id/email/label)
+  // 매칭이 안 되고, buildUsageSnapshot 의 profile.id 도 비기 때문.)
   const tokens = readCodexCliCredentials();
   const importedAccounts = resolveImportedCodexAccounts(tokens);
-  const filtered = filterProfilesByAccount(importedAccounts, accountFilter);
+  const importedProfiles = importedAccounts
+    .map((account) => resolveCodexProfileFromAccount(account))
+    .filter(Boolean);
+  const filtered = filterProfilesByAccount(importedProfiles, accountFilter);
   const { accounts, authSource } = resolveAuthSource(
     [],
     [{ id: 'codex-cli-import', accounts: filtered }],
@@ -108,6 +115,35 @@ async function resolveCodexProfiles(accountFilter) {
   return {
     entries: accounts.map((profile) => ({ account: null, profile })),
     authSource,
+  };
+}
+
+/**
+ * Imported Codex account record → fetchCodexUsage 호환 profile shape.
+ * claude 측의 `resolveClaudeProfileFromSnapshot` 와 1:1 대칭.
+ *
+ * imported account (top-level accessToken) 와 agent-store account (tokens.accessToken)
+ * 두 shape 모두 허용. accessToken 부재 시 `null`.
+ *
+ * Exported for testing.
+ *
+ * @param {object|null} account
+ * @returns {object|null}
+ */
+export function resolveCodexProfileFromAccount(account) {
+  if (!account) return null;
+
+  const accessToken = account.accessToken ?? account.tokens?.accessToken ?? null;
+  if (!accessToken) return null;
+
+  return {
+    id: account.accountKey ?? 'codex',
+    accountKey: account.accountKey ?? 'codex',
+    accessToken,
+    accountId: account.accountId ?? null,
+    email: account.email ?? null,
+    label: account.label ?? null,
+    expires: account.expiresAt ?? null,
   };
 }
 
