@@ -7,6 +7,63 @@ import {
   isSensitiveKey,
   SENSITIVE_KEYS,
 } from '../../src/cli/status-json.js';
+import { SCHEMA_VERSION } from '@token-weather/schemas/src/index.js';
+
+describe('formatStatusJson — top-level schemaVersion lock (issue #121)', () => {
+  // v0.5.1 (issue #121): formatStatusJson 이 통과시키는 schemaVersion 이 항상
+  // packages/schemas 의 SCHEMA_VERSION 과 일치하는지 lock. 누군가 한 곳만 bump
+  // 하고 다른 곳을 까먹는 회귀 차단 — packages/schemas/test/schema-version.test.js
+  // 는 SCHEMA_VERSION 값 자체만 lock, 본 가드는 status --json 통과 경로 lock.
+
+  it('top-level schemaVersion equals packages/schemas SCHEMA_VERSION', () => {
+    const json = formatStatusJson({
+      schemaVersion: SCHEMA_VERSION,
+      configPath: '/x',
+      providers: { codex: { enabled: true }, claude: { enabled: true } },
+      sync: {},
+    });
+    const parsed = JSON.parse(json);
+    assert.equal(parsed.schemaVersion, SCHEMA_VERSION);
+  });
+
+  it('top-level schemaVersion is always present (even when input is null)', () => {
+    // contract: schemaVersion 키는 항상 present (값이 null 일 수는 있어도 키 부재 X).
+    const json = formatStatusJson({
+      schemaVersion: null,
+      configPath: '/x',
+      providers: { codex: {}, claude: {} },
+      sync: {},
+    });
+    const parsed = JSON.parse(json);
+    assert.equal('schemaVersion' in parsed, true);
+    assert.equal(parsed.schemaVersion, null);
+  });
+
+  it('schemaVersion is preserved across providerFilter / accountFilter / disabled provider paths', () => {
+    // 모든 출력 경로에서 schemaVersion 이 그대로 통과되는지 확인.
+    const inputs = [
+      { schemaVersion: SCHEMA_VERSION, configPath: '/x', providers: {}, sync: {} },
+      {
+        schemaVersion: SCHEMA_VERSION,
+        configPath: '/x',
+        providers: { codex: { enabled: false } },
+        sync: {},
+        providerFilter: 'codex',
+      },
+      {
+        schemaVersion: SCHEMA_VERSION,
+        configPath: '/x',
+        providers: { claude: { enabled: true } },
+        sync: {},
+        accountFilter: 'work@x.com',
+      },
+    ];
+    for (const input of inputs) {
+      const parsed = JSON.parse(formatStatusJson(input));
+      assert.equal(parsed.schemaVersion, SCHEMA_VERSION);
+    }
+  });
+});
 
 describe('SENSITIVE_KEYS', () => {
   it('contains the expected camelCase token fields', () => {

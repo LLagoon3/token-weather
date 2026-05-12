@@ -34,15 +34,33 @@ token-weather status --json --account work@example.com --provider claude
 }
 ```
 
-| 필드             | 타입                    | 설명                                                                                                                                                                         |
-| ---------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `command`        | `"status"` \| `"usage"` | 호출된 커맨드 이름.                                                                                                                                                          |
-| `generatedAt`    | ISO-8601 string         | snapshot 직렬화 시각(client-side).                                                                                                                                           |
-| `schemaVersion`  | string semver \| null   | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.5.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
-| `configPath`     | string \| null          | resolved config 파일 경로.                                                                                                                                                   |
-| `accountFilter`  | string \| null          | `--account <id>` 입력 (case-insensitive 매치는 별도).                                                                                                                        |
-| `providerFilter` | string \| null          | `--provider <id>` 입력. lowercase 정규화된 값.                                                                                                                               |
-| `providers`      | array                   | 아래 §providers 참고.                                                                                                                                                        |
+| 필드             | 타입                    | 부재 시                               | 설명                                                                                                                                                                         |
+| ---------------- | ----------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `command`        | `"status"` \| `"usage"` | 항상 present                          | 호출된 커맨드 이름.                                                                                                                                                          |
+| `generatedAt`    | ISO-8601 string         | 항상 present                          | snapshot 직렬화 시각(client-side).                                                                                                                                           |
+| `schemaVersion`  | string semver \| null   | 항상 present (값이 null 일 수는 있음) | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.5.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
+| `configPath`     | string \| null          | 항상 present                          | resolved config 파일 경로.                                                                                                                                                   |
+| `accountFilter`  | string \| null          | 미지정 시 `null` (키 부재 아님)       | `--account <id>` 입력 (case-insensitive 매치는 별도).                                                                                                                        |
+| `providerFilter` | string \| null          | 미지정 시 `null` (키 부재 아님)       | `--provider <id>` 입력. lowercase 정규화된 값.                                                                                                                               |
+| `providers`      | array                   | 항상 present (`[]` 가능)              | 아래 §providers 참고.                                                                                                                                                        |
+
+### 필드 부재 정책 — null vs 키 부재
+
+본 contract 의 모든 상위·하위 필드는 **부재 시에도 명시적으로 `null`** (또는 빈 array/object) 로 노출된다. 즉 `if (key in data)` 패턴은 안전하지 않으며 (모든 정의된 키는 항상 present), 값이 `null` 인지 확인하는 게 정합:
+
+```js
+// before — 키 부재 분기 (불필요)
+if ('accountFilter' in data) {
+  /* ... */
+}
+
+// after — 값이 null 인지 확인
+if (data.accountFilter !== null) {
+  /* ... */
+}
+```
+
+`providers[].snapshot.usageSnapshots` 도 빈 배열 `[]` 으로 노출되지 키 자체가 부재하지는 않는다. 신규 키 추가 시에도 이 정책을 따라 항상 default value 를 명시.
 
 ## providers
 
@@ -64,6 +82,17 @@ v0.5.0 (issue #120) 부터 codex / claude provider snapshot 의 키셋이 **동�
 | `usageSnapshots`  | Array<UsageSnapshot> | 계정별 usage snapshot 직접 배열. element shape 는 [usage-snapshot.schema.json](../packages/schemas/usage-snapshot.schema.json) 정합. |
 | `accountFilter`   | string \| null       | `--account` 입력 그대로 통과 (case-insensitive 매치는 별도).                                                                         |
 | `filteredOut`     | boolean              | filter 가 지정됐는데 매칭되는 계정이 없었는지.                                                                                       |
+
+### `authSource` enum 값
+
+| 값                    | 의미                                                                                                            |
+| --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `'agent-store'`       | `~/.config/token-weather/auth.json` (token-weather 자체 store) 에서 active 계정을 찾음.                         |
+| `'codex-cli-import'`  | (codex 만) `~/.codex/auth.json` (Codex CLI 자체) 에서 폴백 import. `credentialsPath` 가 함께 노출됨.            |
+| `'claude-cli-import'` | (claude 만) `~/.claude/.credentials.json` (Claude CLI 자체) 에서 폴백 import. `credentialsPath` 가 함께 노출됨. |
+| `'not-found'`         | 어느 소스에서도 active 계정을 찾지 못함. `credentialsPath` 는 `null`.                                           |
+
+값 enum 변경 (추가 / 제거 / 의미 변경) 은 [release-policy §1](./release-policy.md) 의 major 트리거 — `SCHEMA_VERSION` bump 필요.
 
 ### 제거되는 민감 키 (redaction)
 
@@ -87,6 +116,18 @@ v0.5.0 (issue #120) 부터 codex / claude provider snapshot 의 키셋이 **동�
 - JWT 같은 값 패턴이 `notes`나 `description` 같은 임의 키에 박혀 들어오면 redact되지 않는다 — provider adapter 단에서 토큰 값을 그런 자유 필드에 복사하지 않도록 책임이 있다.
 
 이 한계는 `--json` contract가 *값 검사기*가 아닌 *명시적 명시 누출 차단기*라는 설계상의 결정이다. 새 식별자가 발견되면 PR로 SENSITIVE_KEYS를 갱신하면 된다.
+
+### `raw` 영역 책임 (provider adapter 계약)
+
+`usageSnapshots[].raw` 는 provider 별 응답 원본을 보존하는 free-form subtree 다. `additionalProperties: true` 로 schema 가 열려있어 redaction 의 key-name match 가 미치지 못하는 위험 지대.
+
+**provider adapter 의 책임**:
+
+1. **token 값을 raw 의 free-form 키에 복사하지 않는다.** 응답에서 `access_token` / `refresh_token` 같은 SENSITIVE_KEYS 매칭 키로만 들어오면 redaction 이 처리하지만, `body`/`response`/`payload` 같은 키 안에 token 값 문자열이 들어가면 그대로 누출.
+2. **응답 본문 전체를 raw 에 dump 하지 않는다.** 필요한 필드만 명시적으로 발췌 — 예: `raw: { provider, plan, ...selectedFields }`.
+3. **새 토큰 패턴 식별자가 발견되면 `SENSITIVE_KEYS` 에 등록 PR.**
+
+위 책임은 코드 리뷰 + 회귀 가드 (`status-json.test.js` 의 redaction 단위 테스트) 로 강제.
 
 ## 안정성
 
