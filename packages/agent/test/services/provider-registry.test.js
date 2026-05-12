@@ -41,9 +41,11 @@ describe('runProviderSnapshots', () => {
       providers: { codex: { enabled: false }, claude: { enabled: false } },
     });
     assert.equal(out.codex.enabled, false);
-    // Claude snapshot always returns base + networkUsages=[] when disabled (issue #119:
-    // networkUsage 단일 alias 제거됨).
-    assert.deepEqual(out.claude.networkUsages, []);
+    // v0.5.0 (issue #120): provider keyset 정합 — codex/claude 모두 enabled +
+    // usageSnapshots[] (배열). claude 의 networkUsages wrapper 패턴은 제거됨.
+    assert.equal(out.claude.enabled, false);
+    assert.deepEqual(out.claude.usageSnapshots, []);
+    assert.deepEqual(out.codex.usageSnapshots, []);
   });
 
   it('CLI accountFilter and config.defaults.profiles do not throw when both supplied', async () => {

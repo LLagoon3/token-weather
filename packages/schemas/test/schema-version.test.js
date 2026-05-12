@@ -26,12 +26,17 @@ import { SCHEMA_VERSION } from '../src/index.js';
  *  - 0.4.0 (issue #119) — `status --json` claude 영역의 backward-compat
  *    alias 3 종 제거: `networkUsage` (단일, → `networkUsages[]` 만) /
  *    `importedAccount` (→ `selectedAccount` 만) / `parsed` (→ `found` 만)
+ *  - 0.5.0 (issue #120) — `status --json` provider 영역 shape 정합 (codex /
+ *    claude 키셋 통일): `snapshots[]`/`networkUsages[]` → `usageSnapshots[]`
+ *    (wrapper 도 제거, UsageSnapshot 직접 배열). claude 의 `detected`/`found`
+ *    → `enabled` 단일 boolean. claude `selectedAccount` 제거. credentialsPath
+ *    null-when-not-cli-import 정책 양 provider 정렬.
  */
 describe('SCHEMA_VERSION lock', () => {
   it('현재 값이 정책과 일치한다', () => {
     assert.equal(
       SCHEMA_VERSION,
-      '0.4.0',
+      '0.5.0',
       'SCHEMA_VERSION 변경 시 docs/release-policy.md §3 / docs/cli-json-output.md / 본 테스트를 같이 갱신',
     );
   });

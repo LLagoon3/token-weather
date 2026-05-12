@@ -31,17 +31,22 @@ export async function getCodexSnapshot(config, options = {}) {
   if (!config.providers?.codex?.enabled) {
     return {
       enabled: false,
-      credentialsPath: resolveCodexCliCredentialsPath(),
-      snapshots: [],
+      authSource: 'not-found',
+      // claude 와 동일 정책 — credentialsPath 는 'codex-cli-import' 시점만 노출.
+      // disabled 또는 not-found 시 null (PR #123 review 정정).
+      credentialsPath: null,
+      usageSnapshots: [],
+      accountFilter: options.accountFilter ?? null,
+      filteredOut: false,
     };
   }
 
   const { entries, authSource } = await resolveCodexProfiles(options.accountFilter);
-  const snapshots = [];
+  const usageSnapshots = [];
 
   for (const entry of entries) {
     try {
-      snapshots.push(
+      usageSnapshots.push(
         (
           await fetchUsageWithAutoRefresh(entry, {
             fetchUsage: fetchCodexUsage,
@@ -52,7 +57,7 @@ export async function getCodexSnapshot(config, options = {}) {
         ).snapshot,
       );
     } catch (error) {
-      snapshots.push(createCodexFailureSnapshot(entry.profile, error));
+      usageSnapshots.push(createCodexFailureSnapshot(entry.profile, error));
     }
   }
 
@@ -60,7 +65,7 @@ export async function getCodexSnapshot(config, options = {}) {
     enabled: true,
     authSource,
     credentialsPath: authSource === 'codex-cli-import' ? resolveCodexCliCredentialsPath() : null,
-    snapshots,
+    usageSnapshots,
     accountFilter: options.accountFilter ?? null,
     filteredOut: Boolean(options.accountFilter) && entries.length === 0,
   };

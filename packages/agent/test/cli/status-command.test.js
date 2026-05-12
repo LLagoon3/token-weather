@@ -82,7 +82,11 @@ describe('formatCodexSection', () => {
   });
 
   it('reports no profile message when enabled but snapshots empty', () => {
-    const lines = formatCodexSection({ enabled: true, authSource: 'agent-store', snapshots: [] });
+    const lines = formatCodexSection({
+      enabled: true,
+      authSource: 'agent-store',
+      usageSnapshots: [],
+    });
     assert.ok(lines.some((l) => l.includes('No Codex OAuth profile found')));
   });
 
@@ -91,7 +95,7 @@ describe('formatCodexSection', () => {
       enabled: true,
       authSource: 'codex-cli-import',
       credentialsPath: '/home/u/.codex/auth.json',
-      snapshots: [],
+      usageSnapshots: [],
     });
     assert.ok(lines.some((l) => l.includes('Codex CLI credential path: /home/u/.codex/auth.json')));
   });
@@ -100,7 +104,7 @@ describe('formatCodexSection', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
-      snapshots: [
+      usageSnapshots: [
         {
           source: 'provider_usage_endpoint',
           authType: 'oauth',
@@ -125,7 +129,7 @@ describe('formatCodexSection', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
-      snapshots: [
+      usageSnapshots: [
         {
           source: 'provider_usage_endpoint',
           authType: 'oauth',
@@ -152,7 +156,7 @@ describe('formatCodexSection', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
-      snapshots: [
+      usageSnapshots: [
         {
           source: 'x',
           authType: 'oauth',
@@ -224,7 +228,7 @@ describe('formatStatusOutput', () => {
         authSource: 'not-found',
         detected: false,
         selectedAccount: null,
-        networkUsages: [],
+        usageSnapshots: [],
       },
     });
     // 'Command: status' / 'Local agent status summary' 모두 제거됨
@@ -242,6 +246,9 @@ describe('formatStatusOutput', () => {
 });
 
 describe('formatClaudeNetworkUsages — multi-account', () => {
+  // v0.5.0 (issue #120): wrapper { accountKey, account, snapshot } 가 unwrap 되어
+  // 인자가 UsageSnapshot 배열 직접 (codex 와 동일). account 정보는 snapshot.account.
+
   it('renders single "Skipped" line when usages is empty', () => {
     const lines = formatClaudeNetworkUsages([]);
     assert.ok(lines.some((l) => l.includes('Skipped')));
@@ -250,11 +257,9 @@ describe('formatClaudeNetworkUsages — multi-account', () => {
   it('outputs a single block without account header when usages has one entry', () => {
     const lines = formatClaudeNetworkUsages([
       {
-        accountKey: 'a:1',
-        snapshot: {
-          status: { ok: true, httpStatus: 200 },
-          usageWindows: [{ kind: 'five_hour', usedPercent: 10, resetAt: '2026-04-16' }],
-        },
+        account: { profileId: 'a:1', email: 'a@x.com' },
+        status: { ok: true, httpStatus: 200 },
+        usageWindows: [{ kind: 'five_hour', usedPercent: 10, resetAt: '2026-04-16' }],
       },
     ]);
     // 단일 계정 블록은 'Account:' 헤더를 붙이지 않음
@@ -265,23 +270,20 @@ describe('formatClaudeNetworkUsages — multi-account', () => {
   it('outputs per-account header + body for multiple usages', () => {
     const lines = formatClaudeNetworkUsages([
       {
-        accountKey: 'a:1',
-        snapshot: {
-          status: { ok: true, httpStatus: 200 },
-          usageWindows: [{ kind: 'five_hour', usedPercent: 5 }],
-        },
+        account: { profileId: 'a:1', email: 'a@x.com' },
+        status: { ok: true, httpStatus: 200 },
+        usageWindows: [{ kind: 'five_hour', usedPercent: 5 }],
       },
       {
-        accountKey: 'a:2',
-        snapshot: {
-          status: { ok: false, httpStatus: 401, bucket: 'auth', message: 'expired' },
-          usageWindows: [],
-        },
+        account: { profileId: 'a:2', email: 'b@x.com' },
+        status: { ok: false, httpStatus: 401, bucket: 'auth', message: 'expired' },
+        usageWindows: [],
       },
     ]);
     // multi-account → rounded-corner box header (lean: `provider | identifier`)
-    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:1')));
-    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:2')));
+    // accountLabel 은 account.email 을 우선 사용.
+    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a@x.com')));
+    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | b@x.com')));
     assert.ok(lines.some((l) => l.includes('OK (200)')));
     assert.ok(lines.some((l) => l.includes('Status: FAILED')));
     assert.ok(!lines.some((l) => l.includes('bucket=')));
@@ -289,28 +291,28 @@ describe('formatClaudeNetworkUsages — multi-account', () => {
   });
 });
 
-describe('formatClaudeSection — networkUsages array support', () => {
-  it('uses networkUsages when provided (multi-account path)', () => {
+describe('formatClaudeSection — usageSnapshots array', () => {
+  it('iterates usageSnapshots directly (multi-account path)', () => {
     const lines = formatClaudeSection({
+      enabled: true,
       authSource: 'agent-store',
-      detected: true,
-      selectedAccount: { accountKey: 'a:1' },
-      networkUsages: [
+      credentialsPath: null,
+      usageSnapshots: [
         {
-          accountKey: 'a:1',
-          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+          account: { profileId: 'a:1', email: 'a@x.com' },
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [],
         },
         {
-          accountKey: 'a:2',
-          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+          account: { profileId: 'a:2', email: 'b@x.com' },
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [],
         },
       ],
     });
-    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:1')));
-    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:2')));
+    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a@x.com')));
+    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | b@x.com')));
   });
-
-  // issue #119: legacy `networkUsage` (단일) fallback 은 제거됨 — `networkUsages[]` 만 지원.
 });
 
 describe('parseStatusOptions', () => {
@@ -453,7 +455,7 @@ describe('formatStatusOutput — accountFilter line', () => {
         authSource: 'not-found',
         detected: false,
         selectedAccount: null,
-        networkUsages: [],
+        usageSnapshots: [],
       },
     });
     assert.ok(!lines.some((l) => l.includes('Account filter')));
@@ -470,7 +472,7 @@ describe('formatStatusOutput — accountFilter line', () => {
         authSource: 'not-found',
         detected: false,
         selectedAccount: null,
-        networkUsages: [],
+        usageSnapshots: [],
       },
     });
     // summary box 안에 들어가므로 `│ ` prefix 포함
@@ -489,7 +491,7 @@ describe('formatStatusOutput — providerFilter scope', () => {
     authSource: 'not-found',
     detected: false,
     selectedAccount: null,
-    networkUsages: [],
+    usageSnapshots: [],
   };
 
   it('renders only Codex usage section when providerFilter=codex (no claude key)', () => {
@@ -531,7 +533,7 @@ describe('formatCodexSection — accountFilter empty result', () => {
       authSource: 'agent-store',
       accountFilter: 'nope@x.com',
       filteredOut: true,
-      snapshots: [],
+      usageSnapshots: [],
     });
     assert.ok(
       lines.some((l) => l.includes('No Codex account matches account filter "nope@x.com"')),
@@ -542,7 +544,7 @@ describe('formatCodexSection — accountFilter empty result', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
-      snapshots: [],
+      usageSnapshots: [],
     });
     assert.ok(lines.some((l) => l.includes('No Codex OAuth profile found')));
   });
@@ -564,7 +566,7 @@ describe('multi-account box wrapping (issue #116 review)', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
-      snapshots: [
+      usageSnapshots: [
         {
           source: 'x',
           authType: 'oauth',
@@ -601,7 +603,7 @@ describe('multi-account box wrapping (issue #116 review)', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
-      snapshots: [
+      usageSnapshots: [
         {
           source: 'x',
           authType: 'oauth',
@@ -620,14 +622,17 @@ describe('multi-account box wrapping (issue #116 review)', () => {
   });
 
   it('wraps Claude usages in an indented box when count > 1', () => {
+    // v0.5.0: usageSnapshots array (UsageSnapshot 직접, wrapper 제거)
     const lines = formatClaudeNetworkUsages([
       {
-        accountKey: 'a:1',
-        snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        account: { profileId: 'a:1' },
+        status: { ok: true, httpStatus: 200 },
+        usageWindows: [],
       },
       {
-        accountKey: 'a:2',
-        snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        account: { profileId: 'a:2' },
+        status: { ok: true, httpStatus: 200 },
+        usageWindows: [],
       },
     ]);
     // Claude multi-account 박스는 outer indent 0 ([live] 컨테이너 제거됨).
@@ -635,7 +640,7 @@ describe('multi-account box wrapping (issue #116 review)', () => {
     const bottoms = lines.filter((l) => l.startsWith('╰─'));
     assert.equal(tops.length, 2);
     assert.equal(bottoms.length, 2);
-    // 헤더 — `provider | identifier` 형식
+    // 헤더 — `provider | identifier` 형식 (accountLabel 이 profileId 를 fallback 으로 사용)
     assert.ok(tops[0].includes('anthropic-claude | a:1'));
     assert.ok(tops[1].includes('anthropic-claude | a:2'));
     // 본문은 `│ ` prefix (no outer indent)
@@ -645,8 +650,9 @@ describe('multi-account box wrapping (issue #116 review)', () => {
   it('does NOT box a single Claude usage', () => {
     const lines = formatClaudeNetworkUsages([
       {
-        accountKey: 'a:1',
-        snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+        account: { profileId: 'a:1' },
+        status: { ok: true, httpStatus: 200 },
+        usageWindows: [],
       },
     ]);
     assert.equal(
@@ -665,7 +671,7 @@ describe('formatStatusOutput — useColor context (issue #116)', () => {
       codex: {
         enabled: true,
         authSource: 'agent-store',
-        snapshots: [
+        usageSnapshots: [
           {
             source: 'provider_usage_endpoint',
             authType: 'oauth',
@@ -680,7 +686,7 @@ describe('formatStatusOutput — useColor context (issue #116)', () => {
         authSource: 'not-found',
         detected: false,
         selectedAccount: null,
-        networkUsages: [],
+        usageSnapshots: [],
       },
     };
     const colored = formatStatusOutput(snapshot, { useColor: true });
@@ -697,7 +703,7 @@ describe('formatStatusOutput — useColor context (issue #116)', () => {
       codex: {
         enabled: true,
         authSource: 'agent-store',
-        snapshots: [
+        usageSnapshots: [
           {
             source: 'provider_usage_endpoint',
             authType: 'oauth',
@@ -712,7 +718,7 @@ describe('formatStatusOutput — useColor context (issue #116)', () => {
         authSource: 'not-found',
         detected: false,
         selectedAccount: null,
-        networkUsages: [],
+        usageSnapshots: [],
       },
     });
     assert.ok(!lines.some((l) => l.includes('\x1b[')));

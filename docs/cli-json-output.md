@@ -23,7 +23,7 @@ token-weather status --json --account work@example.com --provider claude
 {
   "command": "status",
   "generatedAt": "2026-04-25T08:30:00.000Z",
-  "schemaVersion": "0.4.0",
+  "schemaVersion": "0.5.0",
   "configPath": "/home/user/.config/token-weather/config.json",
   "accountFilter": null,
   "providerFilter": null,
@@ -38,7 +38,7 @@ token-weather status --json --account work@example.com --provider claude
 | ---------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `command`        | `"status"` \| `"usage"` | 호출된 커맨드 이름.                                                                                                                                                          |
 | `generatedAt`    | ISO-8601 string         | snapshot 직렬화 시각(client-side).                                                                                                                                           |
-| `schemaVersion`  | string semver \| null   | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.4.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
+| `schemaVersion`  | string semver \| null   | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.5.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
 | `configPath`     | string \| null          | resolved config 파일 경로.                                                                                                                                                   |
 | `accountFilter`  | string \| null          | `--account <id>` 입력 (case-insensitive 매치는 별도).                                                                                                                        |
 | `providerFilter` | string \| null          | `--provider <id>` 입력. lowercase 정규화된 값.                                                                                                                               |
@@ -51,6 +51,19 @@ token-weather status --json --account work@example.com --provider claude
 `providerFilter`가 지정되면 매칭되는 provider만 배열에 포함된다 (다른 provider는 snapshot 자체가 만들어지지 않으므로 누락). 미지정 시 등록 순서대로 모두 포함.
 
 `snapshot`은 각 provider builder(`getCodexSnapshot` / `getClaudeSnapshot`)가 반환하는 객체에서 **민감 키를 제거한 deep clone**이다.
+
+### Provider entry shape (v0.5.0, symmetric)
+
+v0.5.0 (issue #120) 부터 codex / claude provider snapshot 의 키셋이 **동일**하다. 외부 consumer 는 provider 분기 없이 단일 path 로 데이터를 조회할 수 있다.
+
+| 필드              | 타입                 | 설명                                                                                                                                 |
+| ----------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `enabled`         | boolean              | `config.providers.<id>.enabled` 통과. provider 가 호출 대상인지.                                                                     |
+| `authSource`      | string               | `'agent-store'` / `'codex-cli-import'` / `'claude-cli-import'` / `'not-found'` 중 하나.                                              |
+| `credentialsPath` | string \| null       | `cli-import` 인증 소스 시점에만 경로. 그 외엔 `null` (codex / claude 동일 정책).                                                     |
+| `usageSnapshots`  | Array<UsageSnapshot> | 계정별 usage snapshot 직접 배열. element shape 는 [usage-snapshot.schema.json](../packages/schemas/usage-snapshot.schema.json) 정합. |
+| `accountFilter`   | string \| null       | `--account` 입력 그대로 통과 (case-insensitive 매치는 별도).                                                                         |
+| `filteredOut`     | boolean              | filter 가 지정됐는데 매칭되는 계정이 없었는지.                                                                                       |
 
 ### 제거되는 민감 키 (redaction)
 
@@ -93,9 +106,48 @@ v0.4.0 (issue #119) 에서 claude provider snapshot 의 alias 3 종이 제거됐
 
 이전 버전 (v0.3.x 이하) 에서는 두 키가 함께 출력되어 backward-compat 가 유지됐으나, v0.4.0 부터는 정식 키만 노출.
 
-### `networkUsages[]` 원소 구조 (중요)
+## Provider shape symmetry (v0.5.0)
 
-이전 `networkUsage` 는 usage snapshot **객체 그대로** 였지만, 신규 `networkUsages[]` 의 각 원소는 `{ accountKey, account, snapshot }` **wrapper**다. 실제 `usageWindows` / `status` 등 데이터는 `.snapshot` 안에 있다.
+v0.5.0 (issue #120) 에서 codex / claude provider snapshot 의 키 이름이 통일되고 claude 의 wrapper 패턴이 제거됐다.
+
+| 영역               | v0.4.x 이하 (Codex)             | v0.4.x 이하 (Claude)                        | v0.5.0+ (양 provider 동일)                                    |
+| ------------------ | ------------------------------- | ------------------------------------------- | ------------------------------------------------------------- |
+| usage 배열 키      | `snapshots[]`                   | `networkUsages[]`                           | **`usageSnapshots[]`**                                        |
+| usage 배열 element | `UsageSnapshot` 직접            | `{ accountKey, account, snapshot }` wrapper | **`UsageSnapshot` 직접** (wrapper 제거)                       |
+| 활성 여부          | `enabled: bool`                 | `detected` / `found` (2 키)                 | **`enabled: bool`** (단일)                                    |
+| 기본 계정          | (없음)                          | `selectedAccount`                           | (없음, 양 provider 모두 제거)                                 |
+| credentialsPath    | `cli-import` 시점만 (null 아님) | 항상 (절대 null 아님)                       | **`cli-import` 시점만**, 그 외 `null` (양 provider 동일 정책) |
+
+### Migration (v0.4.x → v0.5.0)
+
+```js
+// before (v0.4.x)
+const codexEnabled = data.providers.find((p) => p.id === 'codex').snapshot.enabled;
+const codexSnaps = data.providers.find((p) => p.id === 'codex').snapshot.snapshots;
+const claudeEnabled = data.providers.find((p) => p.id === 'claude').snapshot.detected;
+const claudeFound = data.providers.find((p) => p.id === 'claude').snapshot.found;
+const claudeWindows = data.providers.find((p) => p.id === 'claude').snapshot.networkUsages[0]
+  .snapshot.usageWindows;
+const claudeAccount = data.providers.find((p) => p.id === 'claude').snapshot.selectedAccount;
+
+// after (v0.5.0+) — codex / claude 동일 path
+const provider = (id) => data.providers.find((p) => p.id === id).snapshot;
+const codexEnabled = provider('codex').enabled;
+const codexSnaps = provider('codex').usageSnapshots;
+const claudeEnabled = provider('claude').enabled;
+//   found / detected: 의미가 약간 다른데, "credential 이 어디서든 발견됐는지" 는 enabled 와 같음.
+//   순수 credential 파일 존재 확인은 credentialsPath 가 null 인지로 대체 가능.
+const claudeWindows = provider('claude').usageSnapshots[0].usageWindows;
+//   wrapper 제거 — `.snapshot` 단계 더 이상 없음.
+const claudeAccount = provider('claude').usageSnapshots.find(/* by criteria */)?.account;
+//   default account 개념 제거 — 필요시 usageSnapshots[] 순회로 식별.
+```
+
+### `networkUsages[]` 원소 구조 (v0.4.x 기준 — v0.5.0 에서 제거됨)
+
+> **v0.5.0 (issue #120) 갱신**: `networkUsages[]` 자체가 `usageSnapshots[]` 로 rename 되었고, wrapper `{ accountKey, account, snapshot }` 도 unwrap 되어 **UsageSnapshot 직접** 으로 들어간다. 즉 v0.5.0+ 에서는 아래의 wrapper 단계가 사라져 `.snapshot.usageWindows` → `.usageWindows` 로 한 단계 짧아짐. 위 §"Provider shape symmetry (v0.5.0)" 의 Migration 참고.
+
+이전 (v0.3.x) `networkUsage` (단일) 는 usage snapshot **객체 그대로** 였지만, v0.4.x 의 `networkUsages[]` 의 각 원소는 `{ accountKey, account, snapshot }` **wrapper**였다. 실제 `usageWindows` / `status` 등 데이터는 `.snapshot` 안에 있었음.
 
 ```js
 // before (v0.3.x — 제거됨)
