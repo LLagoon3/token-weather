@@ -23,7 +23,7 @@ token-weather status --json --account work@example.com --provider claude
 {
   "command": "status",
   "generatedAt": "2026-04-25T08:30:00.000Z",
-  "schemaVersion": "0.3.0",
+  "schemaVersion": "0.4.0",
   "configPath": "/home/user/.config/token-weather/config.json",
   "accountFilter": null,
   "providerFilter": null,
@@ -38,7 +38,7 @@ token-weather status --json --account work@example.com --provider claude
 | ---------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `command`        | `"status"` \| `"usage"` | 호출된 커맨드 이름.                                                                                                                                                          |
 | `generatedAt`    | ISO-8601 string         | snapshot 직렬화 시각(client-side).                                                                                                                                           |
-| `schemaVersion`  | string semver \| null   | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.3.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
+| `schemaVersion`  | string semver \| null   | `packages/schemas/src/index.js::SCHEMA_VERSION`(현재 `'0.4.0'`)을 그대로 통과. 패키지 `version`과는 독립이며 bump 트리거는 [docs/release-policy.md §3](./release-policy.md). |
 | `configPath`     | string \| null          | resolved config 파일 경로.                                                                                                                                                   |
 | `accountFilter`  | string \| null          | `--account <id>` 입력 (case-insensitive 매치는 별도).                                                                                                                        |
 | `providerFilter` | string \| null          | `--provider <id>` 입력. lowercase 정규화된 값.                                                                                                                               |
@@ -80,6 +80,18 @@ token-weather status --json --account work@example.com --provider claude
 - 신규 키 추가는 **non-breaking** (소비자는 unknown 필드 무시 권장).
 - 키 제거 / 의미 변경 / shape 재구성은 **breaking** — `schemaVersion` 증가가 필요.
 - `providers[].id` 식별자는 `PROVIDER_REGISTRY`와 동기화되며, 추가/삭제는 schema bump 사유.
+
+## 제거된 backward-compat alias (v0.4.0)
+
+v0.4.0 (issue #119) 에서 claude provider snapshot 의 alias 3 종이 제거됐다. 외부 consumer 가 alias 키를 파싱하고 있었다면 정식 키로 마이그레이션 필요.
+
+| 제거된 alias                                     | 정식 키                                        | 비고                                                                           |
+| ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| `.providers[].snapshot.networkUsage` (단일 객체) | `.providers[].snapshot.networkUsages[]` (배열) | 단일 계정 케이스는 `networkUsages[0]`. multi-account 도 `[]` 순회로 일관 처리. |
+| `.providers[].snapshot.importedAccount`          | `.providers[].snapshot.selectedAccount`        | 동일 값이었음.                                                                 |
+| `.providers[].snapshot.parsed`                   | `.providers[].snapshot.found`                  | 항상 `found` 와 동일 값이었음.                                                 |
+
+이전 버전 (v0.3.x 이하) 에서는 두 키가 함께 출력되어 backward-compat 가 유지됐으나, v0.4.0 부터는 정식 키만 노출.
 
 ## 보안 원칙
 
