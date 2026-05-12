@@ -7,7 +7,7 @@ import {
   formatClaudeSection,
   formatClaudeNetworkUsage,
   formatClaudeNetworkUsages,
-  formatWindow,
+  formatWindowLine,
   formatStatusHelp,
   parseStatusOptions,
   normalizeProviderFilter,
@@ -20,42 +20,67 @@ describe('STATUS_COMMANDS', () => {
   });
 });
 
-describe('formatWindow', () => {
-  it('renders used_percent and reset_at when present', () => {
-    assert.equal(
-      formatWindow({ usedPercent: 25, resetAt: '2026-04-15T00:00:00Z' }),
-      'used_percent=25, reset_at=2026-04-15T00:00:00Z',
-    );
+describe('formatWindowLine (issue #116)', () => {
+  it('renders kind padded, ASCII bar, percent and reset_at', () => {
+    const line = formatWindowLine({
+      kind: 'primary',
+      usedPercent: 25,
+      resetAt: '2026-04-15T00:00:00Z',
+    });
+    // kind padEnd(12) + ' ' + bar (22 chars: [ + 20 + ]) + ' ' + ' 25%' + '  ' + reset
+    // 'primary' (7 chars) → padEnd(12) = 5 spaces, then ' ' separator = 6 spaces total before '['
+    assert.match(line, /^primary {6}\[/);
+    assert.match(line, / 25%/);
+    assert.match(line, /reset_at=2026-04-15T00:00:00Z$/);
+    assert.ok(line.includes('█')); // contains filled block
+    assert.ok(line.includes('░')); // contains empty block
   });
 
-  it('falls back to unknown when fields missing', () => {
-    assert.equal(
-      formatWindow({ usedPercent: null, resetAt: null }),
-      'used_percent=unknown, reset_at=unknown',
+  it('renders n/a bar and "--" percent when usedPercent is null', () => {
+    const line = formatWindowLine({
+      kind: 'primary',
+      usedPercent: null,
+      resetAt: null,
+    });
+    assert.ok(line.includes('[n/a'));
+    assert.match(line, / --/);
+    assert.match(line, /reset_at=unknown$/);
+  });
+
+  it('omits ANSI escape sequences when useColor is false (default)', () => {
+    const line = formatWindowLine({ kind: 'primary', usedPercent: 95, resetAt: '2026-04-15' });
+    assert.ok(!line.includes('\x1b['));
+  });
+
+  it('emits ANSI escape sequences when useColor=true', () => {
+    const line = formatWindowLine(
+      { kind: 'primary', usedPercent: 95, resetAt: '2026-04-15' },
+      { useColor: true },
     );
+    assert.ok(line.includes('\x1b['));
   });
 });
 
 describe('formatCodexSection', () => {
-  it('shows 비활성화됨 when codex is disabled', () => {
+  it('shows Disabled when codex is disabled', () => {
     const lines = formatCodexSection({ enabled: false });
-    assert.ok(lines.includes('비활성화됨'));
+    assert.ok(lines.includes('Disabled'));
   });
 
   it('reports no profile message when enabled but snapshots empty', () => {
     const lines = formatCodexSection({ enabled: true, authSource: 'agent-store', snapshots: [] });
-    assert.ok(lines.some((l) => l.includes('인증 소스: agent-store')));
-    assert.ok(lines.some((l) => l.includes('Codex OAuth 프로필이 없습니다')));
+    assert.ok(lines.some((l) => l.includes('Auth source: agent-store')));
+    assert.ok(lines.some((l) => l.includes('No Codex OAuth profile found')));
   });
 
-  it('shows Codex CLI credential 경로 when codex-cli-import (issue #113)', () => {
+  it('shows Codex CLI credential path when codex-cli-import (issue #113)', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'codex-cli-import',
       credentialsPath: '/home/u/.codex/auth.json',
       snapshots: [],
     });
-    assert.ok(lines.some((l) => l.includes('Codex CLI credential 경로: /home/u/.codex/auth.json')));
+    assert.ok(lines.some((l) => l.includes('Codex CLI credential path: /home/u/.codex/auth.json')));
   });
 
   it('renders snapshot details + windows + plan + error', () => {
@@ -74,10 +99,11 @@ describe('formatCodexSection', () => {
       ],
     });
     assert.ok(lines.some((l) => l.includes('p1 (x@example.com)')));
-    assert.ok(lines.some((l) => l.includes('상태: OK (200)')));
+    assert.ok(lines.some((l) => l.includes('Status: OK (200)')));
     assert.ok(lines.some((l) => l.includes('confidence=high')));
-    assert.ok(lines.some((l) => l.includes('플랜: plus')));
-    assert.ok(lines.some((l) => l.includes('primary: used_percent=5')));
+    assert.ok(lines.some((l) => l.includes('Plan: plus')));
+    // primary window line: kind padded + bar + percent + reset_at
+    assert.ok(lines.some((l) => /primary {6}\[/.test(l) && / 5%/.test(l)));
   });
 
   it('renders failure status with httpStatus/network and includes error message', () => {
@@ -95,8 +121,8 @@ describe('formatCodexSection', () => {
         },
       ],
     });
-    assert.ok(lines.some((l) => l.includes('실패 (500)')));
-    assert.ok(lines.some((l) => l.includes('에러: boom')));
+    assert.ok(lines.some((l) => l.includes('FAILED (500)')));
+    assert.ok(lines.some((l) => l.includes('Error: boom')));
   });
 
   it('uses network/error label when httpStatus is null', () => {
@@ -114,13 +140,13 @@ describe('formatCodexSection', () => {
         },
       ],
     });
-    assert.ok(lines.some((l) => l.includes('실패 (network/error)')));
+    assert.ok(lines.some((l) => l.includes('FAILED (network/error)')));
   });
 });
 
 describe('formatClaudeNetworkUsage', () => {
-  it('shows 호출 안 함 when networkUsage is null', () => {
-    assert.ok(formatClaudeNetworkUsage(null).some((l) => l.includes('호출 안 함')));
+  it('shows Skipped when networkUsage is null', () => {
+    assert.ok(formatClaudeNetworkUsage(null).some((l) => l.includes('Skipped')));
   });
 
   it('renders OK + windows on success', () => {
@@ -128,16 +154,17 @@ describe('formatClaudeNetworkUsage', () => {
       status: { ok: true, httpStatus: 200 },
       usageWindows: [{ kind: 'five_hour', usedPercent: 10, resetAt: '2026-04-15' }],
     });
-    assert.ok(lines.some((l) => l.includes('상태: OK (200)')));
-    assert.ok(lines.some((l) => l.includes('five_hour: used_percent=10')));
+    assert.ok(lines.some((l) => l.includes('Status: OK (200)')));
+    // five_hour window line ('five_hour' = 9 chars → padEnd(12) = 3 spaces + ' ' separator = 4 spaces before '[')
+    assert.ok(lines.some((l) => /five_hour {4}\[/.test(l) && / 10%/.test(l)));
   });
 
-  it('reports usageWindows 없음 when ok=true with empty windows', () => {
+  it('reports "No usageWindows" when ok=true with empty windows', () => {
     const lines = formatClaudeNetworkUsage({
       status: { ok: true, httpStatus: 200 },
       usageWindows: [],
     });
-    assert.ok(lines.some((l) => l.includes('usageWindows 없음')));
+    assert.ok(lines.some((l) => l.includes('No usageWindows')));
   });
 
   it('shows failure with bucket and message', () => {
@@ -145,15 +172,12 @@ describe('formatClaudeNetworkUsage', () => {
       status: { ok: false, httpStatus: 403, bucket: 'auth_scope', message: 'missing scope' },
       usageWindows: [],
     });
-    assert.ok(lines.some((l) => l.includes('실패 (403, bucket=auth_scope)')));
-    assert.ok(lines.some((l) => l.includes('메시지: missing scope')));
+    assert.ok(lines.some((l) => l.includes('FAILED (403, bucket=auth_scope)')));
+    assert.ok(lines.some((l) => l.includes('Message: missing scope')));
   });
 });
 
-// issue #110 — formatClaudeLocalUsage / [local] stats-cache.json 블록은
-// v0.3.0 에서 제거됐다. 이전 두 테스트 (`shows 데이터 없음 ...`, `renders
-// totalSessions / totalMessages / model usage indicators`) 는 함수 자체가
-// 사라져 적용 안 됨.
+// issue #110 — formatClaudeLocalUsage / [local] stats-cache.json 블록은 v0.3.0 에서 제거됨.
 
 describe('formatStatusOutput', () => {
   it('contains the command name and config summary lines', () => {
@@ -169,17 +193,17 @@ describe('formatStatusOutput', () => {
         networkUsage: null,
       },
     });
-    assert.ok(lines.includes('명령: status'));
-    assert.ok(lines.includes('설정 파일: /x/config.json'));
-    assert.ok(lines.includes('Codex 사용: enabled'));
-    assert.ok(lines.includes('Claude 사용: disabled'));
+    assert.ok(lines.includes('Command: status'));
+    assert.ok(lines.includes('Config: /x/config.json'));
+    assert.ok(lines.includes('Codex: enabled'));
+    assert.ok(lines.includes('Claude: disabled'));
   });
 });
 
 describe('formatClaudeNetworkUsages — multi-account', () => {
-  it('renders single "호출 안 함" line when usages is empty', () => {
+  it('renders single "Skipped" line when usages is empty', () => {
     const lines = formatClaudeNetworkUsages([]);
-    assert.ok(lines.some((l) => l.includes('호출 안 함')));
+    assert.ok(lines.some((l) => l.includes('Skipped')));
   });
 
   it('outputs a single block without account header when usages has one entry', () => {
@@ -192,8 +216,8 @@ describe('formatClaudeNetworkUsages — multi-account', () => {
         },
       },
     ]);
-    // 단일 계정 블록은 '계정:' 헤더를 붙이지 않음
-    assert.ok(!lines.some((l) => l.startsWith('  - 계정:')));
+    // 단일 계정 블록은 'Account:' 헤더를 붙이지 않음
+    assert.ok(!lines.some((l) => l.startsWith('  - Account:')));
     assert.ok(lines.some((l) => l.includes('OK (200)')));
   });
 
@@ -214,11 +238,11 @@ describe('formatClaudeNetworkUsages — multi-account', () => {
         },
       },
     ]);
-    assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
-    assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
+    assert.ok(lines.some((l) => l.includes('- Account: a:1')));
+    assert.ok(lines.some((l) => l.includes('- Account: a:2')));
     assert.ok(lines.some((l) => l.includes('OK (200)')));
-    assert.ok(lines.some((l) => l.includes('실패 (401, bucket=auth)')));
-    assert.ok(lines.some((l) => l.includes('메시지: expired')));
+    assert.ok(lines.some((l) => l.includes('FAILED (401, bucket=auth)')));
+    assert.ok(lines.some((l) => l.includes('Message: expired')));
   });
 });
 
@@ -239,8 +263,8 @@ describe('formatClaudeSection — networkUsages array support', () => {
         },
       ],
     });
-    assert.ok(lines.some((l) => l.includes('- 계정: a:1')));
-    assert.ok(lines.some((l) => l.includes('- 계정: a:2')));
+    assert.ok(lines.some((l) => l.includes('- Account: a:1')));
+    assert.ok(lines.some((l) => l.includes('- Account: a:2')));
   });
 
   it('falls back to legacy networkUsage when networkUsages absent', () => {
@@ -251,8 +275,8 @@ describe('formatClaudeSection — networkUsages array support', () => {
       networkUsage: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
     });
     assert.ok(lines.some((l) => l.includes('OK (200)')));
-    // 단일 블록이므로 '- 계정:' 헤더 없어야 함
-    assert.ok(!lines.some((l) => l.startsWith('  - 계정:')));
+    // 단일 블록이므로 '- Account:' 헤더 없어야 함
+    assert.ok(!lines.some((l) => l.startsWith('  - Account:')));
   });
 });
 
@@ -286,7 +310,6 @@ describe('parseStatusOptions', () => {
   });
 
   it('treats --account "" as "no value" (legacy contract)', () => {
-    // 공통 helper 전환 후에도 빈 문자열은 default 유지해야 한다.
     assert.deepEqual(parseStatusOptions(['--account', '']), {
       account: null,
       provider: null,
@@ -351,7 +374,6 @@ describe('normalizeProviderFilter', () => {
 
   it('returns null when normalized value is not a registered id', () => {
     assert.equal(normalizeProviderFilter('gemini'), null);
-    // accountKey-prefix 변형은 의도적으로 받지 않는다 (별도 결정 사안).
     assert.equal(normalizeProviderFilter('openai-codex'), null);
     assert.equal(normalizeProviderFilter('anthropic-claude'), null);
   });
@@ -388,7 +410,7 @@ describe('formatStatusHelp', () => {
 });
 
 describe('formatStatusOutput — accountFilter line', () => {
-  it('omits 계정 필터 line when not set', () => {
+  it('omits "Account filter" line when not set', () => {
     const lines = formatStatusOutput('status', {
       configPath: '/x',
       providers: { codex: { enabled: true }, claude: { enabled: true } },
@@ -401,10 +423,10 @@ describe('formatStatusOutput — accountFilter line', () => {
         networkUsages: [],
       },
     });
-    assert.ok(!lines.some((l) => l.includes('계정 필터')));
+    assert.ok(!lines.some((l) => l.includes('Account filter')));
   });
 
-  it('includes 계정 필터 line when accountFilter present', () => {
+  it('includes "Account filter" line when accountFilter present', () => {
     const lines = formatStatusOutput('status', {
       configPath: '/x',
       providers: { codex: { enabled: true }, claude: { enabled: true } },
@@ -418,7 +440,7 @@ describe('formatStatusOutput — accountFilter line', () => {
         networkUsages: [],
       },
     });
-    assert.ok(lines.includes('계정 필터: alice@x.com'));
+    assert.ok(lines.includes('Account filter: alice@x.com'));
   });
 });
 
@@ -442,7 +464,7 @@ describe('formatStatusOutput — providerFilter scope', () => {
       providerFilter: 'codex',
       codex: codexSnap,
     });
-    assert.ok(lines.includes('provider 필터: codex'));
+    assert.ok(lines.includes('Provider filter: codex'));
     assert.ok(lines.some((l) => l === 'Codex usage'));
     assert.ok(!lines.some((l) => l === 'Claude usage'));
   });
@@ -453,18 +475,18 @@ describe('formatStatusOutput — providerFilter scope', () => {
       providerFilter: 'claude',
       claude: claudeSnap,
     });
-    assert.ok(lines.includes('provider 필터: claude'));
+    assert.ok(lines.includes('Provider filter: claude'));
     assert.ok(lines.some((l) => l === 'Claude usage'));
     assert.ok(!lines.some((l) => l === 'Codex usage'));
   });
 
-  it('omits "provider 필터" line when not set', () => {
+  it('omits "Provider filter" line when not set', () => {
     const lines = formatStatusOutput('status', {
       ...baseSnapshot,
       codex: codexSnap,
       claude: claudeSnap,
     });
-    assert.ok(!lines.some((l) => l.startsWith('provider 필터:')));
+    assert.ok(!lines.some((l) => l.startsWith('Provider filter:')));
   });
 });
 
@@ -478,32 +500,28 @@ describe('formatCodexSection — accountFilter empty result', () => {
       snapshots: [],
     });
     assert.ok(
-      lines.some((l) =>
-        l.includes('계정 필터 "nope@x.com"에 해당하는 Codex 계정을 찾지 못했습니다'),
-      ),
+      lines.some((l) => l.includes('No Codex account matches account filter "nope@x.com"')),
     );
   });
 
-  it('falls back to normal "프로필 없음" when filteredOut=false', () => {
+  it('falls back to normal "no profile" message when filteredOut=false', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
       snapshots: [],
     });
-    assert.ok(lines.some((l) => l.includes('Codex OAuth 프로필이 없습니다')));
+    assert.ok(lines.some((l) => l.includes('No Codex OAuth profile found')));
   });
 });
 
 describe('formatClaudeNetworkUsages — filteredOut context', () => {
   it('shows filter-specific message when context.filteredOut is set', () => {
     const lines = formatClaudeNetworkUsages([], { filteredOut: true, accountFilter: 'nope' });
-    assert.ok(
-      lines.some((l) => l.includes('계정 필터 "nope"에 해당하는 Claude 계정을 찾지 못했습니다')),
-    );
+    assert.ok(lines.some((l) => l.includes('No Claude account matches account filter "nope"')));
   });
 });
 
-describe('formatClaudeSection — 기본 계정 라인 visibility', () => {
+describe('formatClaudeSection — Default account line visibility', () => {
   const baseClaude = {
     authSource: 'agent-store',
     detected: true,
@@ -516,12 +534,12 @@ describe('formatClaudeSection — 기본 계정 라인 visibility', () => {
     ],
   };
 
-  it('shows "기본 계정" line when accountFilter is not set', () => {
+  it('shows "Default account" line when accountFilter is not set', () => {
     const lines = formatClaudeSection(baseClaude);
-    assert.ok(lines.some((l) => l.startsWith('기본 계정: a:default')));
+    assert.ok(lines.some((l) => l.startsWith('Default account: a:default')));
   });
 
-  it('hides "기본 계정" line when accountFilter is active (avoid confusion with filtered set)', () => {
+  it('hides "Default account" line when accountFilter is active', () => {
     const lines = formatClaudeSection({
       ...baseClaude,
       accountFilter: 'work',
@@ -532,7 +550,70 @@ describe('formatClaudeSection — 기본 계정 라인 visibility', () => {
         },
       ],
     });
-    assert.ok(!lines.some((l) => l.startsWith('기본 계정:')));
+    assert.ok(!lines.some((l) => l.startsWith('Default account:')));
     assert.ok(lines.some((l) => l.includes('OK (200)')));
+  });
+});
+
+describe('formatStatusOutput — useColor context (issue #116)', () => {
+  it('passes useColor through to usage window formatting', () => {
+    const snapshot = {
+      configPath: '/x',
+      providers: { codex: { enabled: true }, claude: { enabled: false } },
+      sync: { enabled: false },
+      codex: {
+        enabled: true,
+        authSource: 'agent-store',
+        snapshots: [
+          {
+            source: 'provider_usage_endpoint',
+            authType: 'oauth',
+            confidence: 'high',
+            account: { profileId: 'p1' },
+            status: { ok: true, httpStatus: 200 },
+            usageWindows: [{ kind: 'primary', usedPercent: 95, resetAt: '2026-04-15' }],
+          },
+        ],
+      },
+      claude: {
+        authSource: 'not-found',
+        detected: false,
+        selectedAccount: null,
+        networkUsages: [],
+      },
+    };
+    const colored = formatStatusOutput('status', snapshot, { useColor: true });
+    const plain = formatStatusOutput('status', snapshot, { useColor: false });
+    assert.ok(colored.some((l) => l.includes('\x1b[')));
+    assert.ok(!plain.some((l) => l.includes('\x1b[')));
+  });
+
+  it('defaults to plain (no ANSI) when ctx is omitted', () => {
+    const lines = formatStatusOutput('status', {
+      configPath: '/x',
+      providers: { codex: { enabled: true }, claude: { enabled: false } },
+      sync: { enabled: false },
+      codex: {
+        enabled: true,
+        authSource: 'agent-store',
+        snapshots: [
+          {
+            source: 'provider_usage_endpoint',
+            authType: 'oauth',
+            confidence: 'high',
+            account: { profileId: 'p1' },
+            status: { ok: true, httpStatus: 200 },
+            usageWindows: [{ kind: 'primary', usedPercent: 95, resetAt: '2026-04-15' }],
+          },
+        ],
+      },
+      claude: {
+        authSource: 'not-found',
+        detected: false,
+        selectedAccount: null,
+        networkUsages: [],
+      },
+    });
+    assert.ok(!lines.some((l) => l.includes('\x1b[')));
   });
 });
