@@ -46,21 +46,30 @@ token-weather status --json --account work@example.com --provider claude
 
 ### 필드 부재 정책 — null vs 키 부재
 
-본 contract 의 모든 상위·하위 필드는 **부재 시에도 명시적으로 `null`** (또는 빈 array/object) 로 노출된다. 즉 `if (key in data)` 패턴은 안전하지 않으며 (모든 정의된 키는 항상 present), 값이 `null` 인지 확인하는 게 정합:
+정책 적용 범위:
+
+- **Top-level 정의 필드** (`command` / `generatedAt` / `schemaVersion` / `configPath` / `accountFilter` / `providerFilter` / `providers`) — **항상 present**. 값이 없을 때는 명시적 `null` (또는 빈 array `[]`) 로 노출되며 키 자체가 부재하지 않는다.
+- **`providers[]` 에 포함된 provider snapshot 의 정의 필드** (`enabled` / `authSource` / `credentialsPath` / `usageSnapshots` / `accountFilter` / `filteredOut`) — **항상 default value 명시**. 부재 시 `null` / `[]` / `false` 등으로 노출.
+
+**예외**: `--provider <id>` 로 일부 provider 만 요청한 경우, **선택되지 않은 provider 의 entry 자체가 `providers[]` 에 포함되지 않는다** (snapshot 이 생성되지 않으므로). 즉 `--provider codex` 시 `claude` entry 가 배열에서 누락.
 
 ```js
-// before — 키 부재 분기 (불필요)
-if ('accountFilter' in data) {
-  /* ... */
-}
-
-// after — 값이 null 인지 확인
+// top-level 필드: 값 확인 (`'key' in data` 안티패턴 회피)
 if (data.accountFilter !== null) {
   /* ... */
 }
+
+// provider entry 존재 여부: providerFilter 결과 반영
+const claude = data.providers.find((p) => p.id === 'claude');
+if (claude) {
+  // 이제 claude.snapshot 의 정의 필드는 항상 default 가 있음
+  if (claude.snapshot.usageSnapshots.length > 0) {
+    /* ... */
+  }
+}
 ```
 
-`providers[].snapshot.usageSnapshots` 도 빈 배열 `[]` 으로 노출되지 키 자체가 부재하지는 않는다. 신규 키 추가 시에도 이 정책을 따라 항상 default value 를 명시.
+신규 키 추가 시에도 이 정책을 따라 항상 default value 를 명시 (`undefined` 또는 키 자체 부재가 발생하지 않도록).
 
 ## providers
 
