@@ -8,6 +8,57 @@
 
 이 섹션은 publish 시점에 root에서 **수동으로 큐레이트**합니다 — 3 패키지를 가로지르는 사용자-가시 변경의 high-level 요약. 패키지별 상세 release note는 [Changesets](https://github.com/changesets/changesets)가 `packages/*/CHANGELOG.md`를 자동 생성하고, 본 문서는 publish PR에서 그 내용을 참고해 채웁니다. 사용자-가시 변경이 있는 PR은 `npx changeset` 으로 changeset을 함께 commit 해주세요.
 
+## [0.4.0] - 2026-05-12
+
+두 트랙의 동시 정비 release. **(1)** `cli:status` 평문 출력의 visual overhaul — ASCII 막대 그래프 + 컬러 임계값 + 친화적 시간/라벨 + 다 계정 박스 + heavy-rule 헤더 + 영어화 (claude-code `/usage` 스타일 정합). **(2)** `status --json` contract 의 누적 부채 정리 3-phase — claude backward-compat alias 3 종 제거 + codex/claude provider keyset 동일화 + 문서/회귀 가드 보강. `SCHEMA_VERSION` `'0.3.0'` → `'0.5.0'` (두 단계 bump: #119, #120).
+
+### Changed (Breaking) — `status --json` contract
+
+- **claude provider snapshot 의 backward-compat alias 3 종 제거** ([#119]). 정식 키만 유지: `networkUsage` (단일) → `networkUsages[]` / `importedAccount` → `selectedAccount` / `parsed` → `found`.
+- **codex / claude provider snapshot keyset 동일화** ([#120]) — 외부 consumer 가 provider 분기 없이 단일 path 로 조회 가능. 6 키 통일 (`enabled` / `authSource` / `credentialsPath` / `usageSnapshots` / `accountFilter` / `filteredOut`):
+  - codex `snapshots[]` / claude `networkUsages[]` → 통합 `usageSnapshots[]`.
+  - claude `usageSnapshots[]` element 의 `{ accountKey, account, snapshot }` wrapper 제거 — UsageSnapshot 직접 배열로.
+  - claude `detected` / `found` (이전 #119 에서 정리) → 단일 `enabled` boolean (codex 와 동일 키 이름).
+  - claude `selectedAccount` 제거 — default account 개념 multi-account 박스 UI 도입 후 의미 약화.
+  - claude `credentialsPath` 항상-노출 → `cli-import` 시점만 (codex 와 동일 정책).
+- `SCHEMA_VERSION` `'0.3.0'` → `'0.5.0'` (두 단계 bump: `0.3.0` → `0.4.0` ([#119]), `0.4.0` → `0.5.0` ([#120])).
+
+**Migration** (외부 dashboard / 자동화 consumer):
+
+- v0.3.x → v0.4.x: `networkUsage` (단일) → `networkUsages[0].snapshot` (wrapper 거쳐서). `importedAccount` → `selectedAccount`. `parsed` → `found`.
+- v0.4.x → v0.5.x: `networkUsages` → `usageSnapshots` + wrapper 제거 (`.snapshot.usageWindows` → `.usageWindows`). `detected` / `found` → `enabled`. `selectedAccount` 제거 → `usageSnapshots[]` 순회. `credentialsPath` null 가능성 확인.
+- 자세한 before/after 예시: [`docs/cli-json-output.md`](docs/cli-json-output.md) §"제거된 backward-compat alias (v0.4.0)" / §"Provider shape symmetry (v0.5.0)".
+
+### Changed — `cli:status` 평문 출력 visual overhaul
+
+평문은 stable contract 아님 (`docs/cli-json-output.md` 명시) — UI 만 갱신, `--json` / public API 무영향. 모든 변경은 같은 PR (#117) 누적:
+
+- **ASCII 막대 그래프** — 1/8 정밀도 fractional 블록 `█▏▎▍▌▋▊▉` + 빈 자리 `░` (light shade). 막대 폭 50.
+- **컬러 임계값** — `< 50%` green / `50-79%` yellow / `≥ 80%` red. claude-code `/usage` + codex 표준 정합.
+- **NO_COLOR / non-TTY / `TERM=dumb` 자동 fallback** — ANSI escape 미출력.
+- **친화적 reset 시간** — ISO 8601 → `2pm (Asia/Seoul)` / `May 15, 3am (Asia/Seoul)` 로컬 timezone.
+- **친화적 window 라벨** — `primary` → `Primary window` / `five_hour` → `Current session (5h)` / `seven_day` → `Current week (all models)` / `seven_day_sonnet` → `Current week (Sonnet only)`.
+- **3-line block per window** — `label / bar+pct used / Resets time` 인라인.
+- **다 계정 박스 wrapping** — rounded corner `╭─ provider | email ... ╰─`. 단일 계정은 박스 없이 `- profileId` 헤더.
+- **Provider section heavy-rule header** — `━━━━ Codex usage ━━━━━━...` 인라인 (이전 underline `------` 대체). top-level summary 도 동일 패턴 `━━━━ Agent Status Summary ━━━━...` + label-less 박스.
+- **Lean cleanup** — `Auth source: ` / `Credential detected: ` / `Default account: ` / `[live] api.anthropic.com/...` / `source=.../authType=.../confidence=...` / `Status: FAILED (httpStatus, bucket=...)` / `Message: ... — {JSON}` 등 사용자에게 가시화 우선순위 낮은 메타 정보 제거.
+- **평문 영어화** — 헤더 / 라벨 / 상태 / 에러 메시지 / `--help` 모두 한글 → 영어 (사용자 요청, 평문 unstable 정책 정합).
+- **Account 헤더 단일화** — `provider | identifier` 형식 (codex/claude 동일). identifier 우선순위: `email` → `accountId` → `accountKey` → `profileId`.
+
+### Internal — JSON contract 문서 / 회귀 가드 보강 ([#121])
+
+- `docs/cli-json-output.md` — Top-level shape 표에 "부재 시" 컬럼 + 신규 §"필드 부재 정책 — null vs 키 부재" (providerFilter 예외 명시) + §"`authSource` enum 값" + §"`raw` 영역 책임 (provider adapter 계약)".
+- `packages/agent/test/cli/status-json.test.js` — top-level `schemaVersion` lock 회귀 가드 3 케이스 (값 일치 / 키 항상 present / 모든 출력 경로 통과). `packages/schemas/test/schema-version.test.js` (값 lock) 와 함께 SCHEMA_VERSION 한쪽만 bump 회귀 차단.
+- `packages/agent/src/cli/status-bar-helper.js` 신설 (UI) — `shouldUseColor` / `levelForPercent` / `colorize` / `formatProgressBar` / `formatResetTime` / `formatWindowLabel` pure helper.
+
+[Unreleased]: https://github.com/LLagoon3/token-weather/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/LLagoon3/token-weather/releases/tag/v0.4.0
+
+[#117]: https://github.com/LLagoon3/token-weather/pull/117
+[#119]: https://github.com/LLagoon3/token-weather/issues/119
+[#120]: https://github.com/LLagoon3/token-weather/issues/120
+[#121]: https://github.com/LLagoon3/token-weather/issues/121
+
 ## [0.3.0] - 2026-05-11
 
 두 차례의 architectural symmetry 정비 release. claude / codex 의 fallback credential 흐름과 refresh helper 위치가 1:1 대칭으로 정렬되고, `status --json` 의 키 정합을 위한 `SCHEMA_VERSION` 두 단계 bump (`0.1.0` → `0.3.0`). 운영 측면에서는 `doctor --dedupe` 신규 진단 명령으로 누적 stale 레코드의 retroactive 정리 경로 확보.
@@ -43,7 +94,6 @@
 - `docs/auth-cli.md` `doctor --dedupe` / `--apply` / `--backfill-account-id` 사용 예 + 안전 가이드 추가.
 - `docs/cli-json-output.md` / `docs/architecture.md` / `docs/codebase-guide.md` / `docs/provider-notes.md` — stats-cache 제거 + codex-cli-import 전환 반영.
 
-[Unreleased]: https://github.com/LLagoon3/token-weather/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/LLagoon3/token-weather/releases/tag/v0.3.0
 
 [#108]: https://github.com/LLagoon3/token-weather/pull/108
