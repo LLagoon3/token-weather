@@ -1,6 +1,6 @@
 {
   "name": "@token-weather/schemas",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Token Weather 공통 데이터 계약 (usage snapshot / usage event JSON Schema)",
   "license": "Apache-2.0",
   "type": "module",
