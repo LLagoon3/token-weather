@@ -80,7 +80,7 @@ contract는 [docs/cli-json-output.md](./cli-json-output.md)에 stable로 명시�
 
 ## 3. SCHEMA_VERSION 규약
 
-`packages/schemas/src/index.js::SCHEMA_VERSION`은 현재 `'0.4.0'` (string semver).
+`packages/schemas/src/index.js::SCHEMA_VERSION`은 현재 `'0.5.0'` (string semver).
 
 - 본 패키지의 `version`과는 **독립**. 패키지가 0.5.0이어도 SCHEMA_VERSION은 0.1.0일 수 있음.
 - bump 트리거: §1의 **major** 항목 중 `status --json` shape 또는 `packages/schemas` JSON Schema의 breaking 변경이 발생할 때.
@@ -132,3 +132,4 @@ CHANGELOG는 두 layer로 운영한다 — Changesets 기본 동작에 맞춰서
 - 2026-05-06 (#110 — SCHEMA_VERSION 0.1.0 → 0.2.0): claude `~/.claude/stats-cache.json` 의존 제거 PR 의 일부로 `status --json` 에서 `claude.usage` 키가 제거됨 (release-policy §1 의 major 트리거 — 키 제거). v0.x convention 상 package version 은 minor bump 지만 **`status --json` 의 `schemaVersion` 자체는 별도 계약**이라 같이 bump (`docs/cli-json-output.md` §변경 정책 일관). 회귀 가드 신설 — `packages/schemas/test/schema-version.test.js` 가 SCHEMA_VERSION 값을 lock 해서 미래 우발적 bump 차단. PR #112 review 가 본 누락을 짚어 같은 PR 안에서 정정.
 - 2026-05-07 (#113 — SCHEMA_VERSION 0.2.0 → 0.3.0): codex 폴백을 OpenClaw `auth-profiles.json` 에서 Codex CLI `~/.codex/auth.json` 으로 전환 (claude 와 architectural symmetry). `status --json` shape 변경: `authSource` enum 의 `'openclaw-import'` 값 제거 + `'codex-cli-import'` 추가 (release-policy §1 의 키/의미 변경 = major 트리거); `codex.authProfilesPath` 필드 → `codex.credentialsPath` 로 정렬 (claude 측의 `claude.credentialsPath` 와 동일 표면). 외부 consumer 의 `authSource` 분기 + `authProfilesPath` 참조 둘 다 갱신 필요. v0.x convention 상 package version 은 minor + `!` prefix.
 - 2026-05-12 (#119 — SCHEMA_VERSION 0.3.0 → 0.4.0): `status --json` 의 claude provider 영역에서 backward-compat alias 3 종 제거 (release-policy §1 의 키 제거 = major 트리거): `networkUsage` (단일, → `networkUsages[]` 만 유지) / `importedAccount` (→ `selectedAccount` 만) / `parsed` (→ `found` 만). 외부 consumer 마이그레이션: alias 키 파싱 분기를 정식 키로 갱신. `docs/cli-json-output.md` 에 Migration 표 동봉. v0.x convention 상 package version 은 minor + `!` prefix. JSON 출력 외 평문 / public API surface 무영향.
+- 2026-05-12 (#120 — SCHEMA_VERSION 0.4.0 → 0.5.0): `status --json` provider entry shape 정합 — codex / claude 키셋 동일화 (release-policy §1 의 키 제거 + 의미 변경 + 재구성 = major 트리거). 변경: (a) codex `snapshots[]` / claude `networkUsages[]` → 통일 `usageSnapshots[]`; (b) claude `networkUsages[]` 의 wrapper `{ accountKey, account, snapshot }` 제거 — UsageSnapshot 직접 배열로 (codex 와 동일); (c) claude `detected` / `found` → 단일 `enabled` boolean (codex 와 동일); (d) claude `selectedAccount` 제거 (default account 개념 multi-account 박스 UI 도입 후 의미 약화 — 양 provider 모두 미노출); (e) claude `credentialsPath` 항상-노출 정책 → `cli-import` 시점만 (codex 와 동일 정책 정렬). 외부 consumer 마이그레이션 비용 큼 — `docs/cli-json-output.md` §"Provider shape symmetry (v0.5.0)" 의 before/after 예시 참고. v0.x convention 상 package version 은 minor + `!` prefix.
