@@ -89,10 +89,10 @@ describe('colorize', () => {
 });
 
 describe('formatProgressBar', () => {
-  it('renders 0% as all spaces (default width 50)', () => {
+  it('renders 0% as all light-shade blocks (default width 50)', () => {
     const bar = formatProgressBar(0);
     assert.equal(bar.length, 50);
-    assert.equal(bar, ' '.repeat(50));
+    assert.equal(bar, '░'.repeat(50));
   });
 
   it('renders 100% as all filled blocks (default width 50)', () => {
@@ -104,29 +104,30 @@ describe('formatProgressBar', () => {
     const bar = formatProgressBar(5, { width: 50 });
     assert.equal(bar.startsWith('██▌'), true);
     assert.equal(bar.length, 50);
-    // remaining is spaces
-    assert.equal(bar.slice(3), ' '.repeat(47));
+    // 빈 자리는 light shade '░' 로 시각화 (issue #116 review)
+    assert.equal(bar.slice(3), '░'.repeat(47));
   });
 
-  it('renders 39% at width 50 (19.5 units → 19 full + half)', () => {
+  it('renders 39% at width 50 (19.5 units → 19 full + half + light shade)', () => {
     const bar = formatProgressBar(39, { width: 50 });
     assert.equal(bar.startsWith('█'.repeat(19) + '▌'), true);
     assert.equal(bar.length, 50);
+    assert.ok(bar.endsWith('░'));
   });
 
-  it('renders 4% at width 50 (2 units → 2 full + 0 frac)', () => {
+  it('renders 4% at width 50 (2 units → 2 full + light shade fill)', () => {
     const bar = formatProgressBar(4, { width: 50 });
-    assert.equal(bar.startsWith('██ '), true);
+    assert.equal(bar.startsWith('██░'), true);
     assert.equal(bar.length, 50);
   });
 
-  it('null / NaN renders as all spaces', () => {
-    assert.equal(formatProgressBar(null, { width: 20 }), ' '.repeat(20));
-    assert.equal(formatProgressBar(NaN, { width: 20 }), ' '.repeat(20));
+  it('null / NaN renders as all light-shade (unknown vs 0% disambiguated by `--` pct text)', () => {
+    assert.equal(formatProgressBar(null, { width: 20 }), '░'.repeat(20));
+    assert.equal(formatProgressBar(NaN, { width: 20 }), '░'.repeat(20));
   });
 
   it('clamps values outside 0-100 range', () => {
-    assert.equal(formatProgressBar(-10, { width: 10 }), ' '.repeat(10));
+    assert.equal(formatProgressBar(-10, { width: 10 }), '░'.repeat(10));
     assert.equal(formatProgressBar(150, { width: 10 }), '█'.repeat(10));
   });
 

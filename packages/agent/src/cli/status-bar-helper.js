@@ -82,15 +82,18 @@ export function colorize(text, level, useColor) {
 }
 
 /**
- * 0-100 백분율을 ASCII 막대 그래프로 렌더링. claude-code `/usage` 스타일.
+ * 0-100 백분율을 ASCII 막대 그래프로 렌더링.
  *
- * 정상 입력: `███▌` 형태 — 1/8 정밀도 fractional 블록 포함. 빈 자리는 space.
- * null/NaN: 전부 space (width 만큼). 범위 외 값은 0..100 으로 clamp.
+ * 정상 입력: `███▌░░░` 형태 — 1/8 정밀도 fractional 블록 포함, 빈 자리는
+ * `░` (light shade) 로 채워 막대 폭이 끝까지 시각화됨.
+ * null/NaN: 전부 `░` (unknown 표기 — pct text 가 `--` 로 함께 표시되므로
+ * 0% 와 혼동되지 않음). 범위 외 값은 0..100 으로 clamp.
  *
  * 양 끝 대괄호 없음 — multi-line block 의 한 줄로 사용되므로 percent / "used"
  * 와의 시각 정렬을 위해 width 만큼 padding 보장.
  *
- * 컬러는 levelForPercent 결정값으로 colorize 통과. useColor=false 면 plain.
+ * 컬러는 levelForPercent 결정값으로 filled 부분에만 적용. unfilled `░` 는
+ * 항상 plain — 컬러된 채워진 부분과 시각 대비.
  *
  * @param {number|null|undefined} percent
  * @param {{ width?: number, useColor?: boolean }} [options]
@@ -101,7 +104,7 @@ export function formatProgressBar(percent, options = {}) {
   const useColor = options.useColor ?? false;
 
   if (percent == null || Number.isNaN(percent)) {
-    return ' '.repeat(width);
+    return '░'.repeat(width);
   }
 
   const clamped = Math.max(0, Math.min(100, percent));
@@ -115,7 +118,7 @@ export function formatProgressBar(percent, options = {}) {
   }
 
   const visibleLen = filled.length;
-  const trailing = ' '.repeat(Math.max(0, width - visibleLen));
+  const trailing = '░'.repeat(Math.max(0, width - visibleLen));
 
   const level = levelForPercent(percent);
   const colored = colorize(filled, level, useColor);
