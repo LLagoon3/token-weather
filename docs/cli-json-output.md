@@ -85,13 +85,33 @@ token-weather status --json --account work@example.com --provider claude
 
 v0.4.0 (issue #119) 에서 claude provider snapshot 의 alias 3 종이 제거됐다. 외부 consumer 가 alias 키를 파싱하고 있었다면 정식 키로 마이그레이션 필요.
 
-| 제거된 alias                                     | 정식 키                                        | 비고                                                                           |
-| ------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------ |
-| `.providers[].snapshot.networkUsage` (단일 객체) | `.providers[].snapshot.networkUsages[]` (배열) | 단일 계정 케이스는 `networkUsages[0]`. multi-account 도 `[]` 순회로 일관 처리. |
-| `.providers[].snapshot.importedAccount`          | `.providers[].snapshot.selectedAccount`        | 동일 값이었음.                                                                 |
-| `.providers[].snapshot.parsed`                   | `.providers[].snapshot.found`                  | 항상 `found` 와 동일 값이었음.                                                 |
+| 제거된 alias                                     | 정식 키                                        | 비고                                                                              |
+| ------------------------------------------------ | ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| `.providers[].snapshot.networkUsage` (단일 객체) | `.providers[].snapshot.networkUsages[]` (배열) | **원소 wrapper 주의** — 아래 참고. 단일 계정은 `[0]`, multi-account 는 `[]` 순회. |
+| `.providers[].snapshot.importedAccount`          | `.providers[].snapshot.selectedAccount`        | 동일 값이었음.                                                                    |
+| `.providers[].snapshot.parsed`                   | `.providers[].snapshot.found`                  | 항상 `found` 와 동일 값이었음.                                                    |
 
 이전 버전 (v0.3.x 이하) 에서는 두 키가 함께 출력되어 backward-compat 가 유지됐으나, v0.4.0 부터는 정식 키만 노출.
+
+### `networkUsages[]` 원소 구조 (중요)
+
+이전 `networkUsage` 는 usage snapshot **객체 그대로** 였지만, 신규 `networkUsages[]` 의 각 원소는 `{ accountKey, account, snapshot }` **wrapper**다. 실제 `usageWindows` / `status` 등 데이터는 `.snapshot` 안에 있다.
+
+```js
+// before (v0.3.x — 제거됨)
+const ok = data.providers.find((p) => p.id === 'claude').snapshot.networkUsage.status.ok;
+const windows = data.providers.find((p) => p.id === 'claude').snapshot.networkUsage.usageWindows;
+
+// after (v0.4.0+)
+const claude = data.providers.find((p) => p.id === 'claude').snapshot;
+const ok = claude.networkUsages[0].snapshot.status.ok; // ← .snapshot 단계 추가
+const windows = claude.networkUsages[0].snapshot.usageWindows;
+
+// 다 계정 순회 패턴
+for (const entry of claude.networkUsages) {
+  console.log(entry.accountKey, entry.snapshot.status.ok); // ← entry.snapshot
+}
+```
 
 ## 보안 원칙
 

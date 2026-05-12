@@ -15,7 +15,7 @@ chore(agent)!: `status --json` 의 claude provider 영역에서 backward-compat 
 
 **Migration**:
 
-- `.providers[].snapshot.networkUsage` 참조 → `.providers[].snapshot.networkUsages[0]` (단일 계정) 또는 array 순회.
+- `.providers[].snapshot.networkUsage` 참조 → `.providers[].snapshot.networkUsages[0].snapshot` (단일 계정) 또는 array 순회. **주의** — 이전 `networkUsage` 는 usage snapshot 객체 그대로였지만, 신규 `networkUsages[]` 의 각 원소는 `{ accountKey, account, snapshot }` wrapper. 실제 `usageWindows` / `status` 등 데이터는 `.snapshot` 안에 있어 `.snapshot` 단계 추가 필요. 자세한 예시는 `docs/cli-json-output.md` §"제거된 backward-compat alias (v0.4.0)".
 - `.providers[].snapshot.importedAccount` 참조 → `.providers[].snapshot.selectedAccount` 동일 의미.
 - `.providers[].snapshot.parsed` 참조 → `.providers[].snapshot.found` 동일 의미.
 
