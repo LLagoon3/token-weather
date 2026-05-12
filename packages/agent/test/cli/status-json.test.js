@@ -292,6 +292,35 @@ describe('formatStatusJson — providers array', () => {
   });
 });
 
+describe('formatStatusJson — claude backward-compat alias 부재 (issue #119)', () => {
+  // v0.4.0 (issue #119): claude provider snapshot 에서 backward-compat alias
+  // 3 종 제거 — `networkUsage` (단일, → `networkUsages[]` 만) /
+  // `importedAccount` (→ `selectedAccount` 만) / `parsed` (→ `found` 만).
+  // 외부 consumer 가 alias 키를 파싱했다면 Migration 필요.
+
+  it('does NOT emit `networkUsage` (single) alias when claude snapshot is built', () => {
+    const json = formatStatusJson({
+      schemaVersion: '0.4.0',
+      configPath: '/x',
+      providers: { codex: {}, claude: { enabled: true } },
+      sync: {},
+      codex: {},
+      claude: {
+        detected: true,
+        found: true,
+        authSource: 'claude-cli-import',
+        selectedAccount: { accountKey: 'a' },
+        networkUsages: [],
+      },
+    });
+    const parsed = JSON.parse(json);
+    const claude = parsed.providers.find((p) => p.id === 'claude').snapshot;
+    assert.equal('networkUsage' in claude, false);
+    assert.equal('importedAccount' in claude, false);
+    assert.equal('parsed' in claude, false);
+  });
+});
+
 describe('formatStatusJson — redaction (security)', () => {
   it('strips tokens from claude.selectedAccount.tokens', () => {
     const json = formatStatusJson({

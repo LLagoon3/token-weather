@@ -19,7 +19,6 @@ export function formatClaudeSection(snapshot) {
   lines.push('Claude credential 상태:');
   lines.push(`  credentialsPath: ${snapshot.credentialsPath}`);
   lines.push(`  found:           ${snapshot.found}`);
-  lines.push(`  parsed:          ${snapshot.parsed}`);
   lines.push(`  authSource:      ${snapshot.authSource}`);
   lines.push(`  accountKey:      ${snapshot.selectedAccount?.accountKey ?? '(없음)'}`);
   lines.push(`  authType:        ${snapshot.selectedAccount?.authType ?? '(알 수 없음)'}`);
@@ -27,17 +26,7 @@ export function formatClaudeSection(snapshot) {
   lines.push('');
   lines.push('Claude live usage (api.anthropic.com/api/oauth/usage):');
 
-  // multi-account: networkUsages 배열 우선. 없으면 legacy networkUsage 단일값으로 흡수.
-  const usages = Array.isArray(snapshot.networkUsages)
-    ? snapshot.networkUsages
-    : snapshot.networkUsage
-      ? [
-          {
-            accountKey: snapshot.selectedAccount?.accountKey ?? null,
-            snapshot: snapshot.networkUsage,
-          },
-        ]
-      : [];
+  const usages = Array.isArray(snapshot.networkUsages) ? snapshot.networkUsages : [];
 
   if (usages.length === 0) {
     lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');

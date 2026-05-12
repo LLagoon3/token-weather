@@ -214,11 +214,7 @@ export function formatCodexSection(codex, ctx = {}) {
 export function formatClaudeSection(claude, ctx = {}) {
   const lines = [providerHeader('Claude usage'), ''];
 
-  const usages = Array.isArray(claude.networkUsages)
-    ? claude.networkUsages
-    : claude.networkUsage
-      ? [{ accountKey: claude.selectedAccount?.accountKey ?? null, snapshot: claude.networkUsage }]
-      : [];
+  const usages = Array.isArray(claude.networkUsages) ? claude.networkUsages : [];
   lines.push(
     ...formatClaudeNetworkUsages(usages, {
       filteredOut: claude.filteredOut,

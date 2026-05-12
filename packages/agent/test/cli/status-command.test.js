@@ -224,7 +224,7 @@ describe('formatStatusOutput', () => {
         authSource: 'not-found',
         detected: false,
         selectedAccount: null,
-        networkUsage: null,
+        networkUsages: [],
       },
     });
     // 'Command: status' / 'Local agent status summary' 모두 제거됨
@@ -310,17 +310,7 @@ describe('formatClaudeSection — networkUsages array support', () => {
     assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:2')));
   });
 
-  it('falls back to legacy networkUsage when networkUsages absent', () => {
-    const lines = formatClaudeSection({
-      authSource: 'claude-cli-import',
-      detected: true,
-      selectedAccount: null,
-      networkUsage: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
-    });
-    assert.ok(lines.some((l) => l.includes('OK (200)')));
-    // 단일 블록이므로 '- Account:' 헤더 없어야 함
-    assert.ok(!lines.some((l) => l.startsWith('  - Account:')));
-  });
+  // issue #119: legacy `networkUsage` (단일) fallback 은 제거됨 — `networkUsages[]` 만 지원.
 });
 
 describe('parseStatusOptions', () => {

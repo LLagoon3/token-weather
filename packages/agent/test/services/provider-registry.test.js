@@ -41,8 +41,9 @@ describe('runProviderSnapshots', () => {
       providers: { codex: { enabled: false }, claude: { enabled: false } },
     });
     assert.equal(out.codex.enabled, false);
-    // Claude snapshot always returns a base+networkUsage(null when disabled/no profile) — just assert shape
-    assert.equal(out.claude.networkUsage, null);
+    // Claude snapshot always returns base + networkUsages=[] when disabled (issue #119:
+    // networkUsage 단일 alias 제거됨).
+    assert.deepEqual(out.claude.networkUsages, []);
   });
 
   it('CLI accountFilter and config.defaults.profiles do not throw when both supplied', async () => {
