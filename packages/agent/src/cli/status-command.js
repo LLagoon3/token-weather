@@ -12,7 +12,7 @@ export {
   formatClaudeNetworkUsages,
   formatClaudeNetworkUsageBody,
   formatClaudeNetworkUsage,
-  formatWindowLine,
+  formatWindowBlock,
 } from './status-formatters.js';
 
 import { formatStatusOutput } from './status-formatters.js';

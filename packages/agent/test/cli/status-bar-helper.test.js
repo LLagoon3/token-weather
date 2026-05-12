@@ -6,6 +6,8 @@ import {
   levelForPercent,
   colorize,
   formatProgressBar,
+  formatResetTime,
+  formatWindowLabel,
 } from '../../src/cli/status-bar-helper.js';
 
 describe('shouldUseColor', () => {
@@ -24,7 +26,6 @@ describe('shouldUseColor', () => {
 
   it('false when NO_COLOR env is set (no-color.org)', () => {
     assert.equal(shouldUseColor({ stream: { isTTY: true }, env: { NO_COLOR: '1' } }), false);
-    // any non-empty value disables
     assert.equal(shouldUseColor({ stream: { isTTY: true }, env: { NO_COLOR: 'any' } }), false);
   });
 
@@ -88,48 +89,153 @@ describe('colorize', () => {
 });
 
 describe('formatProgressBar', () => {
-  it('renders 0% as all empty blocks', () => {
-    assert.equal(formatProgressBar(0, { width: 10 }), '[░░░░░░░░░░]');
+  it('renders 0% as all spaces (default width 50)', () => {
+    const bar = formatProgressBar(0);
+    assert.equal(bar.length, 50);
+    assert.equal(bar, ' '.repeat(50));
   });
 
-  it('renders 100% as all filled blocks', () => {
-    assert.equal(formatProgressBar(100, { width: 10 }), '[██████████]');
+  it('renders 100% as all filled blocks (default width 50)', () => {
+    assert.equal(formatProgressBar(100), '█'.repeat(50));
   });
 
-  it('renders 50% as half-filled (rounded)', () => {
-    assert.equal(formatProgressBar(50, { width: 10 }), '[█████░░░░░]');
+  it('renders 5% with eighth-block precision at width 50 (5/100*50 = 2.5 → 2 full + half)', () => {
+    // 2.5 units * 8 = 20 eighths → 2 full blocks + 4/8 = ▌
+    const bar = formatProgressBar(5, { width: 50 });
+    assert.equal(bar.startsWith('██▌'), true);
+    assert.equal(bar.length, 50);
+    // remaining is spaces
+    assert.equal(bar.slice(3), ' '.repeat(47));
   });
 
-  it('null / NaN renders as [n/a + padding]', () => {
-    const bar = formatProgressBar(null, { width: 10 });
-    assert.equal(bar, '[n/a       ]');
-    assert.equal(bar.length, 12); // [ + 10 + ]
-    assert.equal(formatProgressBar(NaN, { width: 10 }), '[n/a       ]');
+  it('renders 39% at width 50 (19.5 units → 19 full + half)', () => {
+    const bar = formatProgressBar(39, { width: 50 });
+    assert.equal(bar.startsWith('█'.repeat(19) + '▌'), true);
+    assert.equal(bar.length, 50);
+  });
+
+  it('renders 4% at width 50 (2 units → 2 full + 0 frac)', () => {
+    const bar = formatProgressBar(4, { width: 50 });
+    assert.equal(bar.startsWith('██ '), true);
+    assert.equal(bar.length, 50);
+  });
+
+  it('null / NaN renders as all spaces', () => {
+    assert.equal(formatProgressBar(null, { width: 20 }), ' '.repeat(20));
+    assert.equal(formatProgressBar(NaN, { width: 20 }), ' '.repeat(20));
   });
 
   it('clamps values outside 0-100 range', () => {
-    assert.equal(formatProgressBar(-10, { width: 10 }), '[░░░░░░░░░░]');
-    assert.equal(formatProgressBar(150, { width: 10 }), '[██████████]');
+    assert.equal(formatProgressBar(-10, { width: 10 }), ' '.repeat(10));
+    assert.equal(formatProgressBar(150, { width: 10 }), '█'.repeat(10));
   });
 
-  it('default width is 20', () => {
+  it('default width is 50', () => {
     const bar = formatProgressBar(50);
-    assert.equal(bar.length, 22); // [ + 20 + ]
+    assert.equal(bar.length, 50);
   });
 
   it('useColor=false produces no ANSI escape', () => {
-    const bar = formatProgressBar(95, { width: 10, useColor: false });
+    const bar = formatProgressBar(95, { width: 20, useColor: false });
     assert.ok(!bar.includes('\x1b['));
   });
 
   it('useColor=true wraps the filled portion in ANSI codes', () => {
-    const bar = formatProgressBar(95, { width: 10, useColor: true });
+    const bar = formatProgressBar(95, { width: 20, useColor: true });
     assert.ok(bar.includes('\x1b[31m')); // red for ≥80
     assert.ok(bar.includes('\x1b[0m'));
   });
 
   it('useColor=true with null percent → no ANSI (level=null)', () => {
-    const bar = formatProgressBar(null, { width: 10, useColor: true });
+    const bar = formatProgressBar(null, { width: 20, useColor: true });
     assert.ok(!bar.includes('\x1b['));
+  });
+});
+
+describe('formatResetTime', () => {
+  // Avoid TZ-dependent assertions in tests by using a fixed local "now" and
+  // working in the local TZ. We check structural shape, not exact strings.
+
+  it('returns "unknown" for null/undefined/empty', () => {
+    assert.equal(formatResetTime(null), 'unknown');
+    assert.equal(formatResetTime(undefined), 'unknown');
+    assert.equal(formatResetTime(''), 'unknown');
+  });
+
+  it('returns the original string for invalid dates', () => {
+    assert.equal(formatResetTime('not-a-date'), 'not-a-date');
+  });
+
+  it('same-day → time only with TZ in parentheses', () => {
+    const now = new Date('2026-05-12T10:00:00');
+    // 같은 날의 14:00 — same toDateString
+    const reset = new Date(now);
+    reset.setHours(14, 0, 0, 0);
+    const result = formatResetTime(reset.toISOString(), now);
+    // 같은 날이므로 month/day prefix 없음
+    assert.ok(!/^[A-Z][a-z]{2} \d/.test(result));
+    // pm + TZ 괄호 포함
+    assert.match(result, /pm \(/);
+    assert.match(result, /\)$/);
+  });
+
+  it('different day → includes month + day prefix', () => {
+    const now = new Date('2026-05-12T10:00:00');
+    const reset = new Date('2026-05-15T03:00:00');
+    const result = formatResetTime(reset.toISOString(), now);
+    assert.match(result, /^May 15, 3am \(/);
+  });
+
+  it('omits minutes when 0, includes when non-zero', () => {
+    const now = new Date('2026-05-12T10:00:00');
+    const r1 = new Date(now);
+    r1.setHours(14, 0, 0, 0);
+    const r2 = new Date(now);
+    r2.setHours(14, 30, 0, 0);
+    assert.match(formatResetTime(r1.toISOString(), now), /^2pm /);
+    assert.match(formatResetTime(r2.toISOString(), now), /^2:30pm /);
+  });
+
+  it('midnight renders as 12am, noon as 12pm', () => {
+    const now = new Date('2026-05-12T10:00:00');
+    const midnight = new Date(now);
+    midnight.setHours(0, 0, 0, 0);
+    const noon = new Date(now);
+    noon.setHours(12, 0, 0, 0);
+    assert.match(formatResetTime(midnight.toISOString(), now), /^12am /);
+    assert.match(formatResetTime(noon.toISOString(), now), /^12pm /);
+  });
+});
+
+describe('formatWindowLabel', () => {
+  it('WINDOW_LABELS mapping wins over window.label for known kinds', () => {
+    // adapter 의 generic label (예: `${kind} window`) 보다 formatter UX 결정이 우선.
+    assert.equal(formatWindowLabel({ label: 'primary window', kind: 'primary' }), 'Primary window');
+  });
+
+  it('falls back to window.label for unknown kinds', () => {
+    assert.equal(
+      formatWindowLabel({ label: 'Custom Adapter Label', kind: 'custom_window' }),
+      'Custom Adapter Label',
+    );
+  });
+
+  it('maps known kinds to friendly labels', () => {
+    assert.equal(formatWindowLabel({ kind: 'primary' }), 'Primary window');
+    assert.equal(formatWindowLabel({ kind: 'secondary' }), 'Secondary window');
+    assert.equal(formatWindowLabel({ kind: 'five_hour' }), 'Current session (5h)');
+    assert.equal(formatWindowLabel({ kind: 'seven_day' }), 'Current week (all models)');
+    assert.equal(formatWindowLabel({ kind: 'seven_day_sonnet' }), 'Current week (Sonnet only)');
+    assert.equal(formatWindowLabel({ kind: 'seven_day_opus' }), 'Current week (Opus only)');
+  });
+
+  it('falls back to kind for unknown kinds', () => {
+    assert.equal(formatWindowLabel({ kind: 'custom_window' }), 'custom_window');
+  });
+
+  it('returns generic "Window" when both label and kind are missing', () => {
+    assert.equal(formatWindowLabel({}), 'Window');
+    assert.equal(formatWindowLabel(null), 'Window');
+    assert.equal(formatWindowLabel(undefined), 'Window');
   });
 });

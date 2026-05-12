@@ -6,12 +6,14 @@
  *
  * 출력 언어는 영어 (사용자가 평문에서 한글 제외 요청, issue #116).
  * 평문은 stable contract 가 아니므로 (docs/cli-json-output.md) 자유 변경.
+ *
+ * 출력 스타일: claude-code `/usage` 모사 — multi-line block (label / bar+pct /
+ * reset). eighth-block precision (`█▏▎▍▌▋▊▉`), 빈 자리는 space.
  */
 
-import { formatProgressBar } from './status-bar-helper.js';
+import { formatProgressBar, formatResetTime, formatWindowLabel } from './status-bar-helper.js';
 
-const WINDOW_LABEL_WIDTH = 12;
-const BAR_WIDTH = 20;
+const BAR_WIDTH = 50;
 
 /**
  * 전체 status 출력 라인 배열.
@@ -21,7 +23,7 @@ const BAR_WIDTH = 20;
  *
  * @param {string} command
  * @param {object} snapshot
- * @param {{ useColor?: boolean }} [ctx]
+ * @param {{ useColor?: boolean, now?: Date }} [ctx]
  */
 export function formatStatusOutput(command, snapshot, ctx = {}) {
   const lines = [
@@ -88,7 +90,10 @@ export function formatCodexSection(codex, ctx = {}) {
     );
     if (snapshot.account.plan) lines.push(`  Plan: ${snapshot.account.plan}`);
     for (const window of snapshot.usageWindows) {
-      lines.push(`  ${formatWindowLine(window, ctx)}`);
+      lines.push('');
+      for (const blockLine of formatWindowBlock(window, ctx)) {
+        lines.push(`  ${blockLine}`);
+      }
     }
     if (snapshot.status.message) lines.push(`  Error: ${snapshot.status.message}`);
   }
@@ -114,6 +119,7 @@ export function formatClaudeSection(claude, ctx = {}) {
       filteredOut: claude.filteredOut,
       accountFilter: claude.accountFilter,
       useColor: ctx.useColor,
+      now: ctx.now,
     }),
   );
   return lines;
@@ -154,7 +160,10 @@ export function formatClaudeNetworkUsageBody(networkUsage, indented = false, ctx
       lines.push(`${prefix}No usageWindows (expected fields missing in response)`);
     }
     for (const window of networkUsage.usageWindows) {
-      lines.push(`${prefix}${formatWindowLine(window, ctx)}`);
+      lines.push(`${prefix}`);
+      for (const blockLine of formatWindowBlock(window, ctx)) {
+        lines.push(`${prefix}${blockLine}`);
+      }
     }
     return lines;
   }
@@ -186,23 +195,31 @@ function formatAccountDisplay(account) {
 }
 
 /**
- * window 한 줄 — label padding + ASCII bar + percent + reset_at.
+ * window 한 개를 3 줄 block 으로 — claude-code `/usage` 스타일.
  *
- * 예: `primary      [██████░░░░░░░░░░░░░░]  30%  reset_at=2026-05-20T00:00:00Z`
+ * 예시:
+ *   Current session (5h)
+ *   ██▌                                                  5% used
+ *   Resets 2pm (Asia/Seoul)
  *
- * issue #116: `used_percent=N, reset_at=...` 형식의 기존 formatWindow 를
- * 완전 대체. 평문은 stable contract 아님 (docs/cli-json-output.md).
+ * issue #116: `used_percent=N, reset_at=...` 단일 라인 형식의 기존 formatWindow
+ * 를 완전 대체. 평문은 stable contract 아님 (docs/cli-json-output.md).
+ *
+ * @param {object} window
+ * @param {{ useColor?: boolean, now?: Date }} [ctx]
+ * @returns {string[]} 3 줄 — label / bar+pct / reset
  */
-export function formatWindowLine(window, ctx = {}) {
-  const kind = String(window.kind ?? '').padEnd(WINDOW_LABEL_WIDTH);
+export function formatWindowBlock(window, ctx = {}) {
+  const label = formatWindowLabel(window);
   const bar = formatProgressBar(window.usedPercent, {
     width: BAR_WIDTH,
     useColor: ctx.useColor ?? false,
   });
   const pctText =
     window.usedPercent == null || Number.isNaN(window.usedPercent)
-      ? '  --'
-      : `${String(Math.round(window.usedPercent)).padStart(3)}%`;
-  const reset = window.resetAt ? `reset_at=${window.resetAt}` : 'reset_at=unknown';
-  return `${kind} ${bar} ${pctText}  ${reset}`;
+      ? ' --'
+      : `${Math.round(window.usedPercent)}`.padStart(3);
+  const barLine = `${bar} ${pctText}% used`;
+  const resetLine = `Resets ${formatResetTime(window.resetAt, ctx.now ?? new Date())}`;
+  return [label, barLine, resetLine];
 }

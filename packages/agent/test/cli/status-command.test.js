@@ -7,7 +7,7 @@ import {
   formatClaudeSection,
   formatClaudeNetworkUsage,
   formatClaudeNetworkUsages,
-  formatWindowLine,
+  formatWindowBlock,
   formatStatusHelp,
   parseStatusOptions,
   normalizeProviderFilter,
@@ -20,44 +20,58 @@ describe('STATUS_COMMANDS', () => {
   });
 });
 
-describe('formatWindowLine (issue #116)', () => {
-  it('renders kind padded, ASCII bar, percent and reset_at', () => {
-    const line = formatWindowLine({
+describe('formatWindowBlock (issue #116 — claude-style multi-line block)', () => {
+  it('returns 3 lines: label / bar+pct / Resets', () => {
+    const block = formatWindowBlock({
       kind: 'primary',
       usedPercent: 25,
       resetAt: '2026-04-15T00:00:00Z',
     });
-    // kind padEnd(12) + ' ' + bar (22 chars: [ + 20 + ]) + ' ' + ' 25%' + '  ' + reset
-    // 'primary' (7 chars) → padEnd(12) = 5 spaces, then ' ' separator = 6 spaces total before '['
-    assert.match(line, /^primary {6}\[/);
-    assert.match(line, / 25%/);
-    assert.match(line, /reset_at=2026-04-15T00:00:00Z$/);
-    assert.ok(line.includes('█')); // contains filled block
-    assert.ok(line.includes('░')); // contains empty block
+    assert.equal(block.length, 3);
+    assert.equal(block[0], 'Primary window');
+    assert.match(block[1], / 25% used$/);
+    assert.match(block[2], /^Resets /);
   });
 
-  it('renders n/a bar and "--" percent when usedPercent is null', () => {
-    const line = formatWindowLine({
+  it('bar line includes filled blocks for non-zero percent', () => {
+    const block = formatWindowBlock({ kind: 'primary', usedPercent: 25, resetAt: null });
+    assert.ok(block[1].includes('█'));
+  });
+
+  it('null usedPercent → " --% used" (no bar fill, no level color)', () => {
+    const block = formatWindowBlock({
       kind: 'primary',
       usedPercent: null,
       resetAt: null,
     });
-    assert.ok(line.includes('[n/a'));
-    assert.match(line, / --/);
-    assert.match(line, /reset_at=unknown$/);
+    assert.match(block[1], / --% used$/);
+    assert.ok(!block[1].includes('█'));
+    // Resets line falls back to 'unknown'
+    assert.equal(block[2], 'Resets unknown');
   });
 
   it('omits ANSI escape sequences when useColor is false (default)', () => {
-    const line = formatWindowLine({ kind: 'primary', usedPercent: 95, resetAt: '2026-04-15' });
-    assert.ok(!line.includes('\x1b['));
+    const block = formatWindowBlock({ kind: 'primary', usedPercent: 95, resetAt: '2026-04-15' });
+    assert.ok(!block[1].includes('\x1b['));
   });
 
   it('emits ANSI escape sequences when useColor=true', () => {
-    const line = formatWindowLine(
+    const block = formatWindowBlock(
       { kind: 'primary', usedPercent: 95, resetAt: '2026-04-15' },
       { useColor: true },
     );
-    assert.ok(line.includes('\x1b['));
+    assert.ok(block[1].includes('\x1b['));
+  });
+
+  it('uses friendly label mapping for known kinds', () => {
+    assert.equal(
+      formatWindowBlock({ kind: 'five_hour', usedPercent: 5 })[0],
+      'Current session (5h)',
+    );
+    assert.equal(
+      formatWindowBlock({ kind: 'seven_day_sonnet', usedPercent: 5 })[0],
+      'Current week (Sonnet only)',
+    );
   });
 });
 
@@ -102,8 +116,10 @@ describe('formatCodexSection', () => {
     assert.ok(lines.some((l) => l.includes('Status: OK (200)')));
     assert.ok(lines.some((l) => l.includes('confidence=high')));
     assert.ok(lines.some((l) => l.includes('Plan: plus')));
-    // primary window line: kind padded + bar + percent + reset_at
-    assert.ok(lines.some((l) => /primary {6}\[/.test(l) && / 5%/.test(l)));
+    // window block (3 lines): friendly label / bar+pct / Resets
+    assert.ok(lines.some((l) => l.trimStart() === 'Primary window'));
+    assert.ok(lines.some((l) => / 5% used$/.test(l)));
+    assert.ok(lines.some((l) => /^ +Resets /.test(l)));
   });
 
   it('renders failure status with httpStatus/network and includes error message', () => {
@@ -155,8 +171,9 @@ describe('formatClaudeNetworkUsage', () => {
       usageWindows: [{ kind: 'five_hour', usedPercent: 10, resetAt: '2026-04-15' }],
     });
     assert.ok(lines.some((l) => l.includes('Status: OK (200)')));
-    // five_hour window line ('five_hour' = 9 chars → padEnd(12) = 3 spaces + ' ' separator = 4 spaces before '[')
-    assert.ok(lines.some((l) => /five_hour {4}\[/.test(l) && / 10%/.test(l)));
+    // five_hour → friendly label + bar+pct + Resets
+    assert.ok(lines.some((l) => l.trimStart() === 'Current session (5h)'));
+    assert.ok(lines.some((l) => / 10% used$/.test(l)));
   });
 
   it('reports "No usageWindows" when ok=true with empty windows', () => {
