@@ -572,6 +572,94 @@ describe('formatClaudeSection — Default account line visibility', () => {
   });
 });
 
+describe('multi-account divider (issue #116 review)', () => {
+  const DIVIDER = '─'.repeat(50);
+
+  it('inserts a horizontal divider between Codex snapshots when count > 1', () => {
+    const lines = formatCodexSection({
+      enabled: true,
+      authSource: 'agent-store',
+      snapshots: [
+        {
+          source: 'x',
+          authType: 'oauth',
+          confidence: 'high',
+          account: { profileId: 'a' },
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [],
+        },
+        {
+          source: 'x',
+          authType: 'oauth',
+          confidence: 'high',
+          account: { profileId: 'b' },
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [],
+        },
+      ],
+    });
+    // divider appears exactly once between 2 accounts, at column 0 (no indent).
+    const dividerLines = lines.filter((l) => l === DIVIDER);
+    assert.equal(dividerLines.length, 1);
+    // divider must appear after first account block, before second.
+    const idxA = lines.findIndex((l) => l.includes('- a'));
+    const idxDiv = lines.indexOf(DIVIDER);
+    const idxB = lines.findIndex((l) => l.includes('- b'));
+    assert.ok(idxA < idxDiv && idxDiv < idxB);
+  });
+
+  it('does not insert a divider when Codex has a single snapshot', () => {
+    const lines = formatCodexSection({
+      enabled: true,
+      authSource: 'agent-store',
+      snapshots: [
+        {
+          source: 'x',
+          authType: 'oauth',
+          confidence: 'high',
+          account: { profileId: 'only' },
+          status: { ok: true, httpStatus: 200 },
+          usageWindows: [],
+        },
+      ],
+    });
+    assert.equal(
+      lines.some((l) => l === DIVIDER),
+      false,
+    );
+  });
+
+  it('inserts an indented divider between Claude usages when count > 1', () => {
+    const lines = formatClaudeNetworkUsages([
+      {
+        accountKey: 'a:1',
+        snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+      },
+      {
+        accountKey: 'a:2',
+        snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+      },
+    ]);
+    // Claude multi-account divider uses 2-space indent to align with `  - Account:` header.
+    const indentedDivider = `  ${DIVIDER}`;
+    assert.ok(lines.includes(indentedDivider));
+    assert.equal(lines.filter((l) => l === indentedDivider).length, 1);
+  });
+
+  it('does not insert a divider when Claude has a single usage', () => {
+    const lines = formatClaudeNetworkUsages([
+      {
+        accountKey: 'a:1',
+        snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
+      },
+    ]);
+    assert.equal(
+      lines.some((l) => l.includes(DIVIDER)),
+      false,
+    );
+  });
+});
+
 describe('formatStatusOutput — useColor context (issue #116)', () => {
   it('passes useColor through to usage window formatting', () => {
     const snapshot = {

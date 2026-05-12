@@ -14,6 +14,13 @@
 import { formatProgressBar, formatResetTime, formatWindowLabel } from './status-bar-helper.js';
 
 const BAR_WIDTH = 50;
+const DIVIDER_CHAR = '─';
+const DIVIDER_WIDTH = 50;
+
+/** 계정 구분용 light horizontal divider — 다 계정일 때만 사이에 삽입. */
+function accountDivider(indent = '') {
+  return `${indent}${DIVIDER_CHAR.repeat(DIVIDER_WIDTH)}`;
+}
 
 /**
  * 전체 status 출력 라인 배열.
@@ -73,7 +80,12 @@ export function formatCodexSection(codex, ctx = {}) {
     return lines;
   }
 
-  for (const snapshot of codex.snapshots) {
+  for (let i = 0; i < codex.snapshots.length; i++) {
+    const snapshot = codex.snapshots[i];
+    if (i > 0) {
+      // 다 계정일 때 계정 사이에 light horizontal divider — 첫 계정 앞 / 마지막 뒤엔 없음.
+      lines.push('', accountDivider(), '');
+    }
     const label = snapshot.account.email
       ? `${snapshot.account.profileId} (${snapshot.account.email})`
       : snapshot.account.profileId;
@@ -137,9 +149,15 @@ export function formatClaudeNetworkUsages(usages, context = {}) {
     return lines;
   }
 
-  for (const { accountKey, snapshot, account } of usages) {
-    if (usages.length > 1)
+  for (let i = 0; i < usages.length; i++) {
+    const { accountKey, snapshot, account } = usages[i];
+    if (usages.length > 1) {
+      if (i > 0) {
+        // 다 계정일 때 계정 사이에 light horizontal divider — 첫 계정 앞 / 마지막 뒤엔 없음.
+        lines.push('', accountDivider('  '), '');
+      }
       lines.push(`  - Account: ${formatAccountDisplay(account ?? { accountKey })}`);
+    }
     lines.push(...formatClaudeNetworkUsageBody(snapshot, usages.length > 1, context));
   }
   return lines;
