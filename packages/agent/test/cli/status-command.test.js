@@ -5,8 +5,8 @@ import {
   formatStatusOutput,
   formatCodexSection,
   formatClaudeSection,
-  formatClaudeNetworkUsage,
   formatClaudeNetworkUsages,
+  formatClaudeNetworkUsageBody,
   formatWindowBlock,
   formatStatusHelp,
   parseStatusOptions,
@@ -168,13 +168,13 @@ describe('formatCodexSection', () => {
   });
 });
 
-describe('formatClaudeNetworkUsage', () => {
+describe('formatClaudeNetworkUsageBody', () => {
   it('shows Skipped when networkUsage is null', () => {
-    assert.ok(formatClaudeNetworkUsage(null).some((l) => l.includes('Skipped')));
+    assert.ok(formatClaudeNetworkUsageBody(null).some((l) => l.includes('Skipped')));
   });
 
   it('renders OK + windows on success', () => {
-    const lines = formatClaudeNetworkUsage({
+    const lines = formatClaudeNetworkUsageBody({
       status: { ok: true, httpStatus: 200 },
       usageWindows: [{ kind: 'five_hour', usedPercent: 10, resetAt: '2026-04-15' }],
     });
@@ -185,7 +185,7 @@ describe('formatClaudeNetworkUsage', () => {
   });
 
   it('reports "No usageWindows" when ok=true with empty windows', () => {
-    const lines = formatClaudeNetworkUsage({
+    const lines = formatClaudeNetworkUsageBody({
       status: { ok: true, httpStatus: 200 },
       usageWindows: [],
     });
@@ -193,7 +193,7 @@ describe('formatClaudeNetworkUsage', () => {
   });
 
   it('shows FAILED status (lean) and trims message after em-dash', () => {
-    const lines = formatClaudeNetworkUsage({
+    const lines = formatClaudeNetworkUsageBody({
       status: {
         ok: false,
         httpStatus: 403,
@@ -215,7 +215,7 @@ describe('formatClaudeNetworkUsage', () => {
 
 describe('formatStatusOutput', () => {
   it('renders Agent Status Summary header (provider-style heavy rule) + boxed body', () => {
-    const lines = formatStatusOutput('status', {
+    const lines = formatStatusOutput({
       configPath: '/x/config.json',
       providers: { codex: { enabled: true }, claude: { enabled: false } },
       sync: { enabled: false },
@@ -454,7 +454,7 @@ describe('formatStatusHelp', () => {
 
 describe('formatStatusOutput — accountFilter line', () => {
   it('omits "Account filter" line when not set', () => {
-    const lines = formatStatusOutput('status', {
+    const lines = formatStatusOutput({
       configPath: '/x',
       providers: { codex: { enabled: true }, claude: { enabled: true } },
       sync: { enabled: false },
@@ -470,7 +470,7 @@ describe('formatStatusOutput — accountFilter line', () => {
   });
 
   it('includes "Account filter" line when accountFilter present', () => {
-    const lines = formatStatusOutput('status', {
+    const lines = formatStatusOutput({
       configPath: '/x',
       providers: { codex: { enabled: true }, claude: { enabled: true } },
       sync: { enabled: false },
@@ -503,7 +503,7 @@ describe('formatStatusOutput — providerFilter scope', () => {
   };
 
   it('renders only Codex usage section when providerFilter=codex (no claude key)', () => {
-    const lines = formatStatusOutput('status', {
+    const lines = formatStatusOutput({
       ...baseSnapshot,
       providerFilter: 'codex',
       codex: codexSnap,
@@ -514,7 +514,7 @@ describe('formatStatusOutput — providerFilter scope', () => {
   });
 
   it('renders only Claude usage section when providerFilter=claude (no codex key)', () => {
-    const lines = formatStatusOutput('usage', {
+    const lines = formatStatusOutput({
       ...baseSnapshot,
       providerFilter: 'claude',
       claude: claudeSnap,
@@ -525,7 +525,7 @@ describe('formatStatusOutput — providerFilter scope', () => {
   });
 
   it('omits "Provider filter" line when not set', () => {
-    const lines = formatStatusOutput('status', {
+    const lines = formatStatusOutput({
       ...baseSnapshot,
       codex: codexSnap,
       claude: claudeSnap,
@@ -693,14 +693,14 @@ describe('formatStatusOutput — useColor context (issue #116)', () => {
         networkUsages: [],
       },
     };
-    const colored = formatStatusOutput('status', snapshot, { useColor: true });
-    const plain = formatStatusOutput('status', snapshot, { useColor: false });
+    const colored = formatStatusOutput(snapshot, { useColor: true });
+    const plain = formatStatusOutput(snapshot, { useColor: false });
     assert.ok(colored.some((l) => l.includes('\x1b[')));
     assert.ok(!plain.some((l) => l.includes('\x1b[')));
   });
 
   it('defaults to plain (no ANSI) when ctx is omitted', () => {
-    const lines = formatStatusOutput('status', {
+    const lines = formatStatusOutput({
       configPath: '/x',
       providers: { codex: { enabled: true }, claude: { enabled: false } },
       sync: { enabled: false },

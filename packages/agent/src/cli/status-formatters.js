@@ -1,32 +1,28 @@
 /**
- * status / usage output pure formatters.
+ * status / usage 출력 pure formatters.
  *
- * 모든 함수는 string[] 반환, console.log 호출 없음.
- * status-command.js 의 runStatusCommand 가 결과를 출력한다.
+ * 모든 함수는 string[] 반환, console.log 호출 없음. status-command.js 의
+ * runStatusCommand 가 결과를 출력한다.
  *
  * 출력 언어는 영어 (사용자가 평문에서 한글 제외 요청, issue #116).
- * 평문은 stable contract 가 아니므로 (docs/cli-json-output.md) 자유 변경.
+ * 평문은 stable contract 아님 (docs/cli-json-output.md). `--json` 출력의
+ * shape / SCHEMA_VERSION 만 stable.
  *
- * 출력 스타일: claude-code `/usage` 모사 — multi-line block (label / bar+pct /
- * reset). eighth-block precision (`█▏▎▍▌▋▊▉`), 빈 자리는 space.
+ * 시각 계층 (heavy / light weight 대비로 4 단계 표현):
+ *   L1 (top summary) — `━━━━ Agent Status Summary ━━━━…` + label 없는 박스
+ *   L2 (provider)    — `━━━━ Codex usage ━━━━…` (박스 없음)
+ *   L3 (account)     — `╭─ provider | identifier … ╰─` 라운드 코너 박스
+ *   L4 (window)      — 인라인 3 줄 block (label / bar+pct / Resets)
+ *
+ * 막대 시각화: 1/8 정밀도 fractional 블록 `█▏▎▍▌▋▊▉`, 빈 자리는 light shade
+ * `░` (PR #117 review — space 는 막대 끝이 안 보임 회귀 해결).
  */
 
 import { formatProgressBar, formatResetTime, formatWindowLabel } from './status-bar-helper.js';
 
 const BAR_WIDTH = 50;
 const PROVIDER_HEADER_WIDTH = 55;
-
-/**
- * Provider section header — `━━━━ Name ━━━━━━━━━━━━` 인라인 형식.
- * heavy single horizontal `━` 로 계정 박스의 light `─` 와 weight 대비 →
- * provider 가 account 보다 상위 계층임을 시각적으로 표현.
- */
-function providerHeader(name) {
-  const prefix = '━━━━ ';
-  const middle = `${name} `;
-  const padLen = Math.max(3, PROVIDER_HEADER_WIDTH - prefix.length - middle.length);
-  return `${prefix}${middle}${'━'.repeat(padLen)}`;
-}
+const PROVIDER_HEADER_MIN_PADDING = 3;
 
 // 계정 박스 — rounded corners 좌측 vertical bar. 다 계정일 때만 적용.
 // 4면 완전 박스는 ANSI escape / CJK char width 계산 이슈로 보류 — 좌측 +
@@ -35,23 +31,78 @@ const BOX_TOP_CORNER = '╭─';
 const BOX_BOTTOM_CORNER = '╰─';
 const BOX_VERTICAL = '│';
 
+// ── pure helpers (top-of-file 그룹화) ───────────────────────────────────────
+
 /**
- * 다 계정일 때 한 계정의 본문(이미 indent 가 적용된 라인들)을 box 로 감싼다.
+ * Provider section header — `━━━━ Name ━━━━━━━━━━━━` 인라인 형식.
+ * heavy single horizontal `━` 로 계정 박스의 light `─` 와 weight 대비 →
+ * provider 가 account 보다 상위 계층임을 시각적으로 표현.
  *
- * 입력 lines 의 leading indent (`  `) 는 `${BOX_VERTICAL} ` (1 칸) 로 교체
- * 되어 시각 폭이 동일하게 유지된다. 빈 줄은 `${BOX_VERTICAL}` 만 남긴다.
+ * @param {string} name
+ * @returns {string}
+ */
+function providerHeader(name) {
+  const prefix = '━━━━ ';
+  const middle = `${name} `;
+  const padLen = Math.max(
+    PROVIDER_HEADER_MIN_PADDING,
+    PROVIDER_HEADER_WIDTH - prefix.length - middle.length,
+  );
+  return `${prefix}${middle}${'━'.repeat(padLen)}`;
+}
+
+/**
+ * 계정 헤더 라벨 — `provider | identifier` 형식.
  *
- * @param {string} header — 계정 식별 텍스트 (`profileId (email)` 등)
- * @param {string[]} bodyLines — 이미 `'  '` 또는 더 들여쓴 상태의 본문 라인
- * @param {string} [outerIndent=''] — 박스 전체를 들여쓸 추가 indent (claude
- *   multi-account 안쪽일 때 `'  '`)
+ * identifier 우선순위: email → accountId → accountKey. 셋 다 없으면 provider
+ * 단독. issue #116 review 의 lean output 정합.
+ *
+ * @param {string} providerId — `'openai-codex'` / `'anthropic-claude'` 등
+ * @param {object|null|undefined} account
+ * @returns {string}
+ */
+function accountLabel(providerId, account) {
+  const identifier = account?.email ?? account?.accountId ?? account?.accountKey ?? null;
+  return identifier ? `${providerId} | ${identifier}` : providerId;
+}
+
+/**
+ * 실패 메시지에서 ` — ` 이후 raw payload (JSON 등) 를 제거한다.
+ *
+ * provider 어댑터가 던지는 에러는 보통
+ * `"Claude token refresh failed: 400 Bad Request — {...JSON...}"` 형태인데,
+ * 사용자에게는 사람이 읽기 좋은 prefix 만 노출하는 게 lean. JSON 본문이
+ * 필요하면 `--json` 출력의 `status.message` 원본을 사용.
+ *
+ * @param {unknown} message
+ * @returns {string|null}
+ */
+function trimErrorMessage(message) {
+  if (typeof message !== 'string') return message ?? null;
+  const idx = message.indexOf(' — ');
+  return idx >= 0 ? message.slice(0, idx) : message;
+}
+
+/**
+ * 본문 라인 배열을 rounded-corner 박스로 감싼다.
+ *
+ * 두 가지 use case:
+ *   1. 다 계정일 때 각 계정 블록 — `header = 'provider | identifier'`
+ *   2. top-level summary — `header = ''` (section title 이 이미 위쪽
+ *      heavy rule 에 있어 박스 헤더 라벨 없이 corner 만)
+ *
+ * 입력 bodyLines 의 leading indent (`bodyIndentPrefix`, 기본 `'  '`) 는
+ * `${BOX_VERTICAL} ` 로 교체되어 시각 폭이 동일하게 유지된다. 빈 줄은
+ * `${BOX_VERTICAL}` 만 남긴다.
+ *
+ * @param {string} header — 박스 상단 라벨 (빈 문자열이면 corner 만)
+ * @param {string[]} bodyLines
+ * @param {string} [outerIndent=''] — 박스 전체를 들여쓸 추가 indent
  * @param {string} [bodyIndentPrefix='  '] — 본문에 이미 들어있는 leading
  *   indent. 박스 vertical 로 치환할 prefix.
  * @returns {string[]}
  */
 function wrapInBox(header, bodyLines, outerIndent = '', bodyIndentPrefix = '  ') {
-  // header 가 빈 문자열이면 trailing space 없이 corner 만 — section title 이
-  // 위쪽 heavy rule 에 이미 표시된 경우 (top-level summary 등).
   const topLine = header
     ? `${outerIndent}${BOX_TOP_CORNER} ${header}`
     : `${outerIndent}${BOX_TOP_CORNER}`;
@@ -70,17 +121,19 @@ function wrapInBox(header, bodyLines, outerIndent = '', bodyIndentPrefix = '  ')
   return lines;
 }
 
+// ── public formatters ──────────────────────────────────────────────────────
+
 /**
  * 전체 status 출력 라인 배열.
  *
  * `snapshot.providerFilter` 가 지정되어 있으면 매칭되지 않는 provider 섹션은
  * 출력하지 않는다. ctx.useColor 는 호출자(runStatusCommand)에서 결정 후 주입.
  *
- * @param {string} command
  * @param {object} snapshot
  * @param {{ useColor?: boolean, now?: Date }} [ctx]
+ * @returns {string[]}
  */
-export function formatStatusOutput(command, snapshot, ctx = {}) {
+export function formatStatusOutput(snapshot, ctx = {}) {
   const lines = [providerHeader('Agent Status Summary'), ''];
 
   const body = [
@@ -96,7 +149,6 @@ export function formatStatusOutput(command, snapshot, ctx = {}) {
     body.push(`  Provider filter: ${snapshot.providerFilter}`);
   }
   // heavy-rule header 와 box (label 없음 — section title 이 이미 위에 있음).
-  // `command` 인자는 status / usage alias 라 평문 출력엔 노출하지 않음.
   lines.push(...wrapInBox('', body));
 
   if (snapshot.codex) {
@@ -212,8 +264,7 @@ export function formatClaudeNetworkUsages(usages, context = {}) {
  *
  * `indented=true` 일 때 prefix `'  '` — wrapInBox 가 box vertical `│ ` 로
  * 치환할 leading indent. `indented=false` 일 때 prefix `''` — 단일 계정
- * 케이스로 top-level 출력 (이전엔 `[live] api.anthropic.com/...` 컨테이너
- * 안에 있어 2 space 들여썼으나, 컨테이너 제거 후 indent 도 제거됨).
+ * 케이스로 top-level 출력.
  */
 export function formatClaudeNetworkUsageBody(networkUsage, indented = false, ctx = {}) {
   const prefix = indented ? '  ' : '';
@@ -245,51 +296,11 @@ export function formatClaudeNetworkUsageBody(networkUsage, indented = false, ctx
 }
 
 /**
- * @deprecated 신규 코드는 formatClaudeNetworkUsages(배열)를 사용.
- * 이전 `[live] api.anthropic.com/api/oauth/usage` 컨테이너 헤더는 제거됨.
- */
-export function formatClaudeNetworkUsage(networkUsage, ctx = {}) {
-  return formatClaudeNetworkUsageBody(networkUsage, false, ctx);
-}
-
-/**
- * 계정 헤더 라벨 — `provider | identifier` 형식.
- *
- * identifier 우선순위: email → accountId → accountKey. 셋 다 없으면 provider
- * 단독. issue #116 review 의 lean output 정합.
- *
- * @param {string} providerId — `'openai-codex'` / `'anthropic-claude'` 등
- * @param {object|null|undefined} account
- * @returns {string}
- */
-function accountLabel(providerId, account) {
-  const identifier = account?.email ?? account?.accountId ?? account?.accountKey ?? null;
-  return identifier ? `${providerId} | ${identifier}` : providerId;
-}
-
-/**
- * 실패 메시지에서 ` — ` 이후 raw payload (JSON 등) 를 제거한다.
- *
- * provider 어댑터가 던지는 에러는 보통
- * `"Claude token refresh failed: 400 Bad Request — {...JSON...}"` 형태인데,
- * 사용자에게는 사람이 읽기 좋은 prefix 만 노출하는 게 lean. JSON 본문이
- * 필요하면 `--json` 출력의 `status.message` 원본을 사용.
- *
- * @param {unknown} message
- * @returns {string|null}
- */
-function trimErrorMessage(message) {
-  if (typeof message !== 'string') return message ?? null;
-  const idx = message.indexOf(' — ');
-  return idx >= 0 ? message.slice(0, idx) : message;
-}
-
-/**
  * window 한 개를 3 줄 block 으로 — claude-code `/usage` 스타일.
  *
  * 예시:
  *   Current session (5h)
- *   ██▌                                                  5% used
+ *   ██▌░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  5% used
  *   Resets 2pm (Asia/Seoul)
  *
  * issue #116: `used_percent=N, reset_at=...` 단일 라인 형식의 기존 formatWindow

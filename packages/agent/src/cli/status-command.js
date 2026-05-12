@@ -11,7 +11,6 @@ export {
   formatClaudeSection,
   formatClaudeNetworkUsages,
   formatClaudeNetworkUsageBody,
-  formatClaudeNetworkUsage,
   formatWindowBlock,
 } from './status-formatters.js';
 
@@ -47,7 +46,7 @@ export async function runStatusCommand(command, args = []) {
   }
 
   const useColor = shouldUseColor({ stream: process.stdout, env: process.env });
-  for (const line of formatStatusOutput(command, snapshot, { useColor })) {
+  for (const line of formatStatusOutput(snapshot, { useColor })) {
     console.log(line);
   }
 }
