@@ -17,26 +17,25 @@ import { refreshCodexToken } from '@token-weather/provider-adapters/src/codex/in
 export function formatClaudeSection(snapshot) {
   const lines = [];
   lines.push('Claude credential 상태:');
-  lines.push(`  credentialsPath: ${snapshot.credentialsPath}`);
-  lines.push(`  found:           ${snapshot.found}`);
+  lines.push(`  credentialsPath: ${snapshot.credentialsPath ?? '(없음)'}`);
   lines.push(`  authSource:      ${snapshot.authSource}`);
-  lines.push(`  accountKey:      ${snapshot.selectedAccount?.accountKey ?? '(없음)'}`);
-  lines.push(`  authType:        ${snapshot.selectedAccount?.authType ?? '(알 수 없음)'}`);
+  lines.push(`  enabled:         ${snapshot.enabled}`);
 
   lines.push('');
   lines.push('Claude live usage (api.anthropic.com/api/oauth/usage):');
 
-  const usages = Array.isArray(snapshot.networkUsages) ? snapshot.networkUsages : [];
+  // v0.5.0 (issue #120): networkUsages wrapper 가 usageSnapshots 직접 배열로 정합 (codex 와 동일).
+  const usageSnapshots = Array.isArray(snapshot.usageSnapshots) ? snapshot.usageSnapshots : [];
 
-  if (usages.length === 0) {
+  if (usageSnapshots.length === 0) {
     lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
     return lines;
   }
 
-  const multi = usages.length > 1;
-  for (const { accountKey, snapshot: network } of usages) {
-    if (multi) lines.push(`  - 계정: ${accountKey ?? '(unknown)'}`);
-    lines.push(...formatClaudeNetworkSnapshot(network, multi ? '    ' : '  '));
+  const multi = usageSnapshots.length > 1;
+  for (const usageSnap of usageSnapshots) {
+    if (multi) lines.push(`  - 계정: ${usageSnap.account?.profileId ?? '(unknown)'}`);
+    lines.push(...formatClaudeNetworkSnapshot(usageSnap, multi ? '    ' : '  '));
   }
 
   return lines;

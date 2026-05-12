@@ -34,24 +34,30 @@ export async function getClaudeSnapshot(
   config = { providers: { claude: { enabled: true } } },
   options = {},
 ) {
-  const agentClaudeAccounts = await loadAgentStoreClaudeAccounts();
-  const base = buildClaudeSnapshot(
-    resolveClaudeCredentialsPath(),
-    readClaudeCredentials,
-    agentClaudeAccounts,
-  );
+  const claudeConfigEnabled = config?.providers?.claude?.enabled ?? false;
+  const credentialsPath = resolveClaudeCredentialsPath();
 
-  if (!config.providers?.claude?.enabled) {
-    return { ...base, networkUsages: [] };
+  if (!claudeConfigEnabled) {
+    return {
+      enabled: false,
+      authSource: 'not-found',
+      credentialsPath: null,
+      usageSnapshots: [],
+      accountFilter: options.accountFilter ?? null,
+      filteredOut: false,
+    };
   }
 
-  // Source 선택은 unfiltered 기준으로 먼저 결정.
-  // accountFilter가 source precedence를 바꿔서는 안 된다.
+  const agentClaudeAccounts = await loadAgentStoreClaudeAccounts();
+  const base = buildClaudeSnapshot(credentialsPath, readClaudeCredentials, agentClaudeAccounts);
+
+  // Source 선택은 unfiltered 기준으로 먼저 결정 — accountFilter 가 source
+  // precedence 를 바꾸지 않게.
   const allAgentEntries = await resolveProviderAccountEntries({
     providerId: CLAUDE_AUTH.storeProvider,
     filterFn: filterClaudeRealAccounts,
     mapFn: claudeMapAccountToProfile,
-    accountFilter: null, // source 선택은 필터 없이
+    accountFilter: null,
     updateLastUsed: false,
   });
 
@@ -68,40 +74,32 @@ export async function getClaudeSnapshot(
     }
   }
 
-  if (entries.length === 0) {
-    return {
-      ...base,
-      networkUsages: [],
-      accountFilter: options.accountFilter ?? null,
-      filteredOut: Boolean(options.accountFilter),
-    };
-  }
-
-  // 각 계정에 대해 병렬로 usage 조회. 한 계정이 실패해도 다른 계정은 유지.
-  const settled = await Promise.all(
-    entries.map(async (entry) => {
-      try {
-        return await fetchUsageWithAutoRefresh(entry, {
-          fetchUsage: fetchClaudeUsage,
-          refreshToken: refreshClaudeToken,
-          updateStoreAfterRefresh: updateClaudeStoreAfterRefresh,
-          mapAccountToProfile: claudeMapAccountToProfile,
-        });
-      } catch (error) {
-        return {
-          accountKey: entry.profile.id,
-          account: entry.profile,
-          snapshot: createClaudeNetworkFailureSnapshot(entry.profile, error),
-        };
-      }
-    }),
-  );
+  const usageSnapshots =
+    entries.length === 0
+      ? []
+      : await Promise.all(
+          entries.map(async (entry) => {
+            try {
+              const result = await fetchUsageWithAutoRefresh(entry, {
+                fetchUsage: fetchClaudeUsage,
+                refreshToken: refreshClaudeToken,
+                updateStoreAfterRefresh: updateClaudeStoreAfterRefresh,
+                mapAccountToProfile: claudeMapAccountToProfile,
+              });
+              return result.snapshot;
+            } catch (error) {
+              return createClaudeNetworkFailureSnapshot(entry.profile, error);
+            }
+          }),
+        );
 
   return {
-    ...base,
-    networkUsages: settled,
+    enabled: true,
+    authSource: base.authSource,
+    credentialsPath: base.authSource === 'claude-cli-import' ? credentialsPath : null,
+    usageSnapshots,
     accountFilter: options.accountFilter ?? null,
-    filteredOut: false,
+    filteredOut: entries.length === 0 && Boolean(options.accountFilter),
   };
 }
 

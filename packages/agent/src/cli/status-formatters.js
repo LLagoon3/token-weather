@@ -54,15 +54,18 @@ function providerHeader(name) {
 /**
  * 계정 헤더 라벨 — `provider | identifier` 형식.
  *
- * identifier 우선순위: email → accountId → accountKey. 셋 다 없으면 provider
- * 단독. issue #116 review 의 lean output 정합.
+ * identifier 우선순위: email → accountId → accountKey → profileId. 넷 다 없으면
+ * provider 단독. issue #116 review 의 lean output 정합. profileId 는 v0.5.0
+ * (issue #120) 에서 usageSnapshots[] 원소의 snapshot.account 가 wrapper 없이
+ * 직접 들어오면서 fallback 추가됨.
  *
  * @param {string} providerId — `'openai-codex'` / `'anthropic-claude'` 등
  * @param {object|null|undefined} account
  * @returns {string}
  */
 function accountLabel(providerId, account) {
-  const identifier = account?.email ?? account?.accountId ?? account?.accountKey ?? null;
+  const identifier =
+    account?.email ?? account?.accountId ?? account?.accountKey ?? account?.profileId ?? null;
   return identifier ? `${providerId} | ${identifier}` : providerId;
 }
 
@@ -174,7 +177,7 @@ export function formatCodexSection(codex, ctx = {}) {
     lines.push('');
   }
 
-  if (codex.snapshots.length === 0) {
+  if (codex.usageSnapshots.length === 0) {
     if (codex.filteredOut) {
       lines.push(`No Codex account matches account filter "${codex.accountFilter}".`);
     } else {
@@ -183,9 +186,9 @@ export function formatCodexSection(codex, ctx = {}) {
     return lines;
   }
 
-  const useBox = codex.snapshots.length > 1;
-  for (let i = 0; i < codex.snapshots.length; i++) {
-    const snapshot = codex.snapshots[i];
+  const useBox = codex.usageSnapshots.length > 1;
+  for (let i = 0; i < codex.usageSnapshots.length; i++) {
+    const snapshot = codex.usageSnapshots[i];
     if (i > 0) lines.push(''); // 박스 사이 1 줄 gap
 
     const label = accountLabel('openai-codex', snapshot.account);
@@ -214,9 +217,9 @@ export function formatCodexSection(codex, ctx = {}) {
 export function formatClaudeSection(claude, ctx = {}) {
   const lines = [providerHeader('Claude usage'), ''];
 
-  const usages = Array.isArray(claude.networkUsages) ? claude.networkUsages : [];
+  const usageSnapshots = Array.isArray(claude.usageSnapshots) ? claude.usageSnapshots : [];
   lines.push(
-    ...formatClaudeNetworkUsages(usages, {
+    ...formatClaudeNetworkUsages(usageSnapshots, {
       filteredOut: claude.filteredOut,
       accountFilter: claude.accountFilter,
       useColor: ctx.useColor,
@@ -226,10 +229,17 @@ export function formatClaudeSection(claude, ctx = {}) {
   return lines;
 }
 
-/** Claude live network usage 블록(들). */
-export function formatClaudeNetworkUsages(usages, context = {}) {
+/**
+ * Claude live network usage 블록(들).
+ *
+ * v0.5.0 (issue #120): 인자 `usageSnapshots` 는 UsageSnapshot 객체 배열 — 이전
+ * `{ accountKey, account, snapshot }` wrapper 가 unwrap 되어 codex 와 동일.
+ * 각 element 는 `buildUsageSnapshot` 결과 (status / usageWindows / provider /
+ * account 등).
+ */
+export function formatClaudeNetworkUsages(usageSnapshots, context = {}) {
   const lines = [];
-  if (!usages || usages.length === 0) {
+  if (!usageSnapshots || usageSnapshots.length === 0) {
     if (context.filteredOut) {
       lines.push(`No Claude account matches account filter "${context.accountFilter}".`);
     } else {
@@ -238,15 +248,13 @@ export function formatClaudeNetworkUsages(usages, context = {}) {
     return lines;
   }
 
-  const useBox = usages.length > 1;
-  for (let i = 0; i < usages.length; i++) {
-    const { accountKey, snapshot, account } = usages[i];
+  const useBox = usageSnapshots.length > 1;
+  for (let i = 0; i < usageSnapshots.length; i++) {
+    const snapshot = usageSnapshots[i];
     if (useBox) {
       if (i > 0) lines.push(''); // 박스 사이 1 줄 gap
-      const header = accountLabel('anthropic-claude', account ?? { accountKey });
+      const header = accountLabel('anthropic-claude', snapshot.account);
       const body = formatClaudeNetworkUsageBody(snapshot, true, context);
-      // body 는 '  ' (2 spaces) indent — wrapInBox 가 prefix '  ' 를
-      // `'│ '` (column 0) 로 변환.
       lines.push(...wrapInBox(header, body, '', '  '));
     } else {
       lines.push(...formatClaudeNetworkUsageBody(snapshot, false, context));

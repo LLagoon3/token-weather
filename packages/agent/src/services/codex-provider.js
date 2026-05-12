@@ -31,17 +31,20 @@ export async function getCodexSnapshot(config, options = {}) {
   if (!config.providers?.codex?.enabled) {
     return {
       enabled: false,
+      authSource: 'not-found',
       credentialsPath: resolveCodexCliCredentialsPath(),
-      snapshots: [],
+      usageSnapshots: [],
+      accountFilter: options.accountFilter ?? null,
+      filteredOut: false,
     };
   }
 
   const { entries, authSource } = await resolveCodexProfiles(options.accountFilter);
-  const snapshots = [];
+  const usageSnapshots = [];
 
   for (const entry of entries) {
     try {
-      snapshots.push(
+      usageSnapshots.push(
         (
           await fetchUsageWithAutoRefresh(entry, {
             fetchUsage: fetchCodexUsage,
@@ -52,7 +55,7 @@ export async function getCodexSnapshot(config, options = {}) {
         ).snapshot,
       );
     } catch (error) {
-      snapshots.push(createCodexFailureSnapshot(entry.profile, error));
+      usageSnapshots.push(createCodexFailureSnapshot(entry.profile, error));
     }
   }
 
@@ -60,7 +63,7 @@ export async function getCodexSnapshot(config, options = {}) {
     enabled: true,
     authSource,
     credentialsPath: authSource === 'codex-cli-import' ? resolveCodexCliCredentialsPath() : null,
-    snapshots,
+    usageSnapshots,
     accountFilter: options.accountFilter ?? null,
     filteredOut: Boolean(options.accountFilter) && entries.length === 0,
   };
