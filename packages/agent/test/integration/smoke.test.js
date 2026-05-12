@@ -90,8 +90,8 @@ describe('bin/token-weather — smoke', () => {
     const parsed = JSON.parse(lines[0]);
     assert.equal(parsed.command, 'status');
     assert.ok(Array.isArray(parsed.providers));
-    // 텍스트 헤더("Local agent status summary" 등)는 stdout 에 절대 섞이지 않아야 함.
-    assert.equal(result.stdout.includes('Local agent status summary'), false);
+    // 텍스트 헤더("━━━━ Agent Status Summary ━━━━" 등) 는 stdout 에 절대 섞이지 않아야 함.
+    assert.equal(result.stdout.includes('Agent Status Summary'), false);
   });
 
   it('status --json --provider codex restricts providers array to codex only', () => {

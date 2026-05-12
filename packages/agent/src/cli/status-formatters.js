@@ -50,7 +50,12 @@ const BOX_VERTICAL = '│';
  * @returns {string[]}
  */
 function wrapInBox(header, bodyLines, outerIndent = '', bodyIndentPrefix = '  ') {
-  const lines = [`${outerIndent}${BOX_TOP_CORNER} ${header}`];
+  // header 가 빈 문자열이면 trailing space 없이 corner 만 — section title 이
+  // 위쪽 heavy rule 에 이미 표시된 경우 (top-level summary 등).
+  const topLine = header
+    ? `${outerIndent}${BOX_TOP_CORNER} ${header}`
+    : `${outerIndent}${BOX_TOP_CORNER}`;
+  const lines = [topLine];
   for (const line of bodyLines) {
     if (line === '') {
       lines.push(`${outerIndent}${BOX_VERTICAL}`);
@@ -76,21 +81,24 @@ function wrapInBox(header, bodyLines, outerIndent = '', bodyIndentPrefix = '  ')
  * @param {{ useColor?: boolean, now?: Date }} [ctx]
  */
 export function formatStatusOutput(command, snapshot, ctx = {}) {
-  const lines = [
-    `Command: ${command}`,
-    'Local agent status summary',
-    '-----------------------',
-    `Config: ${snapshot.configPath}`,
-    `Codex: ${snapshot.providers.codex.enabled ? 'enabled' : 'disabled'}`,
-    `Claude: ${snapshot.providers.claude.enabled ? 'enabled' : 'disabled'}`,
-    `Server sync: ${snapshot.sync.enabled ? 'enabled' : 'disabled'}`,
+  const lines = [providerHeader('Agent Status Summary'), ''];
+
+  const body = [
+    `  Config: ${snapshot.configPath}`,
+    `  Codex: ${snapshot.providers.codex.enabled ? 'enabled' : 'disabled'}`,
+    `  Claude: ${snapshot.providers.claude.enabled ? 'enabled' : 'disabled'}`,
+    `  Server sync: ${snapshot.sync.enabled ? 'enabled' : 'disabled'}`,
   ];
   if (snapshot.accountFilter) {
-    lines.push(`Account filter: ${snapshot.accountFilter}`);
+    body.push(`  Account filter: ${snapshot.accountFilter}`);
   }
   if (snapshot.providerFilter) {
-    lines.push(`Provider filter: ${snapshot.providerFilter}`);
+    body.push(`  Provider filter: ${snapshot.providerFilter}`);
   }
+  // heavy-rule header 와 box (label 없음 — section title 이 이미 위에 있음).
+  // `command` 인자는 status / usage alias 라 평문 출력엔 노출하지 않음.
+  lines.push(...wrapInBox('', body));
+
   if (snapshot.codex) {
     lines.push('', ...formatCodexSection(snapshot.codex, ctx));
   }

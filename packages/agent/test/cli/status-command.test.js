@@ -214,7 +214,7 @@ describe('formatClaudeNetworkUsage', () => {
 // issue #110 — formatClaudeLocalUsage / [local] stats-cache.json 블록은 v0.3.0 에서 제거됨.
 
 describe('formatStatusOutput', () => {
-  it('contains the command name and config summary lines', () => {
+  it('renders Agent Status Summary header (provider-style heavy rule) + boxed body', () => {
     const lines = formatStatusOutput('status', {
       configPath: '/x/config.json',
       providers: { codex: { enabled: true }, claude: { enabled: false } },
@@ -227,10 +227,17 @@ describe('formatStatusOutput', () => {
         networkUsage: null,
       },
     });
-    assert.ok(lines.includes('Command: status'));
-    assert.ok(lines.includes('Config: /x/config.json'));
-    assert.ok(lines.includes('Codex: enabled'));
-    assert.ok(lines.includes('Claude: disabled'));
+    // 'Command: status' / 'Local agent status summary' 모두 제거됨
+    assert.ok(!lines.some((l) => l.includes('Command:')));
+    assert.ok(!lines.some((l) => l.includes('Local agent status summary')));
+    // heavy-rule header + box opening
+    assert.ok(lines.some((l) => l.startsWith('━━━━ Agent Status Summary ')));
+    assert.ok(lines.some((l) => l === '╭─'));
+    assert.ok(lines.some((l) => l === '╰─'));
+    // body 는 box vertical 안 (`│ ` prefix)
+    assert.ok(lines.includes('│ Config: /x/config.json'));
+    assert.ok(lines.includes('│ Codex: enabled'));
+    assert.ok(lines.includes('│ Claude: disabled'));
   });
 });
 
@@ -476,7 +483,8 @@ describe('formatStatusOutput — accountFilter line', () => {
         networkUsages: [],
       },
     });
-    assert.ok(lines.includes('Account filter: alice@x.com'));
+    // summary box 안에 들어가므로 `│ ` prefix 포함
+    assert.ok(lines.includes('│ Account filter: alice@x.com'));
   });
 });
 
@@ -500,7 +508,7 @@ describe('formatStatusOutput — providerFilter scope', () => {
       providerFilter: 'codex',
       codex: codexSnap,
     });
-    assert.ok(lines.includes('Provider filter: codex'));
+    assert.ok(lines.includes('│ Provider filter: codex'));
     assert.ok(lines.some((l) => l.startsWith('━━━━ Codex usage ')));
     assert.ok(!lines.some((l) => l.startsWith('━━━━ Claude usage ')));
   });
@@ -511,7 +519,7 @@ describe('formatStatusOutput — providerFilter scope', () => {
       providerFilter: 'claude',
       claude: claudeSnap,
     });
-    assert.ok(lines.includes('Provider filter: claude'));
+    assert.ok(lines.includes('│ Provider filter: claude'));
     assert.ok(lines.some((l) => l.startsWith('━━━━ Claude usage ')));
     assert.ok(!lines.some((l) => l.startsWith('━━━━ Codex usage ')));
   });
