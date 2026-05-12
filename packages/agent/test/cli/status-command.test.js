@@ -83,7 +83,6 @@ describe('formatCodexSection', () => {
 
   it('reports no profile message when enabled but snapshots empty', () => {
     const lines = formatCodexSection({ enabled: true, authSource: 'agent-store', snapshots: [] });
-    assert.ok(lines.some((l) => l.includes('Auth source: agent-store')));
     assert.ok(lines.some((l) => l.includes('No Codex OAuth profile found')));
   });
 
@@ -112,9 +111,9 @@ describe('formatCodexSection', () => {
         },
       ],
     });
-    assert.ok(lines.some((l) => l.includes('p1 (x@example.com)')));
+    // lean header: `openai-codex | email` (issue #116 review cleanup)
+    assert.ok(lines.some((l) => l.includes('openai-codex | x@example.com')));
     assert.ok(lines.some((l) => l.includes('Status: OK (200)')));
-    assert.ok(lines.some((l) => l.includes('confidence=high')));
     assert.ok(lines.some((l) => l.includes('Plan: plus')));
     // window block (3 lines): friendly label / bar+pct / Resets
     assert.ok(lines.some((l) => l.trimStart() === 'Primary window'));
@@ -255,9 +254,9 @@ describe('formatClaudeNetworkUsages — multi-account', () => {
         },
       },
     ]);
-    // multi-account → rounded-corner box header
-    assert.ok(lines.some((l) => l.startsWith('  ╭─') && l.includes('Account: a:1')));
-    assert.ok(lines.some((l) => l.startsWith('  ╭─') && l.includes('Account: a:2')));
+    // multi-account → rounded-corner box header (lean: `provider | identifier`)
+    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:1')));
+    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:2')));
     assert.ok(lines.some((l) => l.includes('OK (200)')));
     assert.ok(lines.some((l) => l.includes('FAILED (401, bucket=auth)')));
     assert.ok(lines.some((l) => l.includes('Message: expired')));
@@ -281,8 +280,8 @@ describe('formatClaudeSection — networkUsages array support', () => {
         },
       ],
     });
-    assert.ok(lines.some((l) => l.startsWith('  ╭─') && l.includes('Account: a:1')));
-    assert.ok(lines.some((l) => l.startsWith('  ╭─') && l.includes('Account: a:2')));
+    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:1')));
+    assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:2')));
   });
 
   it('falls back to legacy networkUsage when networkUsages absent', () => {
@@ -539,39 +538,7 @@ describe('formatClaudeNetworkUsages — filteredOut context', () => {
   });
 });
 
-describe('formatClaudeSection — Default account line visibility', () => {
-  const baseClaude = {
-    authSource: 'agent-store',
-    detected: true,
-    selectedAccount: { accountKey: 'a:default' },
-    networkUsages: [
-      {
-        accountKey: 'a:default',
-        snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
-      },
-    ],
-  };
-
-  it('shows "Default account" line when accountFilter is not set', () => {
-    const lines = formatClaudeSection(baseClaude);
-    assert.ok(lines.some((l) => l.startsWith('Default account: a:default')));
-  });
-
-  it('hides "Default account" line when accountFilter is active', () => {
-    const lines = formatClaudeSection({
-      ...baseClaude,
-      accountFilter: 'work',
-      networkUsages: [
-        {
-          accountKey: 'a:work',
-          snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
-        },
-      ],
-    });
-    assert.ok(!lines.some((l) => l.startsWith('Default account:')));
-    assert.ok(lines.some((l) => l.includes('OK (200)')));
-  });
-});
+// issue #116 review — `Default account` 라인은 lean cleanup 으로 제거됨.
 
 describe('multi-account box wrapping (issue #116 review)', () => {
   // 다 계정일 때 각 계정을 rounded-corner box 로 감싼다. 1 계정이면 박스 없음.
@@ -613,7 +580,7 @@ describe('multi-account box wrapping (issue #116 review)', () => {
     assert.equal(lines[firstBottomIdx + 1], '');
   });
 
-  it('does NOT box a single Codex snapshot (preserves "- profileId" header)', () => {
+  it('does NOT box a single Codex snapshot (preserves "- {label}" header)', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
@@ -622,13 +589,13 @@ describe('multi-account box wrapping (issue #116 review)', () => {
           source: 'x',
           authType: 'oauth',
           confidence: 'high',
-          account: { profileId: 'only' },
+          account: { profileId: 'only', email: 'only@x.com' },
           status: { ok: true, httpStatus: 200 },
           usageWindows: [],
         },
       ],
     });
-    assert.ok(lines.some((l) => l === '- only'));
+    assert.ok(lines.some((l) => l === '- openai-codex | only@x.com'));
     assert.equal(
       lines.some((l) => l.startsWith('╭─') || l.startsWith('╰─')),
       false,
@@ -646,16 +613,16 @@ describe('multi-account box wrapping (issue #116 review)', () => {
         snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
       },
     ]);
-    // Claude multi-account 박스는 2 space outer indent.
-    const tops = lines.filter((l) => l.startsWith('  ╭─'));
-    const bottoms = lines.filter((l) => l.startsWith('  ╰─'));
+    // Claude multi-account 박스는 outer indent 0 ([live] 컨테이너 제거됨).
+    const tops = lines.filter((l) => l.startsWith('╭─'));
+    const bottoms = lines.filter((l) => l.startsWith('╰─'));
     assert.equal(tops.length, 2);
     assert.equal(bottoms.length, 2);
-    // header 에 'Account: ' 가 포함되어야 함
-    assert.ok(tops[0].includes('Account: a:1'));
-    assert.ok(tops[1].includes('Account: a:2'));
-    // 본문은 `  │ ` prefix
-    assert.ok(lines.some((l) => l.startsWith('  │ Status: OK (200)')));
+    // 헤더 — `provider | identifier` 형식
+    assert.ok(tops[0].includes('anthropic-claude | a:1'));
+    assert.ok(tops[1].includes('anthropic-claude | a:2'));
+    // 본문은 `│ ` prefix (no outer indent)
+    assert.ok(lines.some((l) => l.startsWith('│ Status: OK (200)')));
   });
 
   it('does NOT box a single Claude usage', () => {
@@ -666,7 +633,7 @@ describe('multi-account box wrapping (issue #116 review)', () => {
       },
     ]);
     assert.equal(
-      lines.some((l) => l.startsWith('╭─') || l.startsWith('  ╭─')),
+      lines.some((l) => l.startsWith('╭─')),
       false,
     );
   });

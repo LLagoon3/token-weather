@@ -109,9 +109,9 @@ export function formatCodexSection(codex, ctx = {}) {
     return lines;
   }
 
-  lines.push(`Auth source: ${codex.authSource ?? 'unknown'}`);
   if (codex.credentialsPath) {
     lines.push(`Codex CLI credential path: ${codex.credentialsPath}`);
+    lines.push('');
   }
 
   if (codex.snapshots.length === 0) {
@@ -128,9 +128,7 @@ export function formatCodexSection(codex, ctx = {}) {
     const snapshot = codex.snapshots[i];
     if (i > 0) lines.push(''); // 박스 사이 1 줄 gap
 
-    const label = snapshot.account.email
-      ? `${snapshot.account.profileId} (${snapshot.account.email})`
-      : snapshot.account.profileId;
+    const label = accountLabel('openai-codex', snapshot.account);
     const body = [];
     body.push(
       `  Status: ${
@@ -138,9 +136,6 @@ export function formatCodexSection(codex, ctx = {}) {
           ? `OK (${snapshot.status.httpStatus})`
           : `FAILED (${snapshot.status.httpStatus ?? 'network/error'})`
       }`,
-    );
-    body.push(
-      `  source=${snapshot.source}, authType=${snapshot.authType}, confidence=${snapshot.confidence}`,
     );
     if (snapshot.account.plan) body.push(`  Plan: ${snapshot.account.plan}`);
     for (const window of snapshot.usageWindows) {
@@ -164,11 +159,6 @@ export function formatCodexSection(codex, ctx = {}) {
 /** Claude usage section. */
 export function formatClaudeSection(claude, ctx = {}) {
   const lines = [providerHeader('Claude usage'), ''];
-  lines.push(`Auth source: ${claude.authSource}`);
-  lines.push(`Credential detected: ${claude.detected}`);
-  if (claude.selectedAccount && !claude.accountFilter) {
-    lines.push(`Default account: ${formatAccountDisplay(claude.selectedAccount)}`);
-  }
 
   const usages = Array.isArray(claude.networkUsages)
     ? claude.networkUsages
@@ -188,12 +178,12 @@ export function formatClaudeSection(claude, ctx = {}) {
 
 /** Claude live network usage 블록(들). */
 export function formatClaudeNetworkUsages(usages, context = {}) {
-  const lines = ['', '[live] api.anthropic.com/api/oauth/usage'];
+  const lines = [];
   if (!usages || usages.length === 0) {
     if (context.filteredOut) {
-      lines.push(`  No Claude account matches account filter "${context.accountFilter}".`);
+      lines.push(`No Claude account matches account filter "${context.accountFilter}".`);
     } else {
-      lines.push('  Skipped (Claude disabled or no token)');
+      lines.push('Skipped (Claude disabled or no token)');
     }
     return lines;
   }
@@ -203,11 +193,11 @@ export function formatClaudeNetworkUsages(usages, context = {}) {
     const { accountKey, snapshot, account } = usages[i];
     if (useBox) {
       if (i > 0) lines.push(''); // 박스 사이 1 줄 gap
-      const header = `Account: ${formatAccountDisplay(account ?? { accountKey })}`;
+      const header = accountLabel('anthropic-claude', account ?? { accountKey });
       const body = formatClaudeNetworkUsageBody(snapshot, true, context);
-      // body 는 '    ' (4 spaces) indent — wrapInBox 가 prefix '    ' 를
-      // `'  │ '` 로 변환. outerIndent '  ' (claude live block 안쪽 2 spaces).
-      lines.push(...wrapInBox(header, body, '  ', '    '));
+      // body 는 '  ' (2 spaces) indent — wrapInBox 가 prefix '  ' 를
+      // `'│ '` (column 0) 로 변환.
+      lines.push(...wrapInBox(header, body, '', '  '));
     } else {
       lines.push(...formatClaudeNetworkUsageBody(snapshot, false, context));
     }
@@ -215,9 +205,16 @@ export function formatClaudeNetworkUsages(usages, context = {}) {
   return lines;
 }
 
-/** 단일 Claude network usage snapshot 출력. */
+/**
+ * 단일 Claude network usage snapshot 출력.
+ *
+ * `indented=true` 일 때 prefix `'  '` — wrapInBox 가 box vertical `│ ` 로
+ * 치환할 leading indent. `indented=false` 일 때 prefix `''` — 단일 계정
+ * 케이스로 top-level 출력 (이전엔 `[live] api.anthropic.com/...` 컨테이너
+ * 안에 있어 2 space 들여썼으나, 컨테이너 제거 후 indent 도 제거됨).
+ */
 export function formatClaudeNetworkUsageBody(networkUsage, indented = false, ctx = {}) {
-  const prefix = indented ? '    ' : '  ';
+  const prefix = indented ? '  ' : '';
   const lines = [];
   if (!networkUsage) {
     lines.push(`${prefix}Skipped`);
@@ -247,21 +244,25 @@ export function formatClaudeNetworkUsageBody(networkUsage, indented = false, ctx
 
 /**
  * @deprecated 신규 코드는 formatClaudeNetworkUsages(배열)를 사용.
+ * 이전 `[live] api.anthropic.com/api/oauth/usage` 컨테이너 헤더는 제거됨.
  */
 export function formatClaudeNetworkUsage(networkUsage, ctx = {}) {
-  const header = ['', '[live] api.anthropic.com/api/oauth/usage'];
-  return [...header, ...formatClaudeNetworkUsageBody(networkUsage, false, ctx)];
+  return formatClaudeNetworkUsageBody(networkUsage, false, ctx);
 }
 
-function formatAccountDisplay(account) {
-  if (!account) return '(unknown)';
-  const accountKey = account.accountKey ?? '(unknown)';
-  const displayName = account.displayName ?? null;
-  const email = account.email ?? null;
-  if (displayName && email) return `${accountKey} (${displayName} / ${email})`;
-  if (displayName) return `${accountKey} (${displayName})`;
-  if (email) return `${accountKey} (${email})`;
-  return accountKey;
+/**
+ * 계정 헤더 라벨 — `provider | identifier` 형식.
+ *
+ * identifier 우선순위: email → accountId → accountKey. 셋 다 없으면 provider
+ * 단독. issue #116 review 의 lean output 정합.
+ *
+ * @param {string} providerId — `'openai-codex'` / `'anthropic-claude'` 등
+ * @param {object|null|undefined} account
+ * @returns {string}
+ */
+function accountLabel(providerId, account) {
+  const identifier = account?.email ?? account?.accountId ?? account?.accountKey ?? null;
+  return identifier ? `${providerId} | ${identifier}` : providerId;
 }
 
 /**
