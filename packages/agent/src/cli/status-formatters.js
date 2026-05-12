@@ -14,6 +14,19 @@
 import { formatProgressBar, formatResetTime, formatWindowLabel } from './status-bar-helper.js';
 
 const BAR_WIDTH = 50;
+const PROVIDER_HEADER_WIDTH = 55;
+
+/**
+ * Provider section header — `━━━━ Name ━━━━━━━━━━━━` 인라인 형식.
+ * heavy single horizontal `━` 로 계정 박스의 light `─` 와 weight 대비 →
+ * provider 가 account 보다 상위 계층임을 시각적으로 표현.
+ */
+function providerHeader(name) {
+  const prefix = '━━━━ ';
+  const middle = `${name} `;
+  const padLen = Math.max(3, PROVIDER_HEADER_WIDTH - prefix.length - middle.length);
+  return `${prefix}${middle}${'━'.repeat(padLen)}`;
+}
 
 // 계정 박스 — rounded corners 좌측 vertical bar. 다 계정일 때만 적용.
 // 4면 완전 박스는 ANSI escape / CJK char width 계산 이슈로 보류 — 좌측 +
@@ -89,7 +102,7 @@ export function formatStatusOutput(command, snapshot, ctx = {}) {
 
 /** Codex usage section. */
 export function formatCodexSection(codex, ctx = {}) {
-  const lines = ['Codex usage', '-----------'];
+  const lines = [providerHeader('Codex usage'), ''];
 
   if (!codex.enabled) {
     lines.push('Disabled');
@@ -150,7 +163,7 @@ export function formatCodexSection(codex, ctx = {}) {
 
 /** Claude usage section. */
 export function formatClaudeSection(claude, ctx = {}) {
-  const lines = ['Claude usage', '------------'];
+  const lines = [providerHeader('Claude usage'), ''];
   lines.push(`Auth source: ${claude.authSource}`);
   lines.push(`Credential detected: ${claude.detected}`);
   if (claude.selectedAccount && !claude.accountFilter) {

@@ -483,8 +483,8 @@ describe('formatStatusOutput — providerFilter scope', () => {
       codex: codexSnap,
     });
     assert.ok(lines.includes('Provider filter: codex'));
-    assert.ok(lines.some((l) => l === 'Codex usage'));
-    assert.ok(!lines.some((l) => l === 'Claude usage'));
+    assert.ok(lines.some((l) => l.startsWith('━━━━ Codex usage ')));
+    assert.ok(!lines.some((l) => l.startsWith('━━━━ Claude usage ')));
   });
 
   it('renders only Claude usage section when providerFilter=claude (no codex key)', () => {
@@ -494,8 +494,8 @@ describe('formatStatusOutput — providerFilter scope', () => {
       claude: claudeSnap,
     });
     assert.ok(lines.includes('Provider filter: claude'));
-    assert.ok(lines.some((l) => l === 'Claude usage'));
-    assert.ok(!lines.some((l) => l === 'Codex usage'));
+    assert.ok(lines.some((l) => l.startsWith('━━━━ Claude usage ')));
+    assert.ok(!lines.some((l) => l.startsWith('━━━━ Codex usage ')));
   });
 
   it('omits "Provider filter" line when not set', () => {
