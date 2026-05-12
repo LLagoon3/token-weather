@@ -1,6 +1,6 @@
 {
   "name": "@token-weather/cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Token Weather — 로컬 AI 사용량 / 인증 상태 확인 CLI",
   "license": "Apache-2.0",
   "type": "module",
@@ -40,8 +40,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@token-weather/provider-adapters": "^0.3.0",
-    "@token-weather/schemas": "^0.3.0"
+    "@token-weather/provider-adapters": "^0.4.0",
+    "@token-weather/schemas": "^0.4.0"
   },
   "scripts": {
     "dev": "node ./bin/token-weather.js status",

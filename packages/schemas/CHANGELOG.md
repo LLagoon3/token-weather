@@ -1,5 +1,86 @@
 # @token-weather/schemas
 
+## 0.4.0
+
+### Minor Changes
+
+- 01410bd: chore(agent)!: `status --json` 의 claude provider 영역에서 backward-compat alias 3 종 제거 (issue #119). `SCHEMA_VERSION` `'0.3.0'` → `'0.4.0'`. v0.x convention 상 breaking 도 minor + `!` prefix (release-policy §1 / §3).
+
+  **Breaking changes**:
+  - `.providers[].snapshot.networkUsage` (단일 객체) 제거 — `.providers[].snapshot.networkUsages[]` (배열) 만 유지.
+  - `.providers[].snapshot.importedAccount` 제거 — `.providers[].snapshot.selectedAccount` 만 유지 (동일 값이었음).
+  - `.providers[].snapshot.parsed` 제거 — `.providers[].snapshot.found` 만 유지 (항상 같은 값이었음).
+  - `formatClaudeSection` (status-formatters / doctor-helpers) 의 legacy `networkUsage` (단일) fallback 코드 경로 제거 — 항상 `networkUsages[]` 배열만 처리.
+
+  **Migration**:
+  - `.providers[].snapshot.networkUsage` 참조 → `.providers[].snapshot.networkUsages[0].snapshot` (단일 계정) 또는 array 순회. **주의** — 이전 `networkUsage` 는 usage snapshot 객체 그대로였지만, 신규 `networkUsages[]` 의 각 원소는 `{ accountKey, account, snapshot }` wrapper. 실제 `usageWindows` / `status` 등 데이터는 `.snapshot` 안에 있어 `.snapshot` 단계 추가 필요. 자세한 예시는 `docs/cli-json-output.md` §"제거된 backward-compat alias (v0.4.0)".
+  - `.providers[].snapshot.importedAccount` 참조 → `.providers[].snapshot.selectedAccount` 동일 의미.
+  - `.providers[].snapshot.parsed` 참조 → `.providers[].snapshot.found` 동일 의미.
+
+  `status --json` 외 평문 출력 / public API surface / runtime deps 무변경. 회귀 가드 — alias 키 부재 단언 신규 추가 (status-json.test.js / claude-provider.test.js / status-service.test.js).
+
+- f4148ea: refactor(agent)!: `status --json` provider entry shape 정합 — codex / claude 키셋 동일화 (issue #120). `SCHEMA_VERSION` `'0.4.0'` → `'0.5.0'`. v0.x convention 상 breaking 도 minor + `!` prefix.
+
+  **Breaking changes** (release-policy §1 의 키 제거 + 의미 변경 = major 트리거):
+  - codex `.providers[].snapshot.snapshots[]` 키 → `.usageSnapshots[]` 로 rename.
+  - claude `.providers[].snapshot.networkUsages[]` 키 → `.usageSnapshots[]` 로 rename.
+  - claude `usageSnapshots[]` 원소 shape 정합 — 이전 `{ accountKey, account, snapshot }` wrapper 제거, **UsageSnapshot 객체 직접** 배열로 (codex 와 동일). `.snapshot.usageWindows` → `.usageWindows` 한 단계 짧아짐.
+  - claude `.providers[].snapshot.detected` / `.found` 제거 → 단일 `.enabled` boolean 으로 통합 (codex 와 동일 키).
+  - claude `.providers[].snapshot.selectedAccount` 제거 — default account 개념이 multi-account + 박스 UI 도입 후 의미가 약해져 양 provider 모두 미노출. 필요시 `.usageSnapshots[]` 순회로 식별.
+  - claude `.providers[].snapshot.credentialsPath` 정책 정합 — 이전엔 항상 path 노출이었으나 v0.5.0 부터 `cli-import` 인증 소스 시점에만 path, 그 외엔 `null` (codex 와 동일 정책).
+
+  **Migration**:
+
+  ```js
+  // before (v0.4.x)
+  const codexEnabled = providers.find((p) => p.id === 'codex').snapshot.enabled;
+  const codexSnaps = providers.find((p) => p.id === 'codex').snapshot.snapshots;
+  const claudeEnabled = providers.find((p) => p.id === 'claude').snapshot.detected;
+  const claudeFound = providers.find((p) => p.id === 'claude').snapshot.found;
+  const claudeWindows = providers.find((p) => p.id === 'claude').snapshot.networkUsages[0].snapshot
+    .usageWindows;
+  const claudeAccount = providers.find((p) => p.id === 'claude').snapshot.selectedAccount;
+
+  // after (v0.5.0+) — codex / claude 동일 path
+  const provider = (id) => providers.find((p) => p.id === id).snapshot;
+  const codexEnabled = provider('codex').enabled;
+  const codexSnaps = provider('codex').usageSnapshots;
+  const claudeEnabled = provider('claude').enabled;
+  const claudeWindows = provider('claude').usageSnapshots[0].usageWindows; // wrapper 제거됨
+  const claudeAccount = provider('claude').usageSnapshots.find(/* ... */)?.account;
+  ```
+
+  자세한 표 + 예시는 [`docs/cli-json-output.md`](docs/cli-json-output.md) §"Provider shape symmetry (v0.5.0)".
+
+  **무영향**: 평문 출력 (`status` / `usage`) 사용자 가시 동일성 유지 — 내부 키 rename 만, 시각 표현 무변경. public API surface (workspace package 의 export) 무변경. runtime deps 무변경.
+
+  회귀 가드 신설: `status-json.test.js` 에 codex / claude provider snapshot keyset 동일성 + legacy 키 부재 단언 (snapshots / networkUsages / networkUsage / detected / found / parsed / selectedAccount / importedAccount).
+
+### Patch Changes
+
+- 4be9bc1: feat(agent): `cli:status` 평문 출력에 `usedPercent` ASCII 막대 그래프 추가 + 컬러 임계값 (green<50 / yellow<80 / red≥80). `NO_COLOR` env / non-TTY / `TERM=dumb` 환경에서는 ANSI escape 없이 plain block char 만 렌더링 — `process.stdout.isTTY` + env 기반 자동 판별. `formatWindow` 의 `used_percent=N, reset_at=...` 텍스트가 `kind padEnd(12) + [████░░░░] + N%  reset_at=...` 한 줄 표기로 완전 대체된다. 함께 `status` / `usage` 평문 출력 전체 영어화 — 헤더 / 라벨 / 상태 / 에러 메시지 / `--help` 까지 (issue #116).
+
+  `--json` 출력 / `SCHEMA_VERSION` / `usage-snapshot.schema.json` / `auth-store-schema.js` / public API (`packages/agent/src/index.js`) / d.ts surface 모두 무변경 — JSON contract 그대로 통과. `doctor` 명령 출력은 별도 path (`doctor-helpers.js`) 라 영향 없음.
+
+  **Migration**: 외부 스크립트가 status 평문에서 `used_percent=N` substring 을 파싱하거나 `'명령:' / '상태:' / '플랜:' / '에러:' / '계정:' / '인증 소스:' / '비활성화됨' / '호출 안 함'` 같은 한글 라벨을 매칭하던 경우, 안정적인 contract 인 `status --json` 으로 옮기는 것을 권장. 평문은 release-policy §1 / `docs/cli-json-output.md` 가 stable contract 아님을 명시한다.
+
+  신규 helper (`packages/agent/src/cli/status-bar-helper.js` — `shouldUseColor` / `levelForPercent` / `colorize` / `formatProgressBar`) 는 agent 패키지 CLI 내부이며 외부 export 면 변화 없음. runtime dep 0 정책 유지 (chalk / cli-progress 미도입, Unicode block char + raw ANSI escape 직접 출력).
+
+- c648f24: docs(cli-json-output): contract 정합 보강 + top-level `schemaVersion` lock 회귀 가드 (issue #121).
+
+  3-phase JSON contract 정리 plan 의 Phase 3 (Phase 1 #119 / Phase 2 #120 의 docs / 테스트 fall-through). public API / 출력 shape / SCHEMA_VERSION 모두 무변경 — patch bump.
+
+  **Docs 보강** (`docs/cli-json-output.md`):
+  - Top-level shape 표에 "부재 시" 컬럼 추가 (옵셔널 필드의 default 표기).
+  - 신규 §"필드 부재 정책 — null vs 키 부재": 모든 정의 키는 항상 present, 값이 null 인지 확인하는 패턴 안내.
+  - 신규 §"`authSource` enum 값": 4 값 (`agent-store` / `codex-cli-import` / `claude-cli-import` / `not-found`) 의미 + enum 변경의 SCHEMA_VERSION 트리거 명시.
+  - 신규 §"`raw` 영역 책임 (provider adapter 계약)": SENSITIVE_KEYS 가 미치지 못하는 free-form subtree 의 위험 + provider adapter 3 책임 명시.
+
+  **회귀 가드** (`packages/agent/test/cli/status-json.test.js`):
+  - 신규 describe "formatStatusJson — top-level schemaVersion lock (issue #121)": `formatStatusJson` 통과 schemaVersion 이 `packages/schemas` 의 SCHEMA_VERSION 과 일치 단언 + key 항상 present 단언 + providerFilter / accountFilter / disabled provider 등 모든 출력 경로에서 schemaVersion 통과 단언.
+
+  이 가드 덕에 SCHEMA_VERSION 변경이 한 곳만 bump 되는 회귀를 차단 — `packages/schemas/test/schema-version.test.js` (값 lock) 와 본 가드 (status --json 통과 경로 lock) 가 함께 동작.
+
 ## 0.3.0
 
 ### Minor Changes
