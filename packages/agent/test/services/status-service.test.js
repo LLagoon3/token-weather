@@ -168,7 +168,8 @@ describe('buildClaudeSnapshot', () => {
     assert.equal(result.detected, true);
     assert.equal(result.authSource, 'claude-cli-import');
     assert.equal(result.found, true);
-    assert.equal(result.parsed, true);
+    // issue #119: `parsed` alias 제거 (== found 였음)
+    assert.equal('parsed' in result, false);
     assert.equal(result.credentialsPath, FAKE_PATH);
   });
 
@@ -176,8 +177,9 @@ describe('buildClaudeSnapshot', () => {
     const result = buildClaudeSnapshot(FAKE_PATH, () => null);
     assert.equal(result.detected, false);
     assert.equal(result.found, false);
-    assert.equal(result.parsed, false);
     assert.equal(result.authSource, 'not-found');
+    // issue #119: `parsed` alias 제거
+    assert.equal('parsed' in result, false);
   });
 
   it('always includes credentialsPath in the snapshot', () => {
@@ -201,7 +203,7 @@ describe('buildClaudeSnapshot', () => {
     assert.equal(result.selectedAccount.source, 'claude-cli-import');
   });
 
-  it('importedAccount is a backward-compat alias for selectedAccount', () => {
+  it('does NOT include importedAccount alias (issue #119 removed)', () => {
     const fakeCredentials = {
       accessToken: 'tok',
       refreshToken: 'ref',
@@ -211,17 +213,14 @@ describe('buildClaudeSnapshot', () => {
       rateLimitTier: null,
     };
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials);
-    assert.equal(result.importedAccount, result.selectedAccount);
+    assert.equal('importedAccount' in result, false);
   });
 
   it('sets selectedAccount to null when credentials are not found', () => {
     const result = buildClaudeSnapshot(FAKE_PATH, () => null);
     assert.equal(result.selectedAccount, null);
-  });
-
-  it('importedAccount alias is also null when credentials are not found', () => {
-    const result = buildClaudeSnapshot(FAKE_PATH, () => null);
-    assert.equal(result.importedAccount, null);
+    // importedAccount alias 제거 회귀 가드
+    assert.equal('importedAccount' in result, false);
   });
 
   it('uses agent-store authSource when agentClaudeAccounts are provided', () => {
@@ -257,7 +256,8 @@ describe('buildClaudeSnapshot', () => {
     const result = buildClaudeSnapshot(FAKE_PATH, () => fakeCredentials, [fakeAgentAccount]);
     assert.equal(result.authSource, 'agent-store');
     assert.equal(result.selectedAccount?.accountKey, 'claude:alice');
-    assert.equal(result.importedAccount?.accountKey, 'claude:alice'); // alias check
+    // issue #119: importedAccount alias 제거 — selectedAccount 만 유지.
+    assert.equal('importedAccount' in result, false);
   });
 
   // issue #110 — `~/.claude/stats-cache.json` 의존이 v0.3.0 에서 제거됨.

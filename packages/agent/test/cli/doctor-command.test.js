@@ -20,7 +20,6 @@ describe('formatClaudeSection', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: true,
-      parsed: true,
       authSource: 'claude-cli-import',
       selectedAccount: null,
     };
@@ -28,38 +27,42 @@ describe('formatClaudeSection', () => {
     assert.ok(lines.some((l) => l.includes(FAKE_PATH)));
   });
 
-  it('shows found=true and parsed=true when credentials exist', () => {
+  it('shows found=true and authSource when credentials exist (issue #119: parsed alias 제거)', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: true,
-      parsed: true,
       authSource: 'claude-cli-import',
       selectedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('found') && l.includes('true')));
-    assert.ok(lines.some((l) => l.includes('parsed') && l.includes('true')));
     assert.ok(lines.some((l) => l.includes('authSource') && l.includes('claude-cli-import')));
+    // parsed alias 출력 부재 회귀 가드
+    assert.equal(
+      lines.some((l) => l.includes('parsed')),
+      false,
+    );
   });
 
-  it('shows found=false and parsed=false when credentials are absent', () => {
+  it('shows found=false when credentials are absent', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: false,
-      parsed: false,
       authSource: 'claude-cli-import',
       selectedAccount: null,
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('found') && l.includes('false')));
-    assert.ok(lines.some((l) => l.includes('parsed') && l.includes('false')));
+    assert.equal(
+      lines.some((l) => l.includes('parsed')),
+      false,
+    );
   });
 
   it('returns an array with at least 4 lines', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: false,
-      parsed: false,
       authSource: 'claude-cli-import',
       selectedAccount: null,
     };
@@ -71,7 +74,6 @@ describe('formatClaudeSection', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: true,
-      parsed: true,
       authSource: 'claude-cli-import',
       selectedAccount: { accountKey: 'claude-cli-import', authType: 'oauth' },
     };
@@ -83,7 +85,6 @@ describe('formatClaudeSection', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: false,
-      parsed: false,
       authSource: 'claude-cli-import',
       selectedAccount: null,
     };
@@ -95,7 +96,6 @@ describe('formatClaudeSection', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: false,
-      parsed: false,
       authSource: 'claude-cli-import',
       selectedAccount: null,
     };
@@ -107,7 +107,6 @@ describe('formatClaudeSection', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: true,
-      parsed: true,
       authSource: 'claude-cli-import',
       selectedAccount: { accountKey: 'claude-cli-import', authType: 'oauth' },
     };
@@ -119,7 +118,6 @@ describe('formatClaudeSection', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: true,
-      parsed: true,
       authSource: 'claude-cli-import',
       selectedAccount: { accountKey: 'claude-cli-import' },
     };
@@ -132,20 +130,24 @@ describe('formatClaudeSection', () => {
   // `shows not-found message when usage source is not-found` 는 stats-cache 의존
   // 제거에 따라 같이 삭제.)
 
-  it('shows live usage OK with usageWindows when networkUsage succeeded', () => {
+  it('shows live usage OK with usageWindows for a successful entry (issue #119: networkUsages[] only)', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: true,
-      parsed: true,
       authSource: 'claude-cli-import',
       selectedAccount: null,
-      networkUsage: {
-        status: { ok: true, httpStatus: 200 },
-        usageWindows: [
-          { kind: 'five_hour', usedPercent: 25, resetAt: '2026-04-14T14:00:00.000Z' },
-          { kind: 'seven_day', usedPercent: 80, resetAt: null },
-        ],
-      },
+      networkUsages: [
+        {
+          accountKey: 'claude-cli-import',
+          snapshot: {
+            status: { ok: true, httpStatus: 200 },
+            usageWindows: [
+              { kind: 'five_hour', usedPercent: 25, resetAt: '2026-04-14T14:00:00.000Z' },
+              { kind: 'seven_day', usedPercent: 80, resetAt: null },
+            ],
+          },
+        },
+      ],
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('Claude live usage')));
@@ -154,22 +156,26 @@ describe('formatClaudeSection', () => {
     assert.ok(lines.some((l) => l.includes('seven_day') && l.includes('80%')));
   });
 
-  it('shows live usage failure bucket and message when networkUsage failed', () => {
+  it('shows live usage failure bucket and message for a failed entry', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: true,
-      parsed: true,
       authSource: 'claude-cli-import',
       selectedAccount: null,
-      networkUsage: {
-        status: {
-          ok: false,
-          httpStatus: 403,
-          bucket: 'auth_scope',
-          message: 'missing scope requirement user:profile',
+      networkUsages: [
+        {
+          accountKey: 'claude-cli-import',
+          snapshot: {
+            status: {
+              ok: false,
+              httpStatus: 403,
+              bucket: 'auth_scope',
+              message: 'missing scope requirement user:profile',
+            },
+            usageWindows: [],
+          },
         },
-        usageWindows: [],
-      },
+      ],
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(
@@ -178,14 +184,13 @@ describe('formatClaudeSection', () => {
     assert.ok(lines.some((l) => l.includes('user:profile')));
   });
 
-  it('shows "호출 안 함" when networkUsage is null', () => {
+  it('shows "호출 안 함" when networkUsages is empty', () => {
     const snapshot = {
       credentialsPath: FAKE_PATH,
       found: false,
-      parsed: false,
       authSource: 'not-found',
       selectedAccount: null,
-      networkUsage: null,
+      networkUsages: [],
     };
     const lines = formatClaudeSection(snapshot);
     assert.ok(lines.some((l) => l.includes('호출 안 함')));
@@ -350,15 +355,9 @@ describe('formatClaudeSection — multi-account networkUsages', () => {
     assert.ok(lines.some((l) => l.includes('OK (200)')));
   });
 
-  it('falls back to legacy networkUsage when networkUsages missing', () => {
-    const lines = formatClaudeSection({
-      ...basicSnapshot,
-      networkUsage: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
-    });
-    assert.ok(lines.some((l) => l.includes('OK (200)')));
-  });
+  // issue #119: legacy `networkUsage` (단일) fallback 은 제거됨 — `networkUsages[]` 만 지원.
 
-  it('shows "호출 안 함" when neither networkUsages nor networkUsage', () => {
+  it('shows "호출 안 함" when networkUsages is empty', () => {
     const lines = formatClaudeSection({ ...basicSnapshot, networkUsages: [] });
     assert.ok(lines.some((l) => l.includes('호출 안 함')));
   });

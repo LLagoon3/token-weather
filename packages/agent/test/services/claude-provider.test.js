@@ -116,10 +116,13 @@ describe('resolveClaudeProfileFromSnapshot (via claude-provider)', () => {
 });
 
 describe('getClaudeSnapshot — disabled config contract', () => {
-  it('returns networkUsage=null and networkUsages=[] when claude provider is disabled', async () => {
+  it('returns networkUsages=[] when claude provider is disabled (issue #119: networkUsage alias 제거됨)', async () => {
     const snap = await getClaudeSnapshot({ providers: { claude: { enabled: false } } });
-    assert.equal(snap.networkUsage, null);
     assert.deepEqual(snap.networkUsages, []);
+    // backward-compat alias 부재 회귀 가드
+    assert.equal('networkUsage' in snap, false);
+    assert.equal('importedAccount' in snap, false);
+    assert.equal('parsed' in snap, false);
     assert.ok(typeof snap.authSource === 'string');
   });
 });
