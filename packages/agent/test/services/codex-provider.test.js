@@ -54,11 +54,13 @@ describe('filterRealCodexAccounts (via codex-provider)', () => {
 // disabled config → 항상 고정된 shape. live 케이스는 수동 smoke로 확인.
 
 describe('getCodexSnapshot — disabled config contract', () => {
-  it('returns enabled=false with empty snapshots when codex disabled', async () => {
+  it('returns enabled=false with empty usageSnapshots when codex disabled (issue #120)', async () => {
     const snap = await getCodexSnapshot({ providers: { codex: { enabled: false } } });
     assert.equal(snap.enabled, false);
-    assert.deepEqual(snap.snapshots, []);
-    // issue #113 — authProfilesPath (OpenClaw 전용) → credentialsPath (Codex CLI 와 정렬, claude 와 대칭)
+    // v0.5.0 (issue #120): snapshots → usageSnapshots rename
+    assert.deepEqual(snap.usageSnapshots, []);
+    assert.equal('snapshots' in snap, false);
+    // issue #113 — credentialsPath (Codex CLI 와 정렬, claude 와 대칭)
     assert.equal(typeof snap.credentialsPath, 'string');
     assert.match(snap.credentialsPath, /\/\.codex\/auth\.json$/);
   });

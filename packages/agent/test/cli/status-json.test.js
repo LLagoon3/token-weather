@@ -235,14 +235,14 @@ describe('formatStatusJson — providers array', () => {
       configPath: '/x',
       providers: { codex: { enabled: true }, claude: { enabled: true } },
       sync: {},
-      codex: { enabled: true, snapshots: [] },
+      codex: { enabled: true, usageSnapshots: [] },
       claude: { detected: false },
     });
     const parsed = JSON.parse(json);
     assert.equal(parsed.providers.length, 2);
     assert.deepEqual(parsed.providers.map((p) => p.id).sort(), ['claude', 'codex']);
     const codexEntry = parsed.providers.find((p) => p.id === 'codex');
-    assert.deepEqual(codexEntry.snapshot, { enabled: true, snapshots: [] });
+    assert.deepEqual(codexEntry.snapshot, { enabled: true, usageSnapshots: [] });
   });
 
   it('only includes the matching provider when providerFilter is set', () => {
@@ -252,7 +252,7 @@ describe('formatStatusJson — providers array', () => {
       providers: { codex: { enabled: true }, claude: { enabled: true } },
       sync: {},
       providerFilter: 'codex',
-      codex: { enabled: true, snapshots: [] },
+      codex: { enabled: true, usageSnapshots: [] },
       // claude key absent — runProviderSnapshots already filtered
     });
     const parsed = JSON.parse(json);
@@ -289,6 +289,64 @@ describe('formatStatusJson — providers array', () => {
     );
     assert.equal(parsed.accountFilter, null);
     assert.equal(parsed.providerFilter, null);
+  });
+});
+
+describe('formatStatusJson — provider keyset symmetry (issue #120)', () => {
+  // v0.5.0: codex / claude provider snapshot 의 keyset 이 동일해야 함.
+  // 핵심 키: enabled / authSource / credentialsPath / usageSnapshots /
+  // accountFilter / filteredOut.
+
+  it('codex / claude snapshot expose the same keyset', () => {
+    const json = formatStatusJson({
+      schemaVersion: '0.5.0',
+      configPath: '/x',
+      providers: { codex: { enabled: true }, claude: { enabled: true } },
+      sync: {},
+      codex: {
+        enabled: true,
+        authSource: 'agent-store',
+        credentialsPath: null,
+        usageSnapshots: [],
+        accountFilter: null,
+        filteredOut: false,
+      },
+      claude: {
+        enabled: true,
+        authSource: 'agent-store',
+        credentialsPath: null,
+        usageSnapshots: [],
+        accountFilter: null,
+        filteredOut: false,
+      },
+    });
+    const parsed = JSON.parse(json);
+    const codex = parsed.providers.find((p) => p.id === 'codex').snapshot;
+    const claude = parsed.providers.find((p) => p.id === 'claude').snapshot;
+    assert.deepEqual(Object.keys(codex).sort(), Object.keys(claude).sort());
+  });
+
+  it('removed legacy keys are absent (snapshots / networkUsages / networkUsage / detected / found / parsed / selectedAccount / importedAccount)', () => {
+    const json = formatStatusJson({
+      schemaVersion: '0.5.0',
+      configPath: '/x',
+      providers: { codex: { enabled: true }, claude: { enabled: true } },
+      sync: {},
+      codex: { enabled: true, authSource: 'agent-store', usageSnapshots: [] },
+      claude: { enabled: true, authSource: 'agent-store', usageSnapshots: [] },
+    });
+    const parsed = JSON.parse(json);
+    for (const p of parsed.providers) {
+      const s = p.snapshot;
+      assert.equal('snapshots' in s, false, `${p.id}.snapshot has legacy 'snapshots'`);
+      assert.equal('networkUsages' in s, false, `${p.id}.snapshot has legacy 'networkUsages'`);
+      assert.equal('networkUsage' in s, false, `${p.id}.snapshot has legacy 'networkUsage'`);
+      assert.equal('detected' in s, false, `${p.id}.snapshot has legacy 'detected'`);
+      assert.equal('found' in s, false, `${p.id}.snapshot has legacy 'found'`);
+      assert.equal('parsed' in s, false, `${p.id}.snapshot has legacy 'parsed'`);
+      assert.equal('selectedAccount' in s, false, `${p.id}.snapshot has legacy 'selectedAccount'`);
+      assert.equal('importedAccount' in s, false, `${p.id}.snapshot has legacy 'importedAccount'`);
+    }
   });
 });
 
