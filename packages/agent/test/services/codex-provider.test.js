@@ -60,9 +60,10 @@ describe('getCodexSnapshot — disabled config contract', () => {
     // v0.5.0 (issue #120): snapshots → usageSnapshots rename
     assert.deepEqual(snap.usageSnapshots, []);
     assert.equal('snapshots' in snap, false);
-    // issue #113 — credentialsPath (Codex CLI 와 정렬, claude 와 대칭)
-    assert.equal(typeof snap.credentialsPath, 'string');
-    assert.match(snap.credentialsPath, /\/\.codex\/auth\.json$/);
+    // PR #123 review: credentialsPath 는 'codex-cli-import' 시점만 노출 — disabled
+    // 또는 not-found 시 null. claude 와 동일 정책.
+    assert.equal(snap.credentialsPath, null);
+    assert.equal(snap.authSource, 'not-found');
   });
 });
 

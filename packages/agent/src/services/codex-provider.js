@@ -32,7 +32,9 @@ export async function getCodexSnapshot(config, options = {}) {
     return {
       enabled: false,
       authSource: 'not-found',
-      credentialsPath: resolveCodexCliCredentialsPath(),
+      // claude 와 동일 정책 — credentialsPath 는 'codex-cli-import' 시점만 노출.
+      // disabled 또는 not-found 시 null (PR #123 review 정정).
+      credentialsPath: null,
       usageSnapshots: [],
       accountFilter: options.accountFilter ?? null,
       filteredOut: false,
