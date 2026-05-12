@@ -42,7 +42,7 @@ export async function getClaudeSnapshot(
   );
 
   if (!config.providers?.claude?.enabled) {
-    return { ...base, networkUsages: [], networkUsage: null };
+    return { ...base, networkUsages: [] };
   }
 
   // Source 선택은 unfiltered 기준으로 먼저 결정.
@@ -72,7 +72,6 @@ export async function getClaudeSnapshot(
     return {
       ...base,
       networkUsages: [],
-      networkUsage: null,
       accountFilter: options.accountFilter ?? null,
       filteredOut: Boolean(options.accountFilter),
     };
@@ -101,12 +100,6 @@ export async function getClaudeSnapshot(
   return {
     ...base,
     networkUsages: settled,
-    // backward-compat alias: selectedAccount에 해당하는 항목을 우선 노출,
-    // 없으면 첫 항목.
-    networkUsage:
-      settled.find((s) => s.accountKey === base.selectedAccount?.accountKey)?.snapshot ??
-      settled[0]?.snapshot ??
-      null,
     accountFilter: options.accountFilter ?? null,
     filteredOut: false,
   };
@@ -124,7 +117,10 @@ export { filterProfilesByAccount } from './account-filter.js';
  * Exported for testing.
  *
  * v0.3.0 (issue #110): `~/.claude/stats-cache.json` 의존 제거 — `usage` 필드
- * 부재. window 사용률은 `networkUsage` (network endpoint 결과) 에서만 노출.
+ * 부재. window 사용률은 `networkUsages[]` (network endpoint 결과) 에서만 노출.
+ *
+ * v0.4.0 (issue #119): backward-compat alias 제거 — `parsed` (== `found`) /
+ * `importedAccount` (== `selectedAccount`) 삭제. `--json` shape 정리.
  */
 export function buildClaudeSnapshot(
   credentialsPath,
@@ -143,9 +139,7 @@ export function buildClaudeSnapshot(
     authSource,
     credentialsPath,
     found,
-    parsed: found,
     selectedAccount,
-    importedAccount: selectedAccount, // backward-compat alias — prefer selectedAccount
   };
 }
 
