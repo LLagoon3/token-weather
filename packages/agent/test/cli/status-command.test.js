@@ -255,8 +255,9 @@ describe('formatClaudeNetworkUsages — multi-account', () => {
         },
       },
     ]);
-    assert.ok(lines.some((l) => l.includes('- Account: a:1')));
-    assert.ok(lines.some((l) => l.includes('- Account: a:2')));
+    // multi-account → rounded-corner box header
+    assert.ok(lines.some((l) => l.startsWith('  ╭─') && l.includes('Account: a:1')));
+    assert.ok(lines.some((l) => l.startsWith('  ╭─') && l.includes('Account: a:2')));
     assert.ok(lines.some((l) => l.includes('OK (200)')));
     assert.ok(lines.some((l) => l.includes('FAILED (401, bucket=auth)')));
     assert.ok(lines.some((l) => l.includes('Message: expired')));
@@ -280,8 +281,8 @@ describe('formatClaudeSection — networkUsages array support', () => {
         },
       ],
     });
-    assert.ok(lines.some((l) => l.includes('- Account: a:1')));
-    assert.ok(lines.some((l) => l.includes('- Account: a:2')));
+    assert.ok(lines.some((l) => l.startsWith('  ╭─') && l.includes('Account: a:1')));
+    assert.ok(lines.some((l) => l.startsWith('  ╭─') && l.includes('Account: a:2')));
   });
 
   it('falls back to legacy networkUsage when networkUsages absent', () => {
@@ -572,10 +573,10 @@ describe('formatClaudeSection — Default account line visibility', () => {
   });
 });
 
-describe('multi-account divider (issue #116 review)', () => {
-  const DIVIDER = '─'.repeat(50);
+describe('multi-account box wrapping (issue #116 review)', () => {
+  // 다 계정일 때 각 계정을 rounded-corner box 로 감싼다. 1 계정이면 박스 없음.
 
-  it('inserts a horizontal divider between Codex snapshots when count > 1', () => {
+  it('wraps each Codex snapshot in a rounded-corner box when count > 1', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
@@ -584,7 +585,7 @@ describe('multi-account divider (issue #116 review)', () => {
           source: 'x',
           authType: 'oauth',
           confidence: 'high',
-          account: { profileId: 'a' },
+          account: { profileId: 'a', email: 'a@x.com' },
           status: { ok: true, httpStatus: 200 },
           usageWindows: [],
         },
@@ -592,23 +593,27 @@ describe('multi-account divider (issue #116 review)', () => {
           source: 'x',
           authType: 'oauth',
           confidence: 'high',
-          account: { profileId: 'b' },
+          account: { profileId: 'b', email: 'b@x.com' },
           status: { ok: true, httpStatus: 200 },
           usageWindows: [],
         },
       ],
     });
-    // divider appears exactly once between 2 accounts, at column 0 (no indent).
-    const dividerLines = lines.filter((l) => l === DIVIDER);
-    assert.equal(dividerLines.length, 1);
-    // divider must appear after first account block, before second.
-    const idxA = lines.findIndex((l) => l.includes('- a'));
-    const idxDiv = lines.indexOf(DIVIDER);
-    const idxB = lines.findIndex((l) => l.includes('- b'));
-    assert.ok(idxA < idxDiv && idxDiv < idxB);
+    // 각 계정마다 top corner + bottom corner 1 회씩 (총 2 + 2 = 4 개 corner 라인)
+    const tops = lines.filter((l) => l.startsWith('╭─'));
+    const bottoms = lines.filter((l) => l.startsWith('╰─'));
+    assert.equal(tops.length, 2);
+    assert.equal(bottoms.length, 2);
+    // 본문 라인이 `│ ` prefix 로 들어감
+    assert.ok(lines.some((l) => l.startsWith('│ Status: OK (200)')));
+    // 두 박스 사이 gap line 1개 (빈 줄)
+    const firstBottomIdx = lines.indexOf(bottoms[0]);
+    const secondTopIdx = lines.indexOf(tops[1]);
+    assert.ok(secondTopIdx > firstBottomIdx);
+    assert.equal(lines[firstBottomIdx + 1], '');
   });
 
-  it('does not insert a divider when Codex has a single snapshot', () => {
+  it('does NOT box a single Codex snapshot (preserves "- profileId" header)', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
@@ -623,13 +628,14 @@ describe('multi-account divider (issue #116 review)', () => {
         },
       ],
     });
+    assert.ok(lines.some((l) => l === '- only'));
     assert.equal(
-      lines.some((l) => l === DIVIDER),
+      lines.some((l) => l.startsWith('╭─') || l.startsWith('╰─')),
       false,
     );
   });
 
-  it('inserts an indented divider between Claude usages when count > 1', () => {
+  it('wraps Claude usages in an indented box when count > 1', () => {
     const lines = formatClaudeNetworkUsages([
       {
         accountKey: 'a:1',
@@ -640,13 +646,19 @@ describe('multi-account divider (issue #116 review)', () => {
         snapshot: { status: { ok: true, httpStatus: 200 }, usageWindows: [] },
       },
     ]);
-    // Claude multi-account divider uses 2-space indent to align with `  - Account:` header.
-    const indentedDivider = `  ${DIVIDER}`;
-    assert.ok(lines.includes(indentedDivider));
-    assert.equal(lines.filter((l) => l === indentedDivider).length, 1);
+    // Claude multi-account 박스는 2 space outer indent.
+    const tops = lines.filter((l) => l.startsWith('  ╭─'));
+    const bottoms = lines.filter((l) => l.startsWith('  ╰─'));
+    assert.equal(tops.length, 2);
+    assert.equal(bottoms.length, 2);
+    // header 에 'Account: ' 가 포함되어야 함
+    assert.ok(tops[0].includes('Account: a:1'));
+    assert.ok(tops[1].includes('Account: a:2'));
+    // 본문은 `  │ ` prefix
+    assert.ok(lines.some((l) => l.startsWith('  │ Status: OK (200)')));
   });
 
-  it('does not insert a divider when Claude has a single usage', () => {
+  it('does NOT box a single Claude usage', () => {
     const lines = formatClaudeNetworkUsages([
       {
         accountKey: 'a:1',
@@ -654,7 +666,7 @@ describe('multi-account divider (issue #116 review)', () => {
       },
     ]);
     assert.equal(
-      lines.some((l) => l.includes(DIVIDER)),
+      lines.some((l) => l.startsWith('╭─') || l.startsWith('  ╭─')),
       false,
     );
   });

@@ -14,12 +14,42 @@
 import { formatProgressBar, formatResetTime, formatWindowLabel } from './status-bar-helper.js';
 
 const BAR_WIDTH = 50;
-const DIVIDER_CHAR = '─';
-const DIVIDER_WIDTH = 50;
 
-/** 계정 구분용 light horizontal divider — 다 계정일 때만 사이에 삽입. */
-function accountDivider(indent = '') {
-  return `${indent}${DIVIDER_CHAR.repeat(DIVIDER_WIDTH)}`;
+// 계정 박스 — rounded corners 좌측 vertical bar. 다 계정일 때만 적용.
+// 4면 완전 박스는 ANSI escape / CJK char width 계산 이슈로 보류 — 좌측 +
+// 상/하 corner 만으로 시각적 박스감 충분, 폭에 의존하지 않아 안정적.
+const BOX_TOP_CORNER = '╭─';
+const BOX_BOTTOM_CORNER = '╰─';
+const BOX_VERTICAL = '│';
+
+/**
+ * 다 계정일 때 한 계정의 본문(이미 indent 가 적용된 라인들)을 box 로 감싼다.
+ *
+ * 입력 lines 의 leading indent (`  `) 는 `${BOX_VERTICAL} ` (1 칸) 로 교체
+ * 되어 시각 폭이 동일하게 유지된다. 빈 줄은 `${BOX_VERTICAL}` 만 남긴다.
+ *
+ * @param {string} header — 계정 식별 텍스트 (`profileId (email)` 등)
+ * @param {string[]} bodyLines — 이미 `'  '` 또는 더 들여쓴 상태의 본문 라인
+ * @param {string} [outerIndent=''] — 박스 전체를 들여쓸 추가 indent (claude
+ *   multi-account 안쪽일 때 `'  '`)
+ * @param {string} [bodyIndentPrefix='  '] — 본문에 이미 들어있는 leading
+ *   indent. 박스 vertical 로 치환할 prefix.
+ * @returns {string[]}
+ */
+function wrapInBox(header, bodyLines, outerIndent = '', bodyIndentPrefix = '  ') {
+  const lines = [`${outerIndent}${BOX_TOP_CORNER} ${header}`];
+  for (const line of bodyLines) {
+    if (line === '') {
+      lines.push(`${outerIndent}${BOX_VERTICAL}`);
+    } else if (line.startsWith(bodyIndentPrefix)) {
+      lines.push(`${outerIndent}${BOX_VERTICAL} ${line.slice(bodyIndentPrefix.length)}`);
+    } else {
+      // 예상치 못한 indent — 그대로 prefix 부착해서 안전 fallback
+      lines.push(`${outerIndent}${BOX_VERTICAL} ${line}`);
+    }
+  }
+  lines.push(`${outerIndent}${BOX_BOTTOM_CORNER}`);
+  return lines;
 }
 
 /**
@@ -80,34 +110,40 @@ export function formatCodexSection(codex, ctx = {}) {
     return lines;
   }
 
+  const useBox = codex.snapshots.length > 1;
   for (let i = 0; i < codex.snapshots.length; i++) {
     const snapshot = codex.snapshots[i];
-    if (i > 0) {
-      // 다 계정일 때 계정 사이에 light horizontal divider — 첫 계정 앞 / 마지막 뒤엔 없음.
-      lines.push('', accountDivider(), '');
-    }
+    if (i > 0) lines.push(''); // 박스 사이 1 줄 gap
+
     const label = snapshot.account.email
       ? `${snapshot.account.profileId} (${snapshot.account.email})`
       : snapshot.account.profileId;
-    lines.push(`- ${label}`);
-    lines.push(
+    const body = [];
+    body.push(
       `  Status: ${
         snapshot.status.ok
           ? `OK (${snapshot.status.httpStatus})`
           : `FAILED (${snapshot.status.httpStatus ?? 'network/error'})`
       }`,
     );
-    lines.push(
+    body.push(
       `  source=${snapshot.source}, authType=${snapshot.authType}, confidence=${snapshot.confidence}`,
     );
-    if (snapshot.account.plan) lines.push(`  Plan: ${snapshot.account.plan}`);
+    if (snapshot.account.plan) body.push(`  Plan: ${snapshot.account.plan}`);
     for (const window of snapshot.usageWindows) {
-      lines.push('');
+      body.push('');
       for (const blockLine of formatWindowBlock(window, ctx)) {
-        lines.push(`  ${blockLine}`);
+        body.push(`  ${blockLine}`);
       }
     }
-    if (snapshot.status.message) lines.push(`  Error: ${snapshot.status.message}`);
+    if (snapshot.status.message) body.push(`  Error: ${snapshot.status.message}`);
+
+    if (useBox) {
+      lines.push(...wrapInBox(label, body));
+    } else {
+      lines.push(`- ${label}`);
+      lines.push(...body);
+    }
   }
   return lines;
 }
@@ -149,16 +185,19 @@ export function formatClaudeNetworkUsages(usages, context = {}) {
     return lines;
   }
 
+  const useBox = usages.length > 1;
   for (let i = 0; i < usages.length; i++) {
     const { accountKey, snapshot, account } = usages[i];
-    if (usages.length > 1) {
-      if (i > 0) {
-        // 다 계정일 때 계정 사이에 light horizontal divider — 첫 계정 앞 / 마지막 뒤엔 없음.
-        lines.push('', accountDivider('  '), '');
-      }
-      lines.push(`  - Account: ${formatAccountDisplay(account ?? { accountKey })}`);
+    if (useBox) {
+      if (i > 0) lines.push(''); // 박스 사이 1 줄 gap
+      const header = `Account: ${formatAccountDisplay(account ?? { accountKey })}`;
+      const body = formatClaudeNetworkUsageBody(snapshot, true, context);
+      // body 는 '    ' (4 spaces) indent — wrapInBox 가 prefix '    ' 를
+      // `'  │ '` 로 변환. outerIndent '  ' (claude live block 안쪽 2 spaces).
+      lines.push(...wrapInBox(header, body, '  ', '    '));
+    } else {
+      lines.push(...formatClaudeNetworkUsageBody(snapshot, false, context));
     }
-    lines.push(...formatClaudeNetworkUsageBody(snapshot, usages.length > 1, context));
   }
   return lines;
 }
