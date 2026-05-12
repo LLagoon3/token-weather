@@ -1,61 +1,72 @@
 /**
- * status / usage 출력용 pure formatter 모음.
+ * status / usage output pure formatters.
  *
  * 모든 함수는 string[] 반환, console.log 호출 없음.
- * status-command.js의 runStatusCommand가 이 함수들의 결과를 출력한다.
+ * status-command.js 의 runStatusCommand 가 결과를 출력한다.
+ *
+ * 출력 언어는 영어 (사용자가 평문에서 한글 제외 요청, issue #116).
+ * 평문은 stable contract 가 아니므로 (docs/cli-json-output.md) 자유 변경.
  */
+
+import { formatProgressBar } from './status-bar-helper.js';
+
+const WINDOW_LABEL_WIDTH = 12;
+const BAR_WIDTH = 20;
 
 /**
  * 전체 status 출력 라인 배열.
  *
- * `snapshot.providerFilter`가 지정되어 있으면 매칭되지 않는 provider 섹션은
- * 출력하지 않는다 (해당 provider snapshot 자체가 없으므로 안전하게 skip).
- * 헤더의 "Codex 사용 / Claude 사용" 라인은 config 기반이라 그대로 노출한다.
+ * `snapshot.providerFilter` 가 지정되어 있으면 매칭되지 않는 provider 섹션은
+ * 출력하지 않는다. ctx.useColor 는 호출자(runStatusCommand)에서 결정 후 주입.
+ *
+ * @param {string} command
+ * @param {object} snapshot
+ * @param {{ useColor?: boolean }} [ctx]
  */
-export function formatStatusOutput(command, snapshot) {
+export function formatStatusOutput(command, snapshot, ctx = {}) {
   const lines = [
-    `명령: ${command}`,
-    '로컬 에이전트 상태 요약',
+    `Command: ${command}`,
+    'Local agent status summary',
     '-----------------------',
-    `설정 파일: ${snapshot.configPath}`,
-    `Codex 사용: ${snapshot.providers.codex.enabled ? 'enabled' : 'disabled'}`,
-    `Claude 사용: ${snapshot.providers.claude.enabled ? 'enabled' : 'disabled'}`,
-    `서버 sync: ${snapshot.sync.enabled ? 'enabled' : 'disabled'}`,
+    `Config: ${snapshot.configPath}`,
+    `Codex: ${snapshot.providers.codex.enabled ? 'enabled' : 'disabled'}`,
+    `Claude: ${snapshot.providers.claude.enabled ? 'enabled' : 'disabled'}`,
+    `Server sync: ${snapshot.sync.enabled ? 'enabled' : 'disabled'}`,
   ];
   if (snapshot.accountFilter) {
-    lines.push(`계정 필터: ${snapshot.accountFilter}`);
+    lines.push(`Account filter: ${snapshot.accountFilter}`);
   }
   if (snapshot.providerFilter) {
-    lines.push(`provider 필터: ${snapshot.providerFilter}`);
+    lines.push(`Provider filter: ${snapshot.providerFilter}`);
   }
   if (snapshot.codex) {
-    lines.push('', ...formatCodexSection(snapshot.codex));
+    lines.push('', ...formatCodexSection(snapshot.codex, ctx));
   }
   if (snapshot.claude) {
-    lines.push('', ...formatClaudeSection(snapshot.claude));
+    lines.push('', ...formatClaudeSection(snapshot.claude, ctx));
   }
   return lines;
 }
 
 /** Codex usage section. */
-export function formatCodexSection(codex) {
+export function formatCodexSection(codex, ctx = {}) {
   const lines = ['Codex usage', '-----------'];
 
   if (!codex.enabled) {
-    lines.push('비활성화됨');
+    lines.push('Disabled');
     return lines;
   }
 
-  lines.push(`인증 소스: ${codex.authSource ?? 'unknown'}`);
+  lines.push(`Auth source: ${codex.authSource ?? 'unknown'}`);
   if (codex.credentialsPath) {
-    lines.push(`Codex CLI credential 경로: ${codex.credentialsPath}`);
+    lines.push(`Codex CLI credential path: ${codex.credentialsPath}`);
   }
 
   if (codex.snapshots.length === 0) {
     if (codex.filteredOut) {
-      lines.push(`계정 필터 "${codex.accountFilter}"에 해당하는 Codex 계정을 찾지 못했습니다.`);
+      lines.push(`No Codex account matches account filter "${codex.accountFilter}".`);
     } else {
-      lines.push('발견된 Codex OAuth 프로필이 없습니다.');
+      lines.push('No Codex OAuth profile found.');
     }
     return lines;
   }
@@ -66,31 +77,31 @@ export function formatCodexSection(codex) {
       : snapshot.account.profileId;
     lines.push(`- ${label}`);
     lines.push(
-      `  상태: ${
+      `  Status: ${
         snapshot.status.ok
           ? `OK (${snapshot.status.httpStatus})`
-          : `실패 (${snapshot.status.httpStatus ?? 'network/error'})`
+          : `FAILED (${snapshot.status.httpStatus ?? 'network/error'})`
       }`,
     );
     lines.push(
       `  source=${snapshot.source}, authType=${snapshot.authType}, confidence=${snapshot.confidence}`,
     );
-    if (snapshot.account.plan) lines.push(`  플랜: ${snapshot.account.plan}`);
+    if (snapshot.account.plan) lines.push(`  Plan: ${snapshot.account.plan}`);
     for (const window of snapshot.usageWindows) {
-      lines.push(`  ${window.kind}: ${formatWindow(window)}`);
+      lines.push(`  ${formatWindowLine(window, ctx)}`);
     }
-    if (snapshot.status.message) lines.push(`  에러: ${snapshot.status.message}`);
+    if (snapshot.status.message) lines.push(`  Error: ${snapshot.status.message}`);
   }
   return lines;
 }
 
 /** Claude usage section. */
-export function formatClaudeSection(claude) {
+export function formatClaudeSection(claude, ctx = {}) {
   const lines = ['Claude usage', '------------'];
-  lines.push(`인증 소스: ${claude.authSource}`);
-  lines.push(`credential 감지: ${claude.detected}`);
+  lines.push(`Auth source: ${claude.authSource}`);
+  lines.push(`Credential detected: ${claude.detected}`);
   if (claude.selectedAccount && !claude.accountFilter) {
-    lines.push(`기본 계정: ${formatAccountDisplay(claude.selectedAccount)}`);
+    lines.push(`Default account: ${formatAccountDisplay(claude.selectedAccount)}`);
   }
 
   const usages = Array.isArray(claude.networkUsages)
@@ -102,6 +113,7 @@ export function formatClaudeSection(claude) {
     ...formatClaudeNetworkUsages(usages, {
       filteredOut: claude.filteredOut,
       accountFilter: claude.accountFilter,
+      useColor: ctx.useColor,
     }),
   );
   return lines;
@@ -112,56 +124,54 @@ export function formatClaudeNetworkUsages(usages, context = {}) {
   const lines = ['', '[live] api.anthropic.com/api/oauth/usage'];
   if (!usages || usages.length === 0) {
     if (context.filteredOut) {
-      lines.push(
-        `  계정 필터 "${context.accountFilter}"에 해당하는 Claude 계정을 찾지 못했습니다.`,
-      );
+      lines.push(`  No Claude account matches account filter "${context.accountFilter}".`);
     } else {
-      lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
+      lines.push('  Skipped (Claude disabled or no token)');
     }
     return lines;
   }
 
   for (const { accountKey, snapshot, account } of usages) {
     if (usages.length > 1)
-      lines.push(`  - 계정: ${formatAccountDisplay(account ?? { accountKey })}`);
-    lines.push(...formatClaudeNetworkUsageBody(snapshot, usages.length > 1));
+      lines.push(`  - Account: ${formatAccountDisplay(account ?? { accountKey })}`);
+    lines.push(...formatClaudeNetworkUsageBody(snapshot, usages.length > 1, context));
   }
   return lines;
 }
 
 /** 단일 Claude network usage snapshot 출력. */
-export function formatClaudeNetworkUsageBody(networkUsage, indented = false) {
+export function formatClaudeNetworkUsageBody(networkUsage, indented = false, ctx = {}) {
   const prefix = indented ? '    ' : '  ';
   const lines = [];
   if (!networkUsage) {
-    lines.push(`${prefix}호출 안 함`);
+    lines.push(`${prefix}Skipped`);
     return lines;
   }
 
   if (networkUsage.status?.ok) {
-    lines.push(`${prefix}상태: OK (${networkUsage.status.httpStatus})`);
+    lines.push(`${prefix}Status: OK (${networkUsage.status.httpStatus})`);
     if (networkUsage.usageWindows.length === 0) {
-      lines.push(`${prefix}usageWindows 없음 (응답에 기대한 필드가 없었음)`);
+      lines.push(`${prefix}No usageWindows (expected fields missing in response)`);
     }
     for (const window of networkUsage.usageWindows) {
-      lines.push(`${prefix}${window.kind}: ${formatWindow(window)}`);
+      lines.push(`${prefix}${formatWindowLine(window, ctx)}`);
     }
     return lines;
   }
 
   const http = networkUsage.status?.httpStatus ?? 'network/error';
   const bucket = networkUsage.status?.bucket ?? 'unknown';
-  lines.push(`${prefix}상태: 실패 (${http}, bucket=${bucket})`);
-  if (networkUsage.status?.message) lines.push(`${prefix}메시지: ${networkUsage.status.message}`);
+  lines.push(`${prefix}Status: FAILED (${http}, bucket=${bucket})`);
+  if (networkUsage.status?.message) lines.push(`${prefix}Message: ${networkUsage.status.message}`);
   return lines;
 }
 
 /**
  * @deprecated 신규 코드는 formatClaudeNetworkUsages(배열)를 사용.
  */
-export function formatClaudeNetworkUsage(networkUsage) {
+export function formatClaudeNetworkUsage(networkUsage, ctx = {}) {
   const header = ['', '[live] api.anthropic.com/api/oauth/usage'];
-  return [...header, ...formatClaudeNetworkUsageBody(networkUsage, false)];
+  return [...header, ...formatClaudeNetworkUsageBody(networkUsage, false, ctx)];
 }
 
 function formatAccountDisplay(account) {
@@ -175,8 +185,24 @@ function formatAccountDisplay(account) {
   return accountKey;
 }
 
-export function formatWindow(window) {
+/**
+ * window 한 줄 — label padding + ASCII bar + percent + reset_at.
+ *
+ * 예: `primary      [██████░░░░░░░░░░░░░░]  30%  reset_at=2026-05-20T00:00:00Z`
+ *
+ * issue #116: `used_percent=N, reset_at=...` 형식의 기존 formatWindow 를
+ * 완전 대체. 평문은 stable contract 아님 (docs/cli-json-output.md).
+ */
+export function formatWindowLine(window, ctx = {}) {
+  const kind = String(window.kind ?? '').padEnd(WINDOW_LABEL_WIDTH);
+  const bar = formatProgressBar(window.usedPercent, {
+    width: BAR_WIDTH,
+    useColor: ctx.useColor ?? false,
+  });
+  const pctText =
+    window.usedPercent == null || Number.isNaN(window.usedPercent)
+      ? '  --'
+      : `${String(Math.round(window.usedPercent)).padStart(3)}%`;
   const reset = window.resetAt ? `reset_at=${window.resetAt}` : 'reset_at=unknown';
-  const used = window.usedPercent ?? 'unknown';
-  return `used_percent=${used}, ${reset}`;
+  return `${kind} ${bar} ${pctText}  ${reset}`;
 }
