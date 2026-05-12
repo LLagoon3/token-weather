@@ -121,7 +121,7 @@ describe('formatCodexSection', () => {
     assert.ok(lines.some((l) => /^ +Resets /.test(l)));
   });
 
-  it('renders failure status with httpStatus/network and includes error message', () => {
+  it('renders FAILED status (lean — httpStatus omitted) and trims error message after em-dash', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
@@ -131,16 +131,24 @@ describe('formatCodexSection', () => {
           authType: 'oauth',
           confidence: 'low',
           account: { profileId: 'p1' },
-          status: { ok: false, httpStatus: 500, message: 'boom' },
+          status: {
+            ok: false,
+            httpStatus: 500,
+            message: 'Token refresh failed: 500 — {"error":"server_error"}',
+          },
           usageWindows: [],
         },
       ],
     });
-    assert.ok(lines.some((l) => l.includes('FAILED (500)')));
-    assert.ok(lines.some((l) => l.includes('Error: boom')));
+    // FAILED (500) → FAILED 만 — httpStatus 가 status 라인에 노출되지 않음
+    assert.ok(lines.some((l) => l.endsWith('Status: FAILED')));
+    assert.ok(!lines.some((l) => l.includes('FAILED (500)')));
+    // Error 메시지에서 ` — ` 이후 JSON payload 제거
+    assert.ok(lines.some((l) => l.includes('Error: Token refresh failed: 500')));
+    assert.ok(!lines.some((l) => l.includes('"server_error"')));
   });
 
-  it('uses network/error label when httpStatus is null', () => {
+  it('FAILED status is the same regardless of httpStatus shape (lean)', () => {
     const lines = formatCodexSection({
       enabled: true,
       authSource: 'agent-store',
@@ -155,7 +163,8 @@ describe('formatCodexSection', () => {
         },
       ],
     });
-    assert.ok(lines.some((l) => l.includes('FAILED (network/error)')));
+    assert.ok(lines.some((l) => l.endsWith('Status: FAILED')));
+    assert.ok(!lines.some((l) => l.includes('network/error')));
   });
 });
 
@@ -183,13 +192,22 @@ describe('formatClaudeNetworkUsage', () => {
     assert.ok(lines.some((l) => l.includes('No usageWindows')));
   });
 
-  it('shows failure with bucket and message', () => {
+  it('shows FAILED status (lean) and trims message after em-dash', () => {
     const lines = formatClaudeNetworkUsage({
-      status: { ok: false, httpStatus: 403, bucket: 'auth_scope', message: 'missing scope' },
+      status: {
+        ok: false,
+        httpStatus: 403,
+        bucket: 'auth_scope',
+        message: 'missing scope — {"error":"forbidden"}',
+      },
       usageWindows: [],
     });
-    assert.ok(lines.some((l) => l.includes('FAILED (403, bucket=auth_scope)')));
+    // httpStatus / bucket 은 status 라인에 노출되지 않음
+    assert.ok(lines.some((l) => l.endsWith('Status: FAILED')));
+    assert.ok(!lines.some((l) => l.includes('bucket=')));
+    // Message 는 ` — ` 이전까지만
     assert.ok(lines.some((l) => l.includes('Message: missing scope')));
+    assert.ok(!lines.some((l) => l.includes('"forbidden"')));
   });
 });
 
@@ -258,7 +276,8 @@ describe('formatClaudeNetworkUsages — multi-account', () => {
     assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:1')));
     assert.ok(lines.some((l) => l.startsWith('╭─ anthropic-claude | a:2')));
     assert.ok(lines.some((l) => l.includes('OK (200)')));
-    assert.ok(lines.some((l) => l.includes('FAILED (401, bucket=auth)')));
+    assert.ok(lines.some((l) => l.includes('Status: FAILED')));
+    assert.ok(!lines.some((l) => l.includes('bucket=')));
     assert.ok(lines.some((l) => l.includes('Message: expired')));
   });
 });

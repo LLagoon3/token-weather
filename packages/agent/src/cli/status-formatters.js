@@ -130,13 +130,7 @@ export function formatCodexSection(codex, ctx = {}) {
 
     const label = accountLabel('openai-codex', snapshot.account);
     const body = [];
-    body.push(
-      `  Status: ${
-        snapshot.status.ok
-          ? `OK (${snapshot.status.httpStatus})`
-          : `FAILED (${snapshot.status.httpStatus ?? 'network/error'})`
-      }`,
-    );
+    body.push(`  Status: ${snapshot.status.ok ? `OK (${snapshot.status.httpStatus})` : 'FAILED'}`);
     if (snapshot.account.plan) body.push(`  Plan: ${snapshot.account.plan}`);
     for (const window of snapshot.usageWindows) {
       body.push('');
@@ -144,7 +138,7 @@ export function formatCodexSection(codex, ctx = {}) {
         body.push(`  ${blockLine}`);
       }
     }
-    if (snapshot.status.message) body.push(`  Error: ${snapshot.status.message}`);
+    if (snapshot.status.message) body.push(`  Error: ${trimErrorMessage(snapshot.status.message)}`);
 
     if (useBox) {
       lines.push(...wrapInBox(label, body));
@@ -235,10 +229,10 @@ export function formatClaudeNetworkUsageBody(networkUsage, indented = false, ctx
     return lines;
   }
 
-  const http = networkUsage.status?.httpStatus ?? 'network/error';
-  const bucket = networkUsage.status?.bucket ?? 'unknown';
-  lines.push(`${prefix}Status: FAILED (${http}, bucket=${bucket})`);
-  if (networkUsage.status?.message) lines.push(`${prefix}Message: ${networkUsage.status.message}`);
+  lines.push(`${prefix}Status: FAILED`);
+  if (networkUsage.status?.message) {
+    lines.push(`${prefix}Message: ${trimErrorMessage(networkUsage.status.message)}`);
+  }
   return lines;
 }
 
@@ -263,6 +257,23 @@ export function formatClaudeNetworkUsage(networkUsage, ctx = {}) {
 function accountLabel(providerId, account) {
   const identifier = account?.email ?? account?.accountId ?? account?.accountKey ?? null;
   return identifier ? `${providerId} | ${identifier}` : providerId;
+}
+
+/**
+ * 실패 메시지에서 ` — ` 이후 raw payload (JSON 등) 를 제거한다.
+ *
+ * provider 어댑터가 던지는 에러는 보통
+ * `"Claude token refresh failed: 400 Bad Request — {...JSON...}"` 형태인데,
+ * 사용자에게는 사람이 읽기 좋은 prefix 만 노출하는 게 lean. JSON 본문이
+ * 필요하면 `--json` 출력의 `status.message` 원본을 사용.
+ *
+ * @param {unknown} message
+ * @returns {string|null}
+ */
+function trimErrorMessage(message) {
+  if (typeof message !== 'string') return message ?? null;
+  const idx = message.indexOf(' — ');
+  return idx >= 0 ? message.slice(0, idx) : message;
 }
 
 /**
