@@ -1,97 +1,218 @@
 /**
- * status / usage 출력용 pure formatter 모음.
+ * status / usage 출력 pure formatters.
  *
- * 모든 함수는 string[] 반환, console.log 호출 없음.
- * status-command.js의 runStatusCommand가 이 함수들의 결과를 출력한다.
+ * 모든 함수는 string[] 반환, console.log 호출 없음. status-command.js 의
+ * runStatusCommand 가 결과를 출력한다.
+ *
+ * 출력 언어는 영어 (사용자가 평문에서 한글 제외 요청, issue #116).
+ * 평문은 stable contract 아님 (docs/cli-json-output.md). `--json` 출력의
+ * shape / SCHEMA_VERSION 만 stable.
+ *
+ * 시각 계층 (heavy / light weight 대비로 4 단계 표현):
+ *   L1 (top summary) — `━━━━ Agent Status Summary ━━━━…` + label 없는 박스
+ *   L2 (provider)    — `━━━━ Codex usage ━━━━…` (박스 없음)
+ *   L3 (account)     — `╭─ provider | identifier … ╰─` 라운드 코너 박스
+ *   L4 (window)      — 인라인 3 줄 block (label / bar+pct / Resets)
+ *
+ * 막대 시각화: 1/8 정밀도 fractional 블록 `█▏▎▍▌▋▊▉`, 빈 자리는 light shade
+ * `░` (PR #117 review — space 는 막대 끝이 안 보임 회귀 해결).
  */
+
+import { formatProgressBar, formatResetTime, formatWindowLabel } from './status-bar-helper.js';
+
+const BAR_WIDTH = 50;
+const PROVIDER_HEADER_WIDTH = 55;
+const PROVIDER_HEADER_MIN_PADDING = 3;
+
+// 계정 박스 — rounded corners 좌측 vertical bar. 다 계정일 때만 적용.
+// 4면 완전 박스는 ANSI escape / CJK char width 계산 이슈로 보류 — 좌측 +
+// 상/하 corner 만으로 시각적 박스감 충분, 폭에 의존하지 않아 안정적.
+const BOX_TOP_CORNER = '╭─';
+const BOX_BOTTOM_CORNER = '╰─';
+const BOX_VERTICAL = '│';
+
+// ── pure helpers (top-of-file 그룹화) ───────────────────────────────────────
+
+/**
+ * Provider section header — `━━━━ Name ━━━━━━━━━━━━` 인라인 형식.
+ * heavy single horizontal `━` 로 계정 박스의 light `─` 와 weight 대비 →
+ * provider 가 account 보다 상위 계층임을 시각적으로 표현.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+function providerHeader(name) {
+  const prefix = '━━━━ ';
+  const middle = `${name} `;
+  const padLen = Math.max(
+    PROVIDER_HEADER_MIN_PADDING,
+    PROVIDER_HEADER_WIDTH - prefix.length - middle.length,
+  );
+  return `${prefix}${middle}${'━'.repeat(padLen)}`;
+}
+
+/**
+ * 계정 헤더 라벨 — `provider | identifier` 형식.
+ *
+ * identifier 우선순위: email → accountId → accountKey. 셋 다 없으면 provider
+ * 단독. issue #116 review 의 lean output 정합.
+ *
+ * @param {string} providerId — `'openai-codex'` / `'anthropic-claude'` 등
+ * @param {object|null|undefined} account
+ * @returns {string}
+ */
+function accountLabel(providerId, account) {
+  const identifier = account?.email ?? account?.accountId ?? account?.accountKey ?? null;
+  return identifier ? `${providerId} | ${identifier}` : providerId;
+}
+
+/**
+ * 실패 메시지에서 ` — ` 이후 raw payload (JSON 등) 를 제거한다.
+ *
+ * provider 어댑터가 던지는 에러는 보통
+ * `"Claude token refresh failed: 400 Bad Request — {...JSON...}"` 형태인데,
+ * 사용자에게는 사람이 읽기 좋은 prefix 만 노출하는 게 lean. JSON 본문이
+ * 필요하면 `--json` 출력의 `status.message` 원본을 사용.
+ *
+ * @param {unknown} message
+ * @returns {string|null}
+ */
+function trimErrorMessage(message) {
+  if (typeof message !== 'string') return message ?? null;
+  const idx = message.indexOf(' — ');
+  return idx >= 0 ? message.slice(0, idx) : message;
+}
+
+/**
+ * 본문 라인 배열을 rounded-corner 박스로 감싼다.
+ *
+ * 두 가지 use case:
+ *   1. 다 계정일 때 각 계정 블록 — `header = 'provider | identifier'`
+ *   2. top-level summary — `header = ''` (section title 이 이미 위쪽
+ *      heavy rule 에 있어 박스 헤더 라벨 없이 corner 만)
+ *
+ * 입력 bodyLines 의 leading indent (`bodyIndentPrefix`, 기본 `'  '`) 는
+ * `${BOX_VERTICAL} ` 로 교체되어 시각 폭이 동일하게 유지된다. 빈 줄은
+ * `${BOX_VERTICAL}` 만 남긴다.
+ *
+ * @param {string} header — 박스 상단 라벨 (빈 문자열이면 corner 만)
+ * @param {string[]} bodyLines
+ * @param {string} [outerIndent=''] — 박스 전체를 들여쓸 추가 indent
+ * @param {string} [bodyIndentPrefix='  '] — 본문에 이미 들어있는 leading
+ *   indent. 박스 vertical 로 치환할 prefix.
+ * @returns {string[]}
+ */
+function wrapInBox(header, bodyLines, outerIndent = '', bodyIndentPrefix = '  ') {
+  const topLine = header
+    ? `${outerIndent}${BOX_TOP_CORNER} ${header}`
+    : `${outerIndent}${BOX_TOP_CORNER}`;
+  const lines = [topLine];
+  for (const line of bodyLines) {
+    if (line === '') {
+      lines.push(`${outerIndent}${BOX_VERTICAL}`);
+    } else if (line.startsWith(bodyIndentPrefix)) {
+      lines.push(`${outerIndent}${BOX_VERTICAL} ${line.slice(bodyIndentPrefix.length)}`);
+    } else {
+      // 예상치 못한 indent — 그대로 prefix 부착해서 안전 fallback
+      lines.push(`${outerIndent}${BOX_VERTICAL} ${line}`);
+    }
+  }
+  lines.push(`${outerIndent}${BOX_BOTTOM_CORNER}`);
+  return lines;
+}
+
+// ── public formatters ──────────────────────────────────────────────────────
 
 /**
  * 전체 status 출력 라인 배열.
  *
- * `snapshot.providerFilter`가 지정되어 있으면 매칭되지 않는 provider 섹션은
- * 출력하지 않는다 (해당 provider snapshot 자체가 없으므로 안전하게 skip).
- * 헤더의 "Codex 사용 / Claude 사용" 라인은 config 기반이라 그대로 노출한다.
+ * `snapshot.providerFilter` 가 지정되어 있으면 매칭되지 않는 provider 섹션은
+ * 출력하지 않는다. ctx.useColor 는 호출자(runStatusCommand)에서 결정 후 주입.
+ *
+ * @param {object} snapshot
+ * @param {{ useColor?: boolean, now?: Date }} [ctx]
+ * @returns {string[]}
  */
-export function formatStatusOutput(command, snapshot) {
-  const lines = [
-    `명령: ${command}`,
-    '로컬 에이전트 상태 요약',
-    '-----------------------',
-    `설정 파일: ${snapshot.configPath}`,
-    `Codex 사용: ${snapshot.providers.codex.enabled ? 'enabled' : 'disabled'}`,
-    `Claude 사용: ${snapshot.providers.claude.enabled ? 'enabled' : 'disabled'}`,
-    `서버 sync: ${snapshot.sync.enabled ? 'enabled' : 'disabled'}`,
+export function formatStatusOutput(snapshot, ctx = {}) {
+  const lines = [providerHeader('Agent Status Summary'), ''];
+
+  const body = [
+    `  Config: ${snapshot.configPath}`,
+    `  Codex: ${snapshot.providers.codex.enabled ? 'enabled' : 'disabled'}`,
+    `  Claude: ${snapshot.providers.claude.enabled ? 'enabled' : 'disabled'}`,
+    `  Server sync: ${snapshot.sync.enabled ? 'enabled' : 'disabled'}`,
   ];
   if (snapshot.accountFilter) {
-    lines.push(`계정 필터: ${snapshot.accountFilter}`);
+    body.push(`  Account filter: ${snapshot.accountFilter}`);
   }
   if (snapshot.providerFilter) {
-    lines.push(`provider 필터: ${snapshot.providerFilter}`);
+    body.push(`  Provider filter: ${snapshot.providerFilter}`);
   }
+  // heavy-rule header 와 box (label 없음 — section title 이 이미 위에 있음).
+  lines.push(...wrapInBox('', body));
+
   if (snapshot.codex) {
-    lines.push('', ...formatCodexSection(snapshot.codex));
+    lines.push('', ...formatCodexSection(snapshot.codex, ctx));
   }
   if (snapshot.claude) {
-    lines.push('', ...formatClaudeSection(snapshot.claude));
+    lines.push('', ...formatClaudeSection(snapshot.claude, ctx));
   }
   return lines;
 }
 
 /** Codex usage section. */
-export function formatCodexSection(codex) {
-  const lines = ['Codex usage', '-----------'];
+export function formatCodexSection(codex, ctx = {}) {
+  const lines = [providerHeader('Codex usage'), ''];
 
   if (!codex.enabled) {
-    lines.push('비활성화됨');
+    lines.push('Disabled');
     return lines;
   }
 
-  lines.push(`인증 소스: ${codex.authSource ?? 'unknown'}`);
   if (codex.credentialsPath) {
-    lines.push(`Codex CLI credential 경로: ${codex.credentialsPath}`);
+    lines.push(`Codex CLI credential path: ${codex.credentialsPath}`);
+    lines.push('');
   }
 
   if (codex.snapshots.length === 0) {
     if (codex.filteredOut) {
-      lines.push(`계정 필터 "${codex.accountFilter}"에 해당하는 Codex 계정을 찾지 못했습니다.`);
+      lines.push(`No Codex account matches account filter "${codex.accountFilter}".`);
     } else {
-      lines.push('발견된 Codex OAuth 프로필이 없습니다.');
+      lines.push('No Codex OAuth profile found.');
     }
     return lines;
   }
 
-  for (const snapshot of codex.snapshots) {
-    const label = snapshot.account.email
-      ? `${snapshot.account.profileId} (${snapshot.account.email})`
-      : snapshot.account.profileId;
-    lines.push(`- ${label}`);
-    lines.push(
-      `  상태: ${
-        snapshot.status.ok
-          ? `OK (${snapshot.status.httpStatus})`
-          : `실패 (${snapshot.status.httpStatus ?? 'network/error'})`
-      }`,
-    );
-    lines.push(
-      `  source=${snapshot.source}, authType=${snapshot.authType}, confidence=${snapshot.confidence}`,
-    );
-    if (snapshot.account.plan) lines.push(`  플랜: ${snapshot.account.plan}`);
+  const useBox = codex.snapshots.length > 1;
+  for (let i = 0; i < codex.snapshots.length; i++) {
+    const snapshot = codex.snapshots[i];
+    if (i > 0) lines.push(''); // 박스 사이 1 줄 gap
+
+    const label = accountLabel('openai-codex', snapshot.account);
+    const body = [];
+    body.push(`  Status: ${snapshot.status.ok ? `OK (${snapshot.status.httpStatus})` : 'FAILED'}`);
+    if (snapshot.account.plan) body.push(`  Plan: ${snapshot.account.plan}`);
     for (const window of snapshot.usageWindows) {
-      lines.push(`  ${window.kind}: ${formatWindow(window)}`);
+      body.push('');
+      for (const blockLine of formatWindowBlock(window, ctx)) {
+        body.push(`  ${blockLine}`);
+      }
     }
-    if (snapshot.status.message) lines.push(`  에러: ${snapshot.status.message}`);
+    if (snapshot.status.message) body.push(`  Error: ${trimErrorMessage(snapshot.status.message)}`);
+
+    if (useBox) {
+      lines.push(...wrapInBox(label, body));
+    } else {
+      lines.push(`- ${label}`);
+      lines.push(...body);
+    }
   }
   return lines;
 }
 
 /** Claude usage section. */
-export function formatClaudeSection(claude) {
-  const lines = ['Claude usage', '------------'];
-  lines.push(`인증 소스: ${claude.authSource}`);
-  lines.push(`credential 감지: ${claude.detected}`);
-  if (claude.selectedAccount && !claude.accountFilter) {
-    lines.push(`기본 계정: ${formatAccountDisplay(claude.selectedAccount)}`);
-  }
+export function formatClaudeSection(claude, ctx = {}) {
+  const lines = [providerHeader('Claude usage'), ''];
 
   const usages = Array.isArray(claude.networkUsages)
     ? claude.networkUsages
@@ -102,6 +223,8 @@ export function formatClaudeSection(claude) {
     ...formatClaudeNetworkUsages(usages, {
       filteredOut: claude.filteredOut,
       accountFilter: claude.accountFilter,
+      useColor: ctx.useColor,
+      now: ctx.now,
     }),
   );
   return lines;
@@ -109,74 +232,95 @@ export function formatClaudeSection(claude) {
 
 /** Claude live network usage 블록(들). */
 export function formatClaudeNetworkUsages(usages, context = {}) {
-  const lines = ['', '[live] api.anthropic.com/api/oauth/usage'];
+  const lines = [];
   if (!usages || usages.length === 0) {
     if (context.filteredOut) {
-      lines.push(
-        `  계정 필터 "${context.accountFilter}"에 해당하는 Claude 계정을 찾지 못했습니다.`,
-      );
+      lines.push(`No Claude account matches account filter "${context.accountFilter}".`);
     } else {
-      lines.push('  호출 안 함 (Claude 비활성 또는 토큰 없음)');
+      lines.push('Skipped (Claude disabled or no token)');
     }
     return lines;
   }
 
-  for (const { accountKey, snapshot, account } of usages) {
-    if (usages.length > 1)
-      lines.push(`  - 계정: ${formatAccountDisplay(account ?? { accountKey })}`);
-    lines.push(...formatClaudeNetworkUsageBody(snapshot, usages.length > 1));
-  }
-  return lines;
-}
-
-/** 단일 Claude network usage snapshot 출력. */
-export function formatClaudeNetworkUsageBody(networkUsage, indented = false) {
-  const prefix = indented ? '    ' : '  ';
-  const lines = [];
-  if (!networkUsage) {
-    lines.push(`${prefix}호출 안 함`);
-    return lines;
-  }
-
-  if (networkUsage.status?.ok) {
-    lines.push(`${prefix}상태: OK (${networkUsage.status.httpStatus})`);
-    if (networkUsage.usageWindows.length === 0) {
-      lines.push(`${prefix}usageWindows 없음 (응답에 기대한 필드가 없었음)`);
+  const useBox = usages.length > 1;
+  for (let i = 0; i < usages.length; i++) {
+    const { accountKey, snapshot, account } = usages[i];
+    if (useBox) {
+      if (i > 0) lines.push(''); // 박스 사이 1 줄 gap
+      const header = accountLabel('anthropic-claude', account ?? { accountKey });
+      const body = formatClaudeNetworkUsageBody(snapshot, true, context);
+      // body 는 '  ' (2 spaces) indent — wrapInBox 가 prefix '  ' 를
+      // `'│ '` (column 0) 로 변환.
+      lines.push(...wrapInBox(header, body, '', '  '));
+    } else {
+      lines.push(...formatClaudeNetworkUsageBody(snapshot, false, context));
     }
-    for (const window of networkUsage.usageWindows) {
-      lines.push(`${prefix}${window.kind}: ${formatWindow(window)}`);
-    }
-    return lines;
   }
-
-  const http = networkUsage.status?.httpStatus ?? 'network/error';
-  const bucket = networkUsage.status?.bucket ?? 'unknown';
-  lines.push(`${prefix}상태: 실패 (${http}, bucket=${bucket})`);
-  if (networkUsage.status?.message) lines.push(`${prefix}메시지: ${networkUsage.status.message}`);
   return lines;
 }
 
 /**
- * @deprecated 신규 코드는 formatClaudeNetworkUsages(배열)를 사용.
+ * 단일 Claude network usage snapshot 출력.
+ *
+ * `indented=true` 일 때 prefix `'  '` — wrapInBox 가 box vertical `│ ` 로
+ * 치환할 leading indent. `indented=false` 일 때 prefix `''` — 단일 계정
+ * 케이스로 top-level 출력.
  */
-export function formatClaudeNetworkUsage(networkUsage) {
-  const header = ['', '[live] api.anthropic.com/api/oauth/usage'];
-  return [...header, ...formatClaudeNetworkUsageBody(networkUsage, false)];
+export function formatClaudeNetworkUsageBody(networkUsage, indented = false, ctx = {}) {
+  const prefix = indented ? '  ' : '';
+  const lines = [];
+  if (!networkUsage) {
+    lines.push(`${prefix}Skipped`);
+    return lines;
+  }
+
+  if (networkUsage.status?.ok) {
+    lines.push(`${prefix}Status: OK (${networkUsage.status.httpStatus})`);
+    if (networkUsage.usageWindows.length === 0) {
+      lines.push(`${prefix}No usageWindows (expected fields missing in response)`);
+    }
+    for (const window of networkUsage.usageWindows) {
+      lines.push(`${prefix}`);
+      for (const blockLine of formatWindowBlock(window, ctx)) {
+        lines.push(`${prefix}${blockLine}`);
+      }
+    }
+    return lines;
+  }
+
+  lines.push(`${prefix}Status: FAILED`);
+  if (networkUsage.status?.message) {
+    lines.push(`${prefix}Message: ${trimErrorMessage(networkUsage.status.message)}`);
+  }
+  return lines;
 }
 
-function formatAccountDisplay(account) {
-  if (!account) return '(unknown)';
-  const accountKey = account.accountKey ?? '(unknown)';
-  const displayName = account.displayName ?? null;
-  const email = account.email ?? null;
-  if (displayName && email) return `${accountKey} (${displayName} / ${email})`;
-  if (displayName) return `${accountKey} (${displayName})`;
-  if (email) return `${accountKey} (${email})`;
-  return accountKey;
-}
-
-export function formatWindow(window) {
-  const reset = window.resetAt ? `reset_at=${window.resetAt}` : 'reset_at=unknown';
-  const used = window.usedPercent ?? 'unknown';
-  return `used_percent=${used}, ${reset}`;
+/**
+ * window 한 개를 3 줄 block 으로 — claude-code `/usage` 스타일.
+ *
+ * 예시:
+ *   Current session (5h)
+ *   ██▌░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  5% used
+ *   Resets 2pm (Asia/Seoul)
+ *
+ * issue #116: `used_percent=N, reset_at=...` 단일 라인 형식의 기존 formatWindow
+ * 를 완전 대체. 평문은 stable contract 아님 (docs/cli-json-output.md).
+ *
+ * @param {object} window
+ * @param {{ useColor?: boolean, now?: Date }} [ctx]
+ * @returns {string[]} 3 줄 — label / bar+pct / reset
+ */
+export function formatWindowBlock(window, ctx = {}) {
+  const label = formatWindowLabel(window);
+  const bar = formatProgressBar(window.usedPercent, {
+    width: BAR_WIDTH,
+    useColor: ctx.useColor ?? false,
+  });
+  const pctText =
+    window.usedPercent == null || Number.isNaN(window.usedPercent)
+      ? ' --'
+      : `${Math.round(window.usedPercent)}`.padStart(3);
+  const barLine = `${bar} ${pctText}% used`;
+  const resetLine = `Resets ${formatResetTime(window.resetAt, ctx.now ?? new Date())}`;
+  return [label, barLine, resetLine];
 }

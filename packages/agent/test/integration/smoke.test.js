@@ -77,7 +77,7 @@ describe('bin/token-weather — smoke', () => {
       timeoutMs: 15_000,
     });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /계정 필터: definitely-not-an-account/);
+    assert.match(result.stdout, /Account filter: definitely-not-an-account/);
   });
 
   it('status --json emits a single parseable JSON line on stdout', () => {
@@ -90,8 +90,8 @@ describe('bin/token-weather — smoke', () => {
     const parsed = JSON.parse(lines[0]);
     assert.equal(parsed.command, 'status');
     assert.ok(Array.isArray(parsed.providers));
-    // 텍스트 헤더("로컬 에이전트 상태 요약" 등)는 stdout에 절대 섞이지 않아야 함.
-    assert.equal(result.stdout.includes('로컬 에이전트 상태 요약'), false);
+    // 텍스트 헤더("━━━━ Agent Status Summary ━━━━" 등) 는 stdout 에 절대 섞이지 않아야 함.
+    assert.equal(result.stdout.includes('Agent Status Summary'), false);
   });
 
   it('status --json --provider codex restricts providers array to codex only', () => {

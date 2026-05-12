@@ -2,6 +2,7 @@ import { getStatusSnapshot } from '../services/status-service.js';
 import { PROVIDER_IDS } from '../services/provider-registry.js';
 import { parseCliOptions } from './parse-options.js';
 import { formatStatusJson } from './status-json.js';
+import { shouldUseColor } from './status-bar-helper.js';
 
 // 포맷터는 status-formatters.js에서 관리. 기존 import 경로 호환을 위해 re-export.
 export {
@@ -10,8 +11,7 @@ export {
   formatClaudeSection,
   formatClaudeNetworkUsages,
   formatClaudeNetworkUsageBody,
-  formatClaudeNetworkUsage,
-  formatWindow,
+  formatWindowBlock,
 } from './status-formatters.js';
 
 import { formatStatusOutput } from './status-formatters.js';
@@ -19,8 +19,8 @@ import { formatStatusOutput } from './status-formatters.js';
 export const STATUS_COMMANDS = ['status', 'usage'];
 
 /**
- * `status` / `usage` 진입점.
- * 옵션 파싱 → snapshot 조회 → formatter → 출력.
+ * `status` / `usage` entry point.
+ * Parse options → fetch snapshot → format → print.
  */
 export async function runStatusCommand(command, args = []) {
   const options = parseStatusOptions(args);
@@ -28,13 +28,10 @@ export async function runStatusCommand(command, args = []) {
     for (const line of formatStatusHelp(command)) console.log(line);
     return;
   }
-  // --account가 case-insensitive(`resolveAccountByIdentifier`)인 것과 일관되게,
-  // --provider 값도 case-insensitive로 정규화한 뒤 PROVIDER_IDS와 비교한다.
+  // `--account` 와 일관되게 `--provider` 도 case-insensitive 정규화.
   const providerFilter = normalizeProviderFilter(options.provider);
   if (options.provider && providerFilter === null) {
-    console.error(
-      `알 수 없는 provider: ${options.provider} (사용 가능: ${PROVIDER_IDS.join(', ')})`,
-    );
+    console.error(`Unknown provider: ${options.provider} (available: ${PROVIDER_IDS.join(', ')})`);
     process.exitCode = 1;
     return;
   }
@@ -44,21 +41,19 @@ export async function runStatusCommand(command, args = []) {
   });
 
   if (options.json) {
-    // 자동화 친화: stdout에는 JSON 한 줄만, 안내·경고는 stderr로.
     console.log(formatStatusJson(snapshot, { command }));
     return;
   }
 
-  for (const line of formatStatusOutput(command, snapshot)) {
+  const useColor = shouldUseColor({ stream: process.stdout, env: process.env });
+  for (const line of formatStatusOutput(snapshot, { useColor })) {
     console.log(line);
   }
 }
 
 /**
- * --provider 입력값을 trim+lowercase한 뒤 PROVIDER_IDS와 매치되면 그 id를,
- * 입력이 없거나 매치되지 않으면 null을 반환한다. (case-insensitive)
- *
- * Pure helper — runner 외부에서 검증 단위 테스트로 호출 가능.
+ * `--provider` 입력을 trim+lowercase 한 뒤 PROVIDER_IDS 와 매치되면 그 id 를,
+ * 입력이 없거나 매치되지 않으면 null 을 반환. Pure helper.
  */
 export function normalizeProviderFilter(raw) {
   if (raw === null || raw === undefined) return null;
@@ -67,9 +62,7 @@ export function normalizeProviderFilter(raw) {
   return PROVIDER_IDS.includes(normalized) ? normalized : null;
 }
 
-/**
- * `status` / `usage` 옵션 파서.
- */
+/** `status` / `usage` 옵션 파서. */
 export function parseStatusOptions(args) {
   return parseCliOptions(args, {
     defaults: { account: null, provider: null, json: false },
@@ -82,21 +75,19 @@ export function parseStatusOptions(args) {
   });
 }
 
-/**
- * `status` / `usage` 커맨드의 --help 출력 줄을 반환한다. Pure function.
- */
+/** `status` / `usage` 의 --help 출력 라인. Pure function. */
 export function formatStatusHelp(command = 'status') {
   const providerList = PROVIDER_IDS.join(', ');
   return [
     `token-weather ${command} [options]`,
     '',
-    'provider별 credential 상태와 live usage window를 출력합니다.',
-    '여러 계정이 저장되어 있으면 기본적으로 모두 병렬 조회합니다.',
+    'Show provider credential status and live usage windows.',
+    'Multiple accounts are queried in parallel by default.',
     '',
     'Options:',
-    '  --account <id>     특정 계정만 조회 (email / accountKey / label, case-insensitive)',
-    `  --provider <id>    특정 provider만 조회 (사용 가능: ${providerList}, case-insensitive)`,
-    '  --json             정규화된 JSON 한 줄을 stdout에 출력 (자동화/대시보드용)',
-    '  -h, --help         이 도움말 출력',
+    '  --account <id>     Only query the matching account (email / accountKey / label, case-insensitive)',
+    `  --provider <id>    Only query the matching provider (available: ${providerList}, case-insensitive)`,
+    '  --json             Print a single normalized JSON line to stdout (for automation / dashboards)',
+    '  -h, --help         Show this help message',
   ];
 }
