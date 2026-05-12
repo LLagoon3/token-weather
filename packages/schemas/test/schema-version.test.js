@@ -23,12 +23,15 @@ import { SCHEMA_VERSION } from '../src/index.js';
  *  - 0.3.0 (issue #113) — `status --json` 의 `authSource` enum value
  *    'openclaw-import' 제거 + 'codex-cli-import' 추가 +
  *    `codex.authProfilesPath` 필드를 `codex.credentialsPath` 로 변경
+ *  - 0.4.0 (issue #119) — `status --json` claude 영역의 backward-compat
+ *    alias 3 종 제거: `networkUsage` (단일, → `networkUsages[]` 만) /
+ *    `importedAccount` (→ `selectedAccount` 만) / `parsed` (→ `found` 만)
  */
 describe('SCHEMA_VERSION lock', () => {
   it('현재 값이 정책과 일치한다', () => {
     assert.equal(
       SCHEMA_VERSION,
-      '0.3.0',
+      '0.4.0',
       'SCHEMA_VERSION 변경 시 docs/release-policy.md §3 / docs/cli-json-output.md / 본 테스트를 같이 갱신',
     );
   });
