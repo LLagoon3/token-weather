@@ -13,12 +13,17 @@ import { formatPreChunksForTelegram } from '../formatters.js';
  * @param {object} deps
  * @param {(options?: object) => Promise<object>} deps.getStatusSnapshot
  * @param {(snapshot: object, meta?: object) => string} deps.formatStatusJson
+ * @param {{ command?: 'status' | 'usage' }} [options]
+ *   JSON contract 의 top-level `command` 필드에 박힐 값. CLI 의 `runStatusCommand`
+ *   가 호출된 명령 이름 (`status` 또는 `usage`) 을 그대로 통과시키는 정합을
+ *   유지하기 위해 dispatcher 가 명시적으로 주입 (PR #134 review).
  * @returns {(ctx: object, args: string[]) => Promise<void>}
  */
-export function createStatusJsonHandler(deps) {
+export function createStatusJsonHandler(deps, options = {}) {
+  const command = options.command ?? 'status';
   return async function statusJsonHandler(ctx, _args) {
     const snapshot = await deps.getStatusSnapshot({});
-    const json = deps.formatStatusJson(snapshot, { command: 'status' });
+    const json = deps.formatStatusJson(snapshot, { command });
     const chunks = formatPreChunksForTelegram(json);
     for (const chunk of chunks) {
       await ctx.reply(chunk, { parse_mode: 'HTML' });

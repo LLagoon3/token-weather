@@ -76,6 +76,46 @@ describe('buildDispatcher (Phase 3)', () => {
     assert.equal(c.outputCalls, 0);
   });
 
+  it('/status --json 의 meta.command 는 "status" (PR #134 review)', async () => {
+    let captured = null;
+    const deps = {
+      getStatusSnapshot: async () => ({}),
+      formatStatusOutput: () => [],
+      formatStatusJson: (_, meta) => {
+        captured = meta;
+        return '{}';
+      },
+      collectDoctorReport: async () => ({}),
+      formatDoctorReportLines: () => [],
+      collectAuthListData: async () => ({ providers: [], claudeImport: null }),
+      formatAuthListLines: () => [],
+    };
+    const dispatcher = buildDispatcher(deps);
+    const ctx = makeCtx();
+    await dispatcher.status(ctx, ['--json']);
+    assert.equal(captured.command, 'status');
+  });
+
+  it('/usage --json 의 meta.command 는 "usage" — CLI 정합 (PR #134 review)', async () => {
+    let captured = null;
+    const deps = {
+      getStatusSnapshot: async () => ({}),
+      formatStatusOutput: () => [],
+      formatStatusJson: (_, meta) => {
+        captured = meta;
+        return '{}';
+      },
+      collectDoctorReport: async () => ({}),
+      formatDoctorReportLines: () => [],
+      collectAuthListData: async () => ({ providers: [], claudeImport: null }),
+      formatAuthListLines: () => [],
+    };
+    const dispatcher = buildDispatcher(deps);
+    const ctx = makeCtx();
+    await dispatcher.usage(ctx, ['--json']);
+    assert.equal(captured.command, 'usage');
+  });
+
   it('/usage (no --json) → status alias (formatStatusOutput 사용)', async () => {
     const { deps, counts } = makeDeps();
     const dispatcher = buildDispatcher(deps);

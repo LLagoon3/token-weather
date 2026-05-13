@@ -35,7 +35,8 @@ import { createAuthListHandler } from './handlers/auth-list-handler.js';
  */
 export function buildDispatcher(deps) {
   const statusHandler = createStatusHandler(deps);
-  const statusJsonHandler = createStatusJsonHandler(deps);
+  const statusJsonHandler = createStatusJsonHandler(deps, { command: 'status' });
+  const usageJsonHandler = createStatusJsonHandler(deps, { command: 'usage' });
   const usageHandler = createUsageHandler(deps);
   const doctorHandler = createDoctorHandler(deps);
   const authListHandler = createAuthListHandler(deps);
@@ -47,9 +48,12 @@ export function buildDispatcher(deps) {
       }
       return statusHandler(ctx, args);
     },
+    // /usage 와 /usage --json 모두 JSON top-level `command` 가 'usage' 가
+    // 되도록 별도 핸들러 인스턴스 사용 (CLI `runStatusCommand` 정합, PR #134
+    // review).
     usage: async (ctx, args) => {
       if (Array.isArray(args) && args.includes('--json')) {
-        return statusJsonHandler(ctx, args);
+        return usageJsonHandler(ctx, args);
       }
       return usageHandler(ctx, args);
     },

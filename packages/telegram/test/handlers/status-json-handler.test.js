@@ -32,6 +32,21 @@ describe('createStatusJsonHandler (Phase 3)', () => {
     assert.deepEqual(ctx.replies[0].options, { parse_mode: 'HTML' });
   });
 
+  it('options.command 주입 시 meta.command 가 통과됨 (PR #134 review)', async () => {
+    let captured = null;
+    const deps = {
+      getStatusSnapshot: async () => ({}),
+      formatStatusJson: (_, meta) => {
+        captured = meta;
+        return '{}';
+      },
+    };
+    const handler = createStatusJsonHandler(deps, { command: 'usage' });
+    const ctx = makeCtx();
+    await handler(ctx, []);
+    assert.equal(captured.command, 'usage');
+  });
+
   it('JSON 의 HTML 특수문자 (< > &) 가 escape 됨', async () => {
     const deps = {
       getStatusSnapshot: async () => ({}),
