@@ -32,13 +32,14 @@ export const DEFAULT_AGENT_CONFIG = {
      * `token-weather telegram setup` 명령이 자동 갱신한다 (Phase 4).
      *
      *   - botToken: BotFather 가 발급한 토큰. SENSITIVE_KEYS 로 redact 됨.
-     *   - allowedChatIds: 명령 수신을 허용할 Telegram user_id 배열 (단일
-     *     사용자여도 array 형태 유지 — 추후 가족 / 멀티 디바이스 확장 여지).
+     *   - allowedUserIds: 명령 수신을 허용할 Telegram user_id 배열 (ctx.from.id
+     *     기준 — group chat / supergroup / DM 어디서든 동일 사용자가 명령 가능).
+     *     단일 사용자여도 array 형태 유지 — 추후 가족 / 멀티 디바이스 확장 여지.
      */
     telegram: {
       enabled: false,
       botToken: '',
-      allowedChatIds: [],
+      allowedUserIds: [],
     },
   },
   /**

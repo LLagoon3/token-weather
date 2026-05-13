@@ -26,7 +26,7 @@ import { formatErrorForTelegram } from './formatters.js';
 /**
  * @typedef {object} BotServerOptions
  * @property {string} botToken - BotFather 가 발급한 토큰.
- * @property {Array<number|string>} allowedChatIds - 명령 수신을 허용할 user_id.
+ * @property {Array<number|string>} allowedUserIds - 명령 수신을 허용할 user_id.
  * @property {Record<string, (ctx: object, args: string[]) => Promise<void>>} [dispatcher]
  *   명령 이름 → 핸들러 mapping. Phase 3 (#128) 에서 채워짐. 비어 있으면 모든 명령에
  *   "구현 예정" placeholder 응답.
@@ -48,7 +48,7 @@ import { formatErrorForTelegram } from './formatters.js';
  * @returns {BotServer}
  */
 export function createBotServer(options) {
-  const { botToken, allowedChatIds, dispatcher, logger } = options ?? {};
+  const { botToken, allowedUserIds, dispatcher, logger } = options ?? {};
   if (!botToken || typeof botToken !== 'string') {
     throw new Error('createBotServer: botToken (string) is required');
   }
@@ -57,7 +57,7 @@ export function createBotServer(options) {
 
   const bot = new Bot(botToken);
 
-  bot.use(authAllowlistMiddleware(allowedChatIds, { logger: { log } }));
+  bot.use(authAllowlistMiddleware(allowedUserIds, { logger: { log } }));
 
   bot.on('message:text', async (ctx) => {
     const parsed = parseCommand(ctx.message.text);

@@ -14,7 +14,7 @@ describe('createBotServer (Phase 2)', () => {
   it('반환 객체에 start / stop / bot 노출 (grammy Bot 인스턴스 캐리어)', () => {
     const server = createBotServer({
       botToken: '123:fake',
-      allowedChatIds: [42],
+      allowedUserIds: [42],
     });
     assert.equal(typeof server.start, 'function');
     assert.equal(typeof server.stop, 'function');
@@ -24,7 +24,7 @@ describe('createBotServer (Phase 2)', () => {
   it('stop() 을 start 전에 호출하면 noop (no throw)', async () => {
     const server = createBotServer({
       botToken: '123:fake',
-      allowedChatIds: [42],
+      allowedUserIds: [42],
     });
     await server.stop();
   });

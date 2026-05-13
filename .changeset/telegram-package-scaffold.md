@@ -31,11 +31,13 @@ release 부터. package.json description 에 "Phase 1 scaffold" 라벨링.
 
 **기존 패키지 변경** (`@token-weather/cli`):
 
-- `config.channels.telegram = { enabled: false, botToken: '', allowedChatIds: [] }`
+- `config.channels.telegram = { enabled: false, botToken: '', allowedUserIds: [] }`
   신규. `providers` (usage 조회 대상 — codex / claude) 와 의도적으로 분리 —
   PROVIDER_REGISTRY / `--provider` 필터 / `status --json providers[]` / `authSource`
   / `usageSnapshots` 가 모두 usage provider 의미에 묶여 있어, Telegram 같은
-  transport / channel 은 별도 네임스페이스 (PR #131 review 반영).
+  transport / channel 은 별도 네임스페이스 (PR #131 review 반영). `allowedUserIds`
+  는 `ctx.from.id` 기준 — DM / group 어디서든 동일 사용자 명령 가능 (PR #133
+  review 반영).
 - `SENSITIVE_KEYS` 확장: `botToken` / `bot_token` / `telegramBotToken` —
   Phase 2 이후 raw 영역에 흘러갈 가능성 대비 redaction 가드 선 등록.
 - redaction 회귀 테스트 2건 신설 (`channels.telegram` 경로 fixture).

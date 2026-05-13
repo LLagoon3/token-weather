@@ -17,7 +17,7 @@ import { createBotServer } from './bot-server.js';
 
 export { createBotServer } from './bot-server.js';
 export { parseCommand, listAvailableCommands } from './command-router.js';
-export { authAllowlistMiddleware, maskChatId } from './auth-allowlist.js';
+export { authAllowlistMiddleware, maskUserId } from './auth-allowlist.js';
 export { stripAnsi, wrapPre, splitForTelegram, formatErrorForTelegram } from './formatters.js';
 
 let _activeServer = null;
