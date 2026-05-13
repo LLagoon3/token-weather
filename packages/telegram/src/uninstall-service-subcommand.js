@@ -55,8 +55,7 @@ export async function runUninstallServiceSubcommand(args, _deps, options = {}) {
     platform: options.platform,
   });
 
-  if (result.status === 'installed') {
-    // uninstaller 의 'installed' 는 "정상 완료" 의미 (시퀀스 성공).
+  if (result.status === 'succeeded') {
     log(`✓ ${result.message}`);
     for (const step of result.steps ?? []) log(`  · ${step}`);
   } else if (result.status === 'skipped') {

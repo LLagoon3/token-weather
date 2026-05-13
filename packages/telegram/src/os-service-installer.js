@@ -56,7 +56,7 @@ function hasUnsafePathChars(p) {
 
 /**
  * @typedef {object} InstallResult
- * @property {'installed' | 'skipped' | 'failed'} status
+ * @property {'succeeded' | 'skipped' | 'failed'} status
  * @property {string} message
  * @property {string[]} [steps]
  * @property {string} [error]
@@ -188,7 +188,7 @@ export async function installSystemdUnit(input, options = {}) {
       }
     }
     return {
-      status: 'installed',
+      status: 'succeeded',
       message: `systemd --user service 등록 완료. Node 버전 매니저 변경 시 \`telegram setup\` 재실행 권장.`,
       steps,
     };
@@ -261,7 +261,7 @@ export async function uninstallSystemdUnit(options = {}) {
         log(`⚠ loginctl disable-linger 실패 (계속 진행): ${err?.message ?? err}`);
       }
     }
-    return { status: 'installed', message: 'systemd service 제거 완료', steps };
+    return { status: 'succeeded', message: 'systemd service 제거 완료', steps };
   } catch (err) {
     return {
       status: 'failed',
@@ -338,7 +338,7 @@ export async function installLaunchAgent(input, options = {}) {
     execImpl('launchctl', ['bootstrap', `gui/${uid}`, plistPath]);
     steps.push(`launchctl bootstrap gui/${uid} ${plistPath}`);
     return {
-      status: 'installed',
+      status: 'succeeded',
       message: 'LaunchAgent 등록 완료. Node 버전 매니저 변경 시 `telegram setup` 재실행 권장.',
       steps,
     };
@@ -399,7 +399,7 @@ export async function uninstallLaunchAgent(options = {}) {
     steps.push(`launchctl bootout gui/${uid} ${plistPath}`);
     fsImpl.unlinkSync(plistPath);
     steps.push(`unlink ${plistPath}`);
-    return { status: 'installed', message: 'LaunchAgent 제거 완료', steps };
+    return { status: 'succeeded', message: 'LaunchAgent 제거 완료', steps };
   } catch (err) {
     return {
       status: 'failed',
@@ -473,7 +473,7 @@ export async function installTaskScheduler(input, options = {}) {
     ]);
     steps.push('schtasks /Create /TN TokenWeatherBot ...');
     return {
-      status: 'installed',
+      status: 'succeeded',
       message:
         'Windows Task Scheduler 등록 완료. Node 버전 매니저 변경 시 `telegram setup` 재실행 권장.',
       steps,
@@ -502,7 +502,7 @@ export async function uninstallTaskScheduler(options = {}) {
   try {
     execImpl('schtasks', ['/Delete', '/TN', 'TokenWeatherBot', '/F']);
     steps.push('schtasks /Delete /TN TokenWeatherBot /F');
-    return { status: 'installed', message: 'Task Scheduler 항목 제거 완료', steps };
+    return { status: 'succeeded', message: 'Task Scheduler 항목 제거 완료', steps };
   } catch (err) {
     return {
       status: 'failed',

@@ -261,7 +261,7 @@ describe('runSetupSubcommand (Phase 4)', () => {
         installer: async () => {
           installerCalled += 1;
           return {
-            status: 'installed',
+            status: 'succeeded',
             message: 'systemd service 등록 완료',
             steps: ['mkdir', 'write', 'enable'],
           };
@@ -322,7 +322,7 @@ describe('runSetupSubcommand (Phase 4)', () => {
             false,
           );
           return overwrite
-            ? { status: 'installed', message: 'overwrote' }
+            ? { status: 'succeeded', message: 'overwrote' }
             : { status: 'skipped', message: '사용자가 덮어쓰기 거부' };
         },
         log,
@@ -372,7 +372,7 @@ describe('runSetupSubcommand (Phase 4)', () => {
         fsImpl: mockFs.fs,
         installer: async () => {
           installerCalled += 1;
-          return { status: 'installed', message: 'should not be called' };
+          return { status: 'succeeded', message: 'should not be called' };
         },
         log,
         errorLog,
