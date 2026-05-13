@@ -42,8 +42,11 @@ export async function startBot(config) {
       'startBot: Telegram bot is already running in this process (single-instance lock).',
     );
   }
-  _activeServer = createBotServer(config);
-  await _activeServer.start();
+  const server = createBotServer(config);
+  // Boot 실패 시 _activeServer 는 설정되지 않음 — lock 미점유 상태로 재시도
+  // 가능 (PR #133 review 반영 — token 오류 후 lock 잔존 회피).
+  await server.start();
+  _activeServer = server;
   return _activeServer;
 }
 

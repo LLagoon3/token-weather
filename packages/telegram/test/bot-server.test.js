@@ -4,6 +4,31 @@ import assert from 'node:assert/strict';
 import { createBotServer } from '../src/bot-server.js';
 import { startBot, stopBot } from '../src/index.js';
 
+function makeMockBot({ initFails = false, initError } = {}) {
+  let initAttempts = 0;
+  let stopCalled = 0;
+  return {
+    api: {},
+    use() {},
+    on() {},
+    catch() {},
+    init: async () => {
+      initAttempts += 1;
+      if (initFails) throw initError ?? new Error('mock init failure');
+    },
+    start: () => Promise.resolve(),
+    stop: async () => {
+      stopCalled += 1;
+    },
+    get _initAttempts() {
+      return initAttempts;
+    },
+    get _stopCalled() {
+      return stopCalled;
+    },
+  };
+}
+
 describe('createBotServer (Phase 2)', () => {
   it('botToken 없으면 throw', () => {
     assert.throws(() => createBotServer({}), /botToken/);
@@ -27,6 +52,45 @@ describe('createBotServer (Phase 2)', () => {
       allowedUserIds: [42],
     });
     await server.stop();
+  });
+});
+
+describe('createBotServer boot validation (PR #133 review)', () => {
+  it('init 실패 시 throw + lock 해제 (재시도 가능)', async () => {
+    const mock = makeMockBot({ initFails: true, initError: new Error('Unauthorized') });
+    const server = createBotServer({
+      botToken: '123:fake',
+      allowedUserIds: [42],
+      botFactory: () => mock,
+    });
+    await assert.rejects(() => server.start(), /Unauthorized/);
+    // lock 해제 단언 — 같은 server 인스턴스로 다시 start 가능 (init 또 시도).
+    await assert.rejects(() => server.start(), /Unauthorized/);
+    assert.equal(mock._initAttempts, 2);
+  });
+
+  it('init 성공 후 두 번째 start 는 already started throw', async () => {
+    const mock = makeMockBot();
+    const server = createBotServer({
+      botToken: '123:fake',
+      allowedUserIds: [42],
+      botFactory: () => mock,
+    });
+    await server.start();
+    await assert.rejects(() => server.start(), /already started/);
+    assert.equal(mock._initAttempts, 1);
+  });
+
+  it('start 성공 후 stop 호출 시 bot.stop 호출', async () => {
+    const mock = makeMockBot();
+    const server = createBotServer({
+      botToken: '123:fake',
+      allowedUserIds: [42],
+      botFactory: () => mock,
+    });
+    await server.start();
+    await server.stop();
+    assert.equal(mock._stopCalled, 1);
   });
 });
 

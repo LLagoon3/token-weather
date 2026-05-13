@@ -32,6 +32,8 @@ import { formatErrorForTelegram } from './formatters.js';
  *   "구현 예정" placeholder 응답.
  * @property {{ log?: (msg: string) => void, error?: (msg: string) => void }} [logger]
  *   stdout/stderr 로그를 가로채기 위한 hook. 테스트에서 주입.
+ * @property {(token: string) => object} [botFactory] - grammy `Bot` 생성을 가로채는
+ *   훅. 기본은 `new Bot(token)` — 테스트에서 mock 주입 시점.
  */
 
 /**
@@ -48,14 +50,14 @@ import { formatErrorForTelegram } from './formatters.js';
  * @returns {BotServer}
  */
 export function createBotServer(options) {
-  const { botToken, allowedUserIds, dispatcher, logger } = options ?? {};
+  const { botToken, allowedUserIds, dispatcher, logger, botFactory } = options ?? {};
   if (!botToken || typeof botToken !== 'string') {
     throw new Error('createBotServer: botToken (string) is required');
   }
   const log = logger?.log ?? ((msg) => console.log(msg));
   const errorLog = logger?.error ?? ((msg) => console.error(msg));
 
-  const bot = new Bot(botToken);
+  const bot = botFactory ? botFactory(botToken) : new Bot(botToken);
 
   bot.use(authAllowlistMiddleware(allowedUserIds, { logger: { log } }));
 
@@ -104,13 +106,22 @@ export function createBotServer(options) {
         throw new Error('createBotServer.start: already started');
       }
       started = true;
+      // Boot validation — grammy bot.init 이 getMe 호출로 token 유효성 검사.
+      // 실패하면 lock 해제 + throw (PR #133 review 반영 — startBot 의 active
+      // lock 잔존 방지). 정상 시 ctx.me.username 이 채워져 mention filter 동작.
+      try {
+        await bot.init();
+      } catch (err) {
+        started = false;
+        throw err;
+      }
       if (!shutdownHandlersRegistered) {
         registerShutdownHandlers(bot);
         shutdownHandlersRegistered = true;
       }
       // bot.start 는 polling 루프라 normal flow 에서 resolve 되지 않음 —
-      // fire-and-forget 으로 띄우고, 시작 단계의 에러 (token 오류 / 409 등) 는
-      // .catch 로 받는다.
+      // fire-and-forget. polling 단계 실패 (409 conflict 등) 는 .catch 로 받아
+      // daemon 종료 처리 (lock 은 그대로 — process exit 으로 정리됨).
       bot
         .start({
           drop_pending_updates: false,
