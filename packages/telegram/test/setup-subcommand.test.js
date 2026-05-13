@@ -317,7 +317,10 @@ describe('runSetupSubcommand (Phase 4)', () => {
         fsImpl: mockFs.fs,
         installer: async (_input, opts) => {
           // installer 가 confirmFn 을 받고 호출. mock 으로 그 호출을 시뮬.
-          const overwrite = await opts.confirmFn('기존 service 파일과 내용이 다릅니다. 덮어쓸까요?', false);
+          const overwrite = await opts.confirmFn(
+            '기존 service 파일과 내용이 다릅니다. 덮어쓸까요?',
+            false,
+          );
           return overwrite
             ? { status: 'installed', message: 'overwrote' }
             : { status: 'skipped', message: '사용자가 덮어쓰기 거부' };
@@ -328,7 +331,9 @@ describe('runSetupSubcommand (Phase 4)', () => {
     );
     await new Promise((r) => setImmediate(r));
     await mock.fire({
-      message: { text: `/pair ${logs.find((l) => l.includes('/pair'))?.match(/\/pair (\S+)/)?.[1]}` },
+      message: {
+        text: `/pair ${logs.find((l) => l.includes('/pair'))?.match(/\/pair (\S+)/)?.[1]}`,
+      },
       from: { id: 7 },
       reply: async () => {},
     });
