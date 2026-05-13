@@ -153,13 +153,19 @@ export async function runSetupSubcommand(args, deps, options = {}) {
   };
   fsImpl.mkdirSync(path.dirname(configPath), { recursive: true });
   fsImpl.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  let chmodApplied = true;
   try {
     fsImpl.chmodSync(configPath, 0o600);
   } catch (err) {
+    chmodApplied = false;
     errorLog(`⚠ chmod 600 적용 실패 (계속 진행): ${err?.message ?? err}`);
   }
   log('');
-  log(`✓ 설정 저장: ${configPath} (chmod 600)`);
+  log(
+    `✓ 설정 저장: ${configPath}${
+      chmodApplied ? ' (chmod 600)' : ' (chmod 미적용 — `telegram check` 로 권한 확인 필요)'
+    }`,
+  );
 
   // 6) OS service template print.
   const tmpl = pickServiceTemplate({

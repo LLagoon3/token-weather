@@ -14,7 +14,7 @@ function makeLogger() {
   };
 }
 
-function makeMockFs(initial = {}) {
+function makeMockFs(initial = {}, { chmodThrows = false } = {}) {
   const files = new Map();
   for (const [k, v] of Object.entries(initial)) files.set(k, v);
   let chmodCalls = [];
@@ -30,6 +30,7 @@ function makeMockFs(initial = {}) {
       },
       mkdirSync: () => {},
       chmodSync: (p, mode) => {
+        if (chmodThrows) throw new Error('EPERM: chmod not supported');
         chmodCalls.push({ path: p, mode });
       },
       statSync: (p) => {
@@ -173,6 +174,46 @@ describe('runSetupSubcommand (Phase 4)', () => {
     assert.match(out, /부팅 후 자동 시작/);
     assert.match(out, /token-weather telegram start/);
     assert.equal(process.exitCode, 0);
+  });
+
+  it('chmod 실패 시 안내 메시지 정합 (PR #135 review)', async () => {
+    process.exitCode = 0;
+    const { logs, errors, log, errorLog } = makeLogger();
+    const mockFs = makeMockFs({}, { chmodThrows: true });
+    const mock = makeMockBot();
+    const setupPromise = runSetupSubcommand(
+      [],
+      {
+        resolveAgentConfigPath: () => '/test/config.json',
+        createDefaultConfig: () => ({ version: 1, providers: {} }),
+      },
+      {
+        promptFn: async () => '123:fake',
+        fetchFn: async () => ({
+          status: 200,
+          json: async () => ({ ok: true, result: { username: 'B' } }),
+        }),
+        botFactory: () => mock.bot,
+        fsImpl: mockFs.fs,
+        log,
+        errorLog,
+      },
+    );
+    await new Promise((r) => setImmediate(r));
+    await mock.fire({
+      message: { text: `/pair ${logs.find((l) => l.includes('/pair'))?.match(/\/pair (\S+)/)?.[1]}` },
+      from: { id: 7 },
+      reply: async () => {},
+    });
+    await setupPromise;
+    // chmod 실패 warning + 저장 메시지가 `(chmod 미적용 — ...)` 표기.
+    assert.ok(errors.some((e) => e.includes('chmod 600 적용 실패')));
+    assert.ok(logs.some((l) => l.includes('chmod 미적용')));
+    assert.equal(
+      logs.some((l) => l.includes('(chmod 600)')),
+      false,
+      'chmod 실패 시 (chmod 600) 표기 금지',
+    );
   });
 
   it('기존 config 의 다른 키 보존 + channels.telegram 만 갱신', async () => {
