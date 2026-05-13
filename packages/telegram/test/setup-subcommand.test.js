@@ -117,6 +117,8 @@ describe('runSetupSubcommand (Phase 4)', () => {
     const { logs, log, errorLog } = makeLogger();
     const mockFs = makeMockFs();
     const mock = makeMockBot();
+    // installer mock — 실 systemctl / launchctl / schtasks 호출 차단 (issue #138).
+    const installerCalls = [];
     const setupPromise = runSetupSubcommand(
       [],
       {
@@ -135,6 +137,10 @@ describe('runSetupSubcommand (Phase 4)', () => {
         }),
         botFactory: () => mock.bot,
         fsImpl: mockFs.fs,
+        installer: async (input, opts) => {
+          installerCalls.push({ input, opts });
+          return { status: 'skipped', message: 'mock — 수동 안내 fallback' };
+        },
         log,
         errorLog,
       },
@@ -199,6 +205,7 @@ describe('runSetupSubcommand (Phase 4)', () => {
         }),
         botFactory: () => mock.bot,
         fsImpl: mockFs.fs,
+        installer: async () => ({ status: 'skipped', message: 'mock' }),
         log,
         errorLog,
       },
@@ -222,6 +229,108 @@ describe('runSetupSubcommand (Phase 4)', () => {
     );
   });
 
+  it('자동 등록 동의 Y default — installer 호출 + installed 결과 출력 (issue #138)', async () => {
+    process.exitCode = 0;
+    const { logs, log, errorLog } = makeLogger();
+    const mockFs = makeMockFs();
+    const mock = makeMockBot();
+    let installerCalled = 0;
+    const setupPromise = runSetupSubcommand(
+      [],
+      {
+        resolveAgentConfigPath: () => '/test/config.json',
+        createDefaultConfig: () => ({ version: 1, providers: {} }),
+      },
+      {
+        // promptFn 은 첫 두 호출 (token / 페어링 안내는 prompt 없음) 후 consent
+        // 차례 — '' 반환 시 parseYesNo default true 로 Y.
+        promptFn: (() => {
+          let n = 0;
+          return async () => {
+            n += 1;
+            if (n === 1) return '123:fake'; // token
+            return ''; // consent — default Y
+          };
+        })(),
+        fetchFn: async () => ({
+          status: 200,
+          json: async () => ({ ok: true, result: { username: 'B' } }),
+        }),
+        botFactory: () => mock.bot,
+        fsImpl: mockFs.fs,
+        installer: async () => {
+          installerCalled += 1;
+          return {
+            status: 'installed',
+            message: 'systemd service 등록 완료',
+            steps: ['mkdir', 'write', 'enable'],
+          };
+        },
+        log,
+        errorLog,
+      },
+    );
+    await new Promise((r) => setImmediate(r));
+    await mock.fire({
+      message: { text: `/pair ${logs.find((l) => l.includes('/pair'))?.match(/\/pair (\S+)/)?.[1]}` },
+      from: { id: 7 },
+      reply: async () => {},
+    });
+    await setupPromise;
+    assert.equal(installerCalled, 1);
+    const out = logs.join('\n');
+    assert.match(out, /✓ systemd service 등록 완료/);
+    assert.match(out, /· mkdir/);
+  });
+
+  it('자동 등록 거부 n → installer 호출 0 + 수동 안내 출력 (issue #138)', async () => {
+    process.exitCode = 0;
+    const { logs, log, errorLog } = makeLogger();
+    const mockFs = makeMockFs();
+    const mock = makeMockBot();
+    let installerCalled = 0;
+    const setupPromise = runSetupSubcommand(
+      [],
+      {
+        resolveAgentConfigPath: () => '/test/config.json',
+        createDefaultConfig: () => ({ version: 1, providers: {} }),
+      },
+      {
+        promptFn: (() => {
+          let n = 0;
+          return async () => {
+            n += 1;
+            if (n === 1) return '123:fake';
+            return 'n'; // consent — 거부.
+          };
+        })(),
+        fetchFn: async () => ({
+          status: 200,
+          json: async () => ({ ok: true, result: { username: 'B' } }),
+        }),
+        botFactory: () => mock.bot,
+        fsImpl: mockFs.fs,
+        installer: async () => {
+          installerCalled += 1;
+          return { status: 'installed', message: 'should not be called' };
+        },
+        log,
+        errorLog,
+      },
+    );
+    await new Promise((r) => setImmediate(r));
+    await mock.fire({
+      message: { text: `/pair ${logs.find((l) => l.includes('/pair'))?.match(/\/pair (\S+)/)?.[1]}` },
+      from: { id: 7 },
+      reply: async () => {},
+    });
+    await setupPromise;
+    assert.equal(installerCalled, 0, 'consent n 시 installer 호출 안 됨');
+    const out = logs.join('\n');
+    assert.match(out, /자동 설치 건너뜀/);
+    assert.match(out, /수동 등록 안내/);
+  });
+
   it('기존 config 의 다른 키 보존 + channels.telegram 만 갱신', async () => {
     process.exitCode = 0;
     const { logs, log, errorLog } = makeLogger();
@@ -243,6 +352,7 @@ describe('runSetupSubcommand (Phase 4)', () => {
         }),
         botFactory: () => mock.bot,
         fsImpl: mockFs.fs,
+        installer: async () => ({ status: 'skipped', message: 'mock' }),
         log,
         errorLog,
       },
