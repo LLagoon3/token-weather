@@ -98,7 +98,11 @@ export async function runSetupSubcommand(args, deps, options = {}) {
   // 3) 1회용 코드 + 페어링 안내. deep link / 수동 명령 두 경로 모두 안내 (issue
   //    #137 — Telegram deep link 클릭 한 번으로 /start <code> 자동 전송 가능).
   const code = generatePairingCode();
-  const deepLink = `https://t.me/${validation.botInfo.username}?start=${code}`;
+  // deep link URL — code 를 encodeURIComponent 로 감싸 방어 (PR #139 review).
+  // 현재 generatePairingCode 가 URL-safe (`TGW-XXXXXX`) 라 사실상 영향 없지만,
+  // code 형식이 후속에 바뀌어도 안전. Telegram username 규칙은 URL path 안전이라
+  // 별도 encoding 불필요.
+  const deepLink = `https://t.me/${validation.botInfo.username}?start=${encodeURIComponent(code)}`;
   log('');
   log('▶ 다음 중 하나로 페어링하세요:');
   log('');
