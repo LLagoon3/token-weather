@@ -1,0 +1,107 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+
+import { stripAnsi, wrapPre, splitForTelegram, formatErrorForTelegram } from '../src/formatters.js';
+
+const ESC = String.fromCharCode(0x1b);
+
+describe('stripAnsi', () => {
+  it('ANSI CSI sequence 제거', () => {
+    assert.equal(stripAnsi(`${ESC}[31mred${ESC}[0m`), 'red');
+    assert.equal(stripAnsi(`${ESC}[1;33mbold yellow${ESC}[0m`), 'bold yellow');
+  });
+
+  it('일반 텍스트 그대로 통과', () => {
+    assert.equal(stripAnsi('plain text'), 'plain text');
+    assert.equal(stripAnsi(''), '');
+  });
+
+  it('non-string 은 그대로 반환', () => {
+    assert.equal(stripAnsi(null), null);
+    assert.equal(stripAnsi(undefined), undefined);
+    assert.equal(stripAnsi(42), 42);
+  });
+
+  it('일반 대괄호 표현은 ANSI 가 아니므로 보존', () => {
+    assert.equal(stripAnsi('[hello]'), '[hello]');
+    assert.equal(stripAnsi('arr[0]'), 'arr[0]');
+  });
+});
+
+describe('wrapPre', () => {
+  it('HTML 모드 안전 escape + <pre> wrap', () => {
+    assert.equal(wrapPre('hello'), '<pre>hello</pre>');
+    assert.equal(wrapPre('<tag>'), '<pre>&lt;tag&gt;</pre>');
+    assert.equal(wrapPre('a & b'), '<pre>a &amp; b</pre>');
+  });
+
+  it('& 가 다른 entity 안에 있어도 먼저 escape (이중 escape 방지)', () => {
+    assert.equal(wrapPre('&lt;'), '<pre>&amp;lt;</pre>');
+  });
+
+  it('non-string 입력도 string 변환', () => {
+    assert.equal(wrapPre(42), '<pre>42</pre>');
+  });
+});
+
+describe('splitForTelegram', () => {
+  it('limit 이하 한 chunk', () => {
+    assert.deepEqual(splitForTelegram('hello', 100), ['hello']);
+  });
+
+  it('빈 문자열은 빈 배열', () => {
+    assert.deepEqual(splitForTelegram(''), []);
+  });
+
+  it('non-string 은 빈 배열', () => {
+    assert.deepEqual(splitForTelegram(null), []);
+    assert.deepEqual(splitForTelegram(undefined), []);
+  });
+
+  it('줄 단위 split — 결합 시 limit 초과면 다음 chunk', () => {
+    // limit=12, 3 줄 (각 5자). 'aaaaa\nbbbbb'=11(≤12) 한 chunk, 다음 'ccccc'.
+    const chunks = splitForTelegram('aaaaa\nbbbbb\nccccc', 12);
+    assert.deepEqual(chunks, ['aaaaa\nbbbbb', 'ccccc']);
+  });
+
+  it('한 줄이 limit 초과면 글자 단위 강제 분할', () => {
+    const long = 'x'.repeat(25);
+    const chunks = splitForTelegram(long, 10);
+    assert.equal(chunks.length, 3);
+    assert.equal(chunks[0], 'x'.repeat(10));
+    assert.equal(chunks[1], 'x'.repeat(10));
+    assert.equal(chunks[2], 'x'.repeat(5));
+  });
+
+  it('모든 chunk 가 limit 이하임을 보장', () => {
+    const input = `${'a'.repeat(50)}\n${'b'.repeat(50)}\n${'c'.repeat(50)}`;
+    const chunks = splitForTelegram(input, 60);
+    for (const chunk of chunks) {
+      assert.ok(chunk.length <= 60, `chunk size ${chunk.length} exceeds limit 60`);
+    }
+  });
+});
+
+describe('formatErrorForTelegram', () => {
+  it('Error 의 name + message 만 노출 (stack 없음)', () => {
+    const err = new TypeError('something broke');
+    const out = formatErrorForTelegram(err);
+    assert.match(out, /<pre>TypeError: something broke<\/pre>/);
+    assert.doesNotMatch(out, /at /); // stack 의 "at " 패턴 부재.
+  });
+
+  it('plain object 도 name / message 추출', () => {
+    const out = formatErrorForTelegram({ name: 'CustomErr', message: 'oops' });
+    assert.equal(out, '<pre>CustomErr: oops</pre>');
+  });
+
+  it('non-object 는 String() 으로 직렬화', () => {
+    assert.match(formatErrorForTelegram('plain string'), /<pre>Error: plain string<\/pre>/);
+    assert.match(formatErrorForTelegram(42), /<pre>Error: 42<\/pre>/);
+  });
+
+  it('HTML escape 적용 (XSS 방지)', () => {
+    const out = formatErrorForTelegram(new Error('<script>'));
+    assert.match(out, /&lt;script&gt;/);
+  });
+});
