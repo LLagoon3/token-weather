@@ -94,6 +94,12 @@ describe('SENSITIVE_KEYS', () => {
     assert.ok(SENSITIVE_KEYS.has('api_key'));
     assert.ok(SENSITIVE_KEYS.has('password'));
   });
+
+  it('contains telegram bot token variants (issue #126)', () => {
+    assert.ok(SENSITIVE_KEYS.has('botToken'));
+    assert.ok(SENSITIVE_KEYS.has('bot_token'));
+    assert.ok(SENSITIVE_KEYS.has('telegramBotToken'));
+  });
 });
 
 describe('isSensitiveKey — case-insensitive matching', () => {
@@ -198,6 +204,28 @@ describe('redactSensitive — objects', () => {
       password: 'p1',
     });
     assert.deepEqual(out, { label: 'work' });
+  });
+
+  it('removes telegram bot token at any depth (issue #126)', () => {
+    const out = redactSensitive({
+      channels: {
+        telegram: {
+          enabled: true,
+          botToken: '1234567890:ABCDEF',
+          bot_token: '1234567890:GHIJKL',
+          telegramBotToken: '1234567890:MNOPQR',
+          allowedChatIds: [42],
+        },
+      },
+    });
+    assert.deepEqual(out, {
+      channels: {
+        telegram: {
+          enabled: true,
+          allowedChatIds: [42],
+        },
+      },
+    });
   });
 
   it('matches keys case-insensitively (AccessToken / Refresh-Token style stays caught)', () => {

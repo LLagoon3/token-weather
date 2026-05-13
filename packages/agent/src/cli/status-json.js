@@ -55,6 +55,11 @@ export const SENSITIVE_KEYS = Object.freeze(
     'apiKey',
     'api_key',
     'password',
+    // Telegram bot token (@token-weather/telegram daemon 활성화 시
+    // config.providers.telegram.botToken 으로 저장됨)
+    'botToken',
+    'bot_token',
+    'telegramBotToken',
   ]),
 );
 
