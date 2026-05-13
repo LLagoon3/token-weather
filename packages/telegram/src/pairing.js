@@ -8,6 +8,8 @@
  * 모든 외부 의존성 (fetch / Bot) 은 옵션으로 주입 가능 — 단위 테스트 친화.
  */
 
+import { randomInt } from 'node:crypto';
+
 import { Bot } from 'grammy';
 
 const TELEGRAM_API_BASE = 'https://api.telegram.org';
@@ -44,6 +46,10 @@ export async function validateBotToken(botToken, options = {}) {
 /**
  * 1회용 페어링 코드 생성 — `TGW-XXXXXX` (대소문자 가독성 문자만).
  *
+ * 본 코드는 allowlist 가 비어 있는 setup 단계에서 최초 user_id 를 등록하는
+ * 경로의 1회용 authorization token 성격이라 `node:crypto.randomInt` 로 추출
+ * (Math.random 의 예측 가능한 PRNG 회피, PR #135 review).
+ *
  * @returns {string}
  */
 export function generatePairingCode() {
@@ -51,7 +57,7 @@ export function generatePairingCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let suffix = '';
   for (let i = 0; i < 6; i++) {
-    suffix += chars[Math.floor(Math.random() * chars.length)];
+    suffix += chars[randomInt(0, chars.length)];
   }
   return `TGW-${suffix}`;
 }
