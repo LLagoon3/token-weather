@@ -214,7 +214,7 @@ describe('redactSensitive — objects', () => {
           botToken: '1234567890:ABCDEF',
           bot_token: '1234567890:GHIJKL',
           telegramBotToken: '1234567890:MNOPQR',
-          allowedChatIds: [42],
+          allowedUserIds: [42],
         },
       },
     });
@@ -222,7 +222,7 @@ describe('redactSensitive — objects', () => {
       channels: {
         telegram: {
           enabled: true,
-          allowedChatIds: [42],
+          allowedUserIds: [42],
         },
       },
     });
