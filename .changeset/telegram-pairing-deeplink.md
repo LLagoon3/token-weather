@@ -18,12 +18,15 @@ PR #136 review (메시지 #792) 에서 HetrixTools / UptimeRobot 류의 "공식 
 **신규 동작** (`@token-weather/telegram`):
 
 - `runPairingBot` 의 message:text 핸들러가 `/pair <code>` 외에 `/start <code>` 도
-  페어링 명령으로 인식 (regex `^\/(pair|start)\s+(\S+)`). Telegram deep link 클릭
-  시 자동 전송되는 `/start` 명령을 페어링 전용으로 해석. backward-compat — 기존
-  `/pair` 흐름 그대로.
+  페어링 명령으로 인식 (regex `^\/(pair|start)\s+(\S+)\s*$`, **strict matching** —
+  trailing arg 가 붙은 입력 silent ignore, PR #139 review). Telegram deep link
+  클릭 시 전달되는 `/start` 명령을 페어링 전용으로 해석. backward-compat —
+  기존 `/pair` 흐름 그대로.
 - `runSetupSubcommand` 의 페어링 안내 출력이 두 경로 모두 표시:
-  - (A) deep link URL — `https://t.me/${botInfo.username}?start=${code}`. 클릭 시
-    Telegram 앱 자동 열림 + `/start <code>` 자동 전송 → 페어링 완료.
+  - (A) deep link URL — `https://t.me/${botInfo.username}?start=${encodeURIComponent(code)}`
+    (PR #139 review — code 형식 후속 변경 방어). 클릭 시 Telegram 앱이 봇 대화
+    창으로 열림. 봇을 처음 여는 경우 "Start" 버튼 클릭 후 `/start <code>` 전달
+    → 페어링 완료.
   - (B) 수동 `/pair <code>` 명령 — 기존 흐름 (사용자가 봇 검색 + 수동 입력).
 - pairing daemon 시작 log 메시지도 두 경로 모두 안내.
 
@@ -53,4 +56,8 @@ PR #136 review (메시지 #792) 에서 HetrixTools / UptimeRobot 류의 "공식 
 
 **backward-compat 완전** — 기존 `/pair <code>` 사용자는 동작 무변경. config /
 public API contract 변경 없음 — `runSetupSubcommand` / `runPairingBot` 의 시그
-니처 그대로, 출력 내용만 확장.
+니처 그대로, 출력 내용 + regex 의 strict matching 만 확장.
+
+**Bump 의도** — `@token-weather/telegram` 의 동작 추가가 본질. linked 정책 (PR
+#131 review 결정, v0.x 단순성 우선) 으로 4 패키지 모두 minor 가 동시 누적. v0.5.0
+publish 전 follow-up 의 일관성 유지.
