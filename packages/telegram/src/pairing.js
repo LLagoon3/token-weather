@@ -91,7 +91,11 @@ export async function runPairingBot(botToken, expectedCode, options = {}) {
         ),
       );
     }, timeoutMs);
-    if (typeof timer?.unref === 'function') timer.unref();
+    // unref 는 production 에서만 의미 (polling 이 event loop 를 잡고 있으므로
+    // unref 가 무해). test 에서 mock bot 의 polling 이 keep-alive 안 하면 unref
+    // 가 timer-only 상태로 process 가 일찍 종료되어 pending promise 가 미해결로
+    // cancelled 됨. 따라서 기본 비활성화, 옵션으로만 활성화.
+    if (options.unrefTimer && typeof timer?.unref === 'function') timer.unref();
 
     bot.on?.('message:text', async (ctx) => {
       if (settled) return;
