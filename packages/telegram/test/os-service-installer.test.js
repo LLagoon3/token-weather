@@ -152,15 +152,11 @@ describe('installSystemdUnit (issue #138)', () => {
 
   it('중간 단계 실패 시 cleanup (write 한 파일 unlink) + status failed', async () => {
     const mockFs = makeMockFs();
-    const mockExec = makeMockExec({
-      throwOn: { systemctl: '' }, // 'systemctl' 명령에서 throw — 첫 호출은 --version, 그건 ok ... mock 단순화.
-    });
-    // throwOn 키 매칭 단순화 — 우선 첫 systemctl 도 fail 하면 skipped 경로라 cleanup 안 함.
-    // 더 정밀한 케이스: --version 만 ok 후 daemon-reload 에서 fail.
+    // systemctl --version (첫 호출) 은 ok, 그 다음 daemon-reload 에서 fail.
     const callCounts = { systemctl: 0 };
     const r = await installSystemdUnit(INPUT, {
       fsImpl: mockFs.fs,
-      execImpl: (cmd, args) => {
+      execImpl: (cmd) => {
         if (cmd === 'systemctl') {
           callCounts.systemctl += 1;
           if (callCounts.systemctl === 1) return ''; // --version ok
