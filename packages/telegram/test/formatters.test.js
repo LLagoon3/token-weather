@@ -133,6 +133,39 @@ describe('formatPreChunksForTelegram (PR #133 review)', () => {
     }
   });
 
+  it('split 시 HTML entity 가 chunk 경계에서 깨지지 않음 (PR #134 review)', () => {
+    // `&` 만 30 개 — escape 후 `&amp;` (5 자) * 30 = 150 자. limit=20 이면 tag
+    // overhead 11 + contentLimit 9 — 한 chunk 당 entity 1 개 (5 자) 만 들어가야.
+    const input = '&'.repeat(30);
+    const chunks = formatPreChunksForTelegram(input, 20);
+    for (const chunk of chunks) {
+      const content = chunk.slice('<pre>'.length, chunk.length - '</pre>'.length);
+      // entity 가 깨지지 않음: content 안의 `&` 가 항상 `&amp;` 시퀀스를 시작.
+      // 즉 `&` 다음에 'amp;' 가 와야 함 — 단독 `&` 또는 `&am` 같은 잘린 entity X.
+      assert.ok(
+        /^(&amp;|&lt;|&gt;)*$/.test(content),
+        `chunk content "${content}" must be a clean concatenation of complete entities`,
+      );
+    }
+    // 복원하면 원본과 일치 — entity 총 30 개.
+    const reassembled = chunks
+      .map((c) => c.slice('<pre>'.length, c.length - '</pre>'.length))
+      .join('');
+    assert.equal(reassembled, '&amp;'.repeat(30));
+  });
+
+  it('split 시 `<` `>` 도 entity boundary 보존', () => {
+    const input = '<>'.repeat(30); // escape 후 `&lt;&gt;` (8 자) * 30 = 240 자.
+    const chunks = formatPreChunksForTelegram(input, 20);
+    for (const chunk of chunks) {
+      const content = chunk.slice('<pre>'.length, chunk.length - '</pre>'.length);
+      assert.ok(
+        /^(&amp;|&lt;|&gt;)*$/.test(content),
+        `chunk content "${content}" must be a clean concatenation of complete entities`,
+      );
+    }
+  });
+
   it('줄바꿈 보존 — `\\n` 으로 구분된 두 줄이 한 chunk 에 들어감', () => {
     const out = formatPreChunksForTelegram('line one\nline two');
     assert.deepEqual(out, ['<pre>line one\nline two</pre>']);

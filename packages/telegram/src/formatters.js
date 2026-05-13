@@ -119,8 +119,12 @@ export function formatPreChunksForTelegram(rawText, limit = 4000) {
         chunks.push(`${TAG_OPEN}${current}${TAG_CLOSE}`);
         current = '';
       }
-      for (let i = 0; i < escapedLine.length; i += contentLimit) {
-        chunks.push(`${TAG_OPEN}${escapedLine.slice(i, i + contentLimit)}${TAG_CLOSE}`);
+      // 한 줄이 단독 limit 초과 — raw character 단위 split 으로 HTML entity
+      // (`&amp;` / `&lt;` / `&gt;`) 가 chunk 경계에서 끊기지 않도록 보호 (PR #134
+      // review). escape 후 slice 하면 multi-char entity 가 중간에서 잘릴 수 있어
+      // HTML parser 가 에러를 내거나 표현이 깨진다.
+      for (const sub of splitRawByEscapedLength(line, contentLimit)) {
+        chunks.push(`${TAG_OPEN}${sub}${TAG_CLOSE}`);
       }
       continue;
     }
@@ -133,6 +137,33 @@ export function formatPreChunksForTelegram(rawText, limit = 4000) {
     }
   }
   if (current) chunks.push(`${TAG_OPEN}${current}${TAG_CLOSE}`);
+  return chunks;
+}
+
+/**
+ * raw character 를 한 글자씩 escape 하며 누적, escape 후 길이가 contentLimit 을
+ * 넘으면 push + reset. entity boundary 가 깨지지 않음. (PR #134 review)
+ *
+ * @param {string} rawLine
+ * @param {number} contentLimit
+ * @returns {string[]}
+ */
+function splitRawByEscapedLength(rawLine, contentLimit) {
+  const chunks = [];
+  let current = '';
+  for (const ch of rawLine) {
+    let entity;
+    if (ch === '&') entity = '&amp;';
+    else if (ch === '<') entity = '&lt;';
+    else if (ch === '>') entity = '&gt;';
+    else entity = ch;
+    if (current.length + entity.length > contentLimit) {
+      if (current) chunks.push(current);
+      current = '';
+    }
+    current += entity;
+  }
+  if (current) chunks.push(current);
   return chunks;
 }
 
