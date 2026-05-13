@@ -15,6 +15,8 @@ import fs from 'node:fs';
 
 import { createBotServer } from './bot-server.js';
 import { buildDispatcher } from './dispatcher.js';
+import { runSetupSubcommand } from './setup-subcommand.js';
+import { runCheckSubcommand } from './check-subcommand.js';
 
 export { createBotServer, handleTextMessage } from './bot-server.js';
 export { buildDispatcher } from './dispatcher.js';
@@ -27,6 +29,15 @@ export {
   formatPreChunksForTelegram,
   formatErrorForTelegram,
 } from './formatters.js';
+export { validateBotToken, generatePairingCode, runPairingBot } from './pairing.js';
+export {
+  linuxSystemdUnit,
+  macosLaunchAgent,
+  windowsTaskScheduler,
+  pickServiceTemplate,
+} from './os-service-templates.js';
+export { runSetupSubcommand, formatTelegramSetupHelp } from './setup-subcommand.js';
+export { runCheckSubcommand, formatTelegramCheckHelp } from './check-subcommand.js';
 
 let _activeServer = null;
 
@@ -76,6 +87,14 @@ export async function runTelegramCommand(argv, deps) {
     await runStartSubcommand(rest, deps);
     return;
   }
+  if (subcommand === 'setup') {
+    await runSetupSubcommand(rest, deps);
+    return;
+  }
+  if (subcommand === 'check') {
+    await runCheckSubcommand(rest, deps);
+    return;
+  }
   console.error(`알 수 없는 telegram 서브명령: ${subcommand}`);
   for (const line of formatTelegramHelp()) console.error(line);
   process.exitCode = 1;
@@ -91,9 +110,9 @@ export function formatTelegramHelp() {
     'Telegram 봇 daemon 으로 status / usage / doctor / auth list 명령을 원격 호출.',
     '',
     'Subcommands:',
+    '  setup    대화형 봇 토큰 등록 + 페어링 + OS service template 안내',
     '  start    Telegram 봇 long-poll daemon 시작 (foreground, Ctrl+C 종료)',
-    '',
-    'Phase 4 예정: setup (페어링 + OS service 템플릿), check (진단)',
+    '  check    설정 / token / linger 상태 read-only 진단',
     '',
     'Options:',
     '  -h, --help   이 도움말 출력',
