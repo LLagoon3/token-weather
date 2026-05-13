@@ -52,6 +52,10 @@ export function linuxSystemdUnit({ nodeBinPath, cliScriptPath }) {
   return {
     kind: 'systemd',
     title: 'Linux systemd --user unit (user-level, sudo 불필요)',
+    // installer 가 직접 fs.writeFile 로 작성할 raw unit content + 대상 경로
+    // (issue #138). instructions 의 heredoc 안 본문과 동일.
+    content: unitContent,
+    serviceFilename: 'token-weather-bot.service',
     instructions: [
       'mkdir -p ~/.config/systemd/user',
       "cat > ~/.config/systemd/user/token-weather-bot.service <<'EOF'",
@@ -102,6 +106,8 @@ export function macosLaunchAgent({ nodeBinPath, cliScriptPath, homeDir }) {
   return {
     kind: 'launchd',
     title: 'macOS LaunchAgent (user-level, sudo 불필요)',
+    content: plistContent,
+    serviceFilename: 'com.token-weather.bot.plist',
     instructions: [
       'mkdir -p ~/Library/LaunchAgents',
       "cat > ~/Library/LaunchAgents/com.token-weather.bot.plist <<'EOF'",
