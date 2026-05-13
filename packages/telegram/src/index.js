@@ -17,6 +17,7 @@ import { createBotServer } from './bot-server.js';
 import { buildDispatcher } from './dispatcher.js';
 import { runSetupSubcommand } from './setup-subcommand.js';
 import { runCheckSubcommand } from './check-subcommand.js';
+import { runUninstallServiceSubcommand } from './uninstall-service-subcommand.js';
 
 export { createBotServer, handleTextMessage } from './bot-server.js';
 export { buildDispatcher } from './dispatcher.js';
@@ -38,6 +39,21 @@ export {
 } from './os-service-templates.js';
 export { runSetupSubcommand, formatTelegramSetupHelp } from './setup-subcommand.js';
 export { runCheckSubcommand, formatTelegramCheckHelp } from './check-subcommand.js';
+export {
+  runUninstallServiceSubcommand,
+  formatTelegramUninstallServiceHelp,
+} from './uninstall-service-subcommand.js';
+export {
+  installOsService,
+  uninstallOsService,
+  installSystemdUnit,
+  uninstallSystemdUnit,
+  installLaunchAgent,
+  uninstallLaunchAgent,
+  installTaskScheduler,
+  uninstallTaskScheduler,
+  parseYesNo,
+} from './os-service-installer.js';
 
 let _activeServer = null;
 
@@ -95,6 +111,10 @@ export async function runTelegramCommand(argv, deps) {
     await runCheckSubcommand(rest, deps);
     return;
   }
+  if (subcommand === 'uninstall-service') {
+    await runUninstallServiceSubcommand(rest, deps);
+    return;
+  }
   console.error(`알 수 없는 telegram 서브명령: ${subcommand}`);
   for (const line of formatTelegramHelp()) console.error(line);
   process.exitCode = 1;
@@ -110,9 +130,10 @@ export function formatTelegramHelp() {
     'Telegram 봇 daemon 으로 status / usage / doctor / auth list 명령을 원격 호출.',
     '',
     'Subcommands:',
-    '  setup    대화형 봇 토큰 등록 + 페어링 + OS service template 안내',
-    '  start    Telegram 봇 long-poll daemon 시작 (foreground, Ctrl+C 종료)',
-    '  check    설정 / token / linger 상태 read-only 진단',
+    '  setup              대화형 봇 토큰 등록 + 페어링 + OS service 자동 등록 / template 안내',
+    '  start              Telegram 봇 long-poll daemon 시작 (foreground, Ctrl+C 종료)',
+    '  check              설정 / token / linger 상태 read-only 진단',
+    '  uninstall-service  setup 으로 등록된 OS service 제거 (config 는 유지)',
     '',
     'Options:',
     '  -h, --help   이 도움말 출력',
