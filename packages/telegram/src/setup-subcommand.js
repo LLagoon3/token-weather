@@ -95,14 +95,20 @@ export async function runSetupSubcommand(args, deps, options = {}) {
   }
   log(`✓ 봇 핸들: @${validation.botInfo.username}`);
 
-  // 3) 1회용 코드 + 페어링 안내.
+  // 3) 1회용 코드 + 페어링 안내. deep link / 수동 명령 두 경로 모두 안내 (issue
+  //    #137 — Telegram deep link 클릭 한 번으로 /start <code> 자동 전송 가능).
   const code = generatePairingCode();
+  const deepLink = `https://t.me/${validation.botInfo.username}?start=${code}`;
   log('');
-  log(`▶ Telegram 에서 @${validation.botInfo.username} 봇에게 다음 명령을 보내세요:`);
+  log('▶ 다음 중 하나로 페어링하세요:');
   log('');
-  log(`    /pair ${code}`);
+  log('  (A) 아래 링크를 클릭하면 Telegram 앱이 자동으로 열리며 페어링됩니다:');
+  log(`      ${deepLink}`);
   log('');
-  log('   (5 분 안에 입력하지 않으면 setup 이 취소됩니다.)');
+  log(`  (B) Telegram 앱에서 @${validation.botInfo.username} 봇에게 다음 명령을 직접 입력:`);
+  log(`      /pair ${code}`);
+  log('');
+  log('   (5 분 안에 진행하지 않으면 setup 이 취소됩니다.)');
 
   // 4) 페어링 daemon 부팅 + chat_id 캡처.
   let pairingResult;
