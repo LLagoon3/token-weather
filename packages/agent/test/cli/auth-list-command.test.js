@@ -5,6 +5,8 @@ import {
   formatClaudeImportEntry,
   formatAuthListHelp,
   runAuthListCommand,
+  collectAuthListData,
+  formatAuthListLines,
 } from '../../src/cli/auth-list-command.js';
 
 async function captureOutput(fn) {
@@ -208,5 +210,112 @@ describe('runAuthListCommand — Claude import block', () => {
     );
     const flat = lines.join('\n');
     assert.ok(flat.includes('agent-store'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// collectAuthListData / formatAuthListLines (Phase 3 issue #128)
+// ---------------------------------------------------------------------------
+
+describe('collectAuthListData', () => {
+  it('provider 지정 시 해당 provider 만 + claude import (claude 인 경우만)', async () => {
+    const loadStore = async () => ({
+      providers: {
+        'openai-codex': { accounts: [{ accountKey: 'codex:1' }] },
+        claude: { accounts: [] },
+      },
+    });
+    const claudeReadFn = () => null;
+    const data = await collectAuthListData('openai-codex', { loadStore, claudeReadFn });
+    assert.deepEqual(data.providers, [
+      { id: 'openai-codex', accounts: [{ accountKey: 'codex:1' }] },
+    ]);
+    assert.equal(data.claudeImport, null);
+  });
+
+  it('provider 미지정 시 모든 provider + claude import', async () => {
+    const loadStore = async () => ({
+      providers: {
+        'openai-codex': { accounts: [{ accountKey: 'codex:1' }] },
+        claude: { accounts: [{ accountKey: 'claude:1' }] },
+      },
+    });
+    const claudeReadFn = () => null;
+    const data = await collectAuthListData(undefined, { loadStore, claudeReadFn });
+    assert.equal(data.providers.length, 2);
+    assert.ok(data.claudeImport);
+    assert.equal(typeof data.claudeImport.credentialsPath, 'string');
+  });
+
+  it('store 의 providers 가 없어도 안전', async () => {
+    const loadStore = async () => ({});
+    const data = await collectAuthListData(undefined, { loadStore, claudeReadFn: () => null });
+    assert.deepEqual(data.providers, []);
+  });
+});
+
+describe('formatAuthListLines', () => {
+  it('계정 0 + 필터 없음 → "저장된 인증 계정이 없습니다."', () => {
+    const lines = formatAuthListLines({ providers: [], claudeImport: null });
+    assert.ok(lines.some((l) => l.includes('저장된 인증 계정이 없습니다')));
+  });
+
+  it('계정 0 + provider 필터 → "[pid] 저장된 계정이 없습니다."', () => {
+    const lines = formatAuthListLines(
+      { providers: [{ id: 'openai-codex', accounts: [] }], claudeImport: null },
+      { providerFilter: 'openai-codex' },
+    );
+    assert.ok(lines.some((l) => l.includes('[openai-codex] 저장된 계정이 없습니다')));
+  });
+
+  it('계정 1+ → 헤더 + 계정 라인들 출력', () => {
+    const lines = formatAuthListLines({
+      providers: [
+        {
+          id: 'openai-codex',
+          accounts: [
+            {
+              accountKey: 'codex:1',
+              email: 'a@b.com',
+              displayName: 'A',
+              source: 'agent-store',
+              status: 'active',
+              tokens: { refreshToken: 'r' },
+            },
+          ],
+        },
+      ],
+      claudeImport: null,
+    });
+    assert.ok(lines.some((l) => l.includes('── openai-codex ──')));
+    assert.ok(lines.some((l) => l.includes('codex:1')));
+    assert.ok(lines.some((l) => l.includes('a@b.com')));
+    assert.ok(lines.some((l) => l.includes('refresh') && l.includes('available')));
+  });
+
+  it('claudeImport 가 있으면 import source 섹션 출력', () => {
+    const lines = formatAuthListLines({
+      providers: [],
+      claudeImport: {
+        selectedAccount: { accountKey: 'cli:1', authType: 'oauth' },
+        found: true,
+        parsed: true,
+        credentialsPath: '/x/.credentials.json',
+      },
+    });
+    assert.ok(lines.some((l) => l.includes('── claude (import source) ──')));
+    assert.ok(lines.some((l) => l.includes('cli:1')));
+    assert.ok(lines.some((l) => l.includes('claude-cli-import')));
+  });
+
+  it('pure — 동일 입력 동일 출력 (CLI / Telegram 공유)', () => {
+    const input = {
+      providers: [{ id: 'openai-codex', accounts: [] }],
+      claudeImport: null,
+    };
+    assert.deepEqual(
+      formatAuthListLines(input, { providerFilter: 'openai-codex' }),
+      formatAuthListLines(input, { providerFilter: 'openai-codex' }),
+    );
   });
 });

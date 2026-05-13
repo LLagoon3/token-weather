@@ -130,18 +130,46 @@ export async function runDoctorCommand(subcommand, args = []) {
   await runDoctorRoot(args);
 }
 
+/**
+ * `doctor` (root) 의 데이터 수집을 명령형 출력과 분리한 helper.
+ *
+ * Phase 3 (#128) 에서 추가 — `@token-weather/telegram` 의 doctor 핸들러가 동일
+ * 데이터를 가져다 Telegram 응답으로 가공할 수 있도록 한다 (의존성 주입 패턴).
+ * CLI 의 평문 출력은 `formatDoctorReportLines` 와 함께 사용한다.
+ *
+ * @returns {Promise<{ configPath: string, claudeSnapshot: object }>}
+ */
+export async function collectDoctorReport() {
+  const configPath = resolveAgentConfigPath();
+  const claudeSnapshot = await getClaudeSnapshot();
+  return { configPath, claudeSnapshot };
+}
+
+/**
+ * `collectDoctorReport()` 결과를 사람-읽기 친화 평문 줄로 변환. CLI / Telegram
+ * 양쪽이 공유하는 포맷. Pure function.
+ *
+ * @param {{ configPath: string, claudeSnapshot: object }} report
+ * @returns {string[]}
+ */
+export function formatDoctorReportLines(report) {
+  return [
+    'token-weather doctor',
+    '---------------------',
+    `예상 설정 파일 경로: ${report.configPath}`,
+    '',
+    ...formatClaudeSection(report.claudeSnapshot),
+  ];
+}
+
 async function runDoctorRoot(args = []) {
   const options = parseDoctorOptions(args);
   if (options.help) {
     for (const line of formatDoctorHelp()) console.log(line);
     return;
   }
-  const claudeSnapshot = await getClaudeSnapshot();
-  console.log('token-weather doctor');
-  console.log('---------------------');
-  console.log(`예상 설정 파일 경로: ${resolveAgentConfigPath()}`);
-  console.log('');
-  for (const line of formatClaudeSection(claudeSnapshot)) {
+  const report = await collectDoctorReport();
+  for (const line of formatDoctorReportLines(report)) {
     console.log(line);
   }
   console.log('');

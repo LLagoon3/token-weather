@@ -167,7 +167,9 @@ export async function handleTextMessage(ctx, options) {
   }
   const handler = options?.dispatcher?.[parsed.cmd];
   if (!handler) {
-    await ctx.reply(`아직 구현되지 않은 명령입니다: /${parsed.cmd} (Phase 3 머지 후 활성화)`);
+    await ctx.reply(
+      `알 수 없는 명령입니다: /${parsed.cmd}\n사용 가능한 명령: ${listAvailableCommands(options?.dispatcher)}`,
+    );
     return;
   }
   await handler(ctx, parsed.args);
