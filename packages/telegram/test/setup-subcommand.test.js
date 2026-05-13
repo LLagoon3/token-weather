@@ -173,6 +173,10 @@ describe('runSetupSubcommand (Phase 4)', () => {
     const out = logs.join('\n');
     assert.match(out, /부팅 후 자동 시작/);
     assert.match(out, /token-weather telegram start/);
+    // deep link URL 안내 포함 (issue #137) — t.me/<botUsername>?start=<code> 패턴.
+    assert.match(out, /https:\/\/t\.me\/MyBot\?start=TGW-/);
+    // 기존 수동 /pair <code> 안내도 보존 (backward-compat).
+    assert.match(out, /\/pair TGW-/);
     assert.equal(process.exitCode, 0);
   });
 

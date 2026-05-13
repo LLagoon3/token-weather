@@ -136,6 +136,56 @@ describe('runPairingBot (Phase 4)', () => {
     assert.ok(ctx.replies.some((m) => m.includes('페어링 완료')));
   });
 
+  it('/start <code> 도 페어링 명령으로 인식 — deep link 동치 (issue #137)', async () => {
+    const mock = makeMockBot();
+    const pending = runPairingBot('123:fake', 'TGW-ABC123', {
+      botFactory: () => mock,
+      logger: { log: () => {} },
+    });
+    await new Promise((r) => setImmediate(r));
+    // `/start <code>` 가 Telegram deep link 클릭 시 자동 전송되는 명령. `/pair`
+    // 와 동치로 페어링이 완료되어야 한다.
+    const ctx = makeCtx('/start TGW-ABC123', { from: { id: 99, username: 'bob' } });
+    await mock._fire(ctx);
+    const result = await pending;
+    assert.equal(result.userId, '99');
+    assert.equal(result.username, 'bob');
+    assert.equal(mock.stopped, true);
+    assert.ok(ctx.replies.some((m) => m.includes('페어링 완료')));
+  });
+
+  it('/pair <code> <extra> 같이 trailing arg 가 붙은 입력은 거부 (PR #139 review)', async () => {
+    const mock = makeMockBot();
+    const pending = runPairingBot('123:fake', 'TGW-ABC123', {
+      botFactory: () => mock,
+      logger: { log: () => {} },
+      timeoutMs: 200,
+    });
+    await new Promise((r) => setImmediate(r));
+    // trailing arg 가 붙으면 strict regex 가 fail — 핸들러는 silent ignore (return)
+    // → reply / settle 없이 timeout 까지 대기.
+    const ctx = makeCtx('/pair TGW-ABC123 extra', { from: { id: 42 } });
+    await mock._fire(ctx);
+    assert.equal(ctx.replies.length, 0, 'trailing arg 입력은 silent — reply 없음');
+    assert.equal(mock.stopped, false);
+    await assert.rejects(() => pending, /pairing timeout/);
+  });
+
+  it('/start <wrong-code> 도 mismatch 응답 (대기 지속)', async () => {
+    const mock = makeMockBot();
+    const pending = runPairingBot('123:fake', 'TGW-ABC123', {
+      botFactory: () => mock,
+      logger: { log: () => {} },
+      timeoutMs: 200,
+    });
+    await new Promise((r) => setImmediate(r));
+    const ctx = makeCtx('/start TGW-WRONG', { from: { id: 42 } });
+    await mock._fire(ctx);
+    assert.ok(ctx.replies.some((m) => m.includes('코드가 일치하지 않습니다')));
+    assert.equal(mock.stopped, false);
+    await assert.rejects(() => pending, /pairing timeout/);
+  });
+
   it('일치하지 않는 code 는 안내 + 대기 지속', async () => {
     const mock = makeMockBot();
     const pending = runPairingBot('123:fake', 'TGW-ABC123', {
