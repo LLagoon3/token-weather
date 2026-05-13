@@ -95,6 +95,14 @@ export async function installSystemdUnit(input, options = {}) {
   const home = input.homeDir ?? env.HOME;
   const user = env.USER ?? '';
 
+  // HOME 누락 시 path.join throw 회피 — 수동 안내로 fallback (PR #140 review).
+  if (!home) {
+    return {
+      status: 'skipped',
+      message: 'HOME 환경변수가 비어 있어 service 파일 경로를 결정할 수 없음 — 수동 등록 안내로 fallback',
+    };
+  }
+
   // 1) systemd 존재 검사.
   try {
     execImpl('systemctl', ['--version']);
@@ -143,12 +151,17 @@ export async function installSystemdUnit(input, options = {}) {
     steps.push('systemctl --user daemon-reload');
     execImpl('systemctl', ['--user', 'enable', '--now', tmpl.serviceFilename]);
     steps.push(`systemctl --user enable --now ${tmpl.serviceFilename}`);
-    // linger — 실패해도 warning + 계속 (loginctl 부재 가능 환경).
-    try {
-      execImpl('loginctl', ['enable-linger', user]);
-      steps.push(`loginctl enable-linger ${user}`);
-    } catch (err) {
-      log(`⚠ loginctl enable-linger 실패 (계속 진행): ${err?.message ?? err}`);
+    // linger — 실패해도 warning + 계속 (loginctl 부재 가능 환경). USER 비어
+    // 있으면 단계 자체 skip (PR #140 review — 빈 user 로 loginctl 호출 회피).
+    if (!user) {
+      log('ℹ USER 환경변수가 비어 있어 loginctl enable-linger 단계 skip');
+    } else {
+      try {
+        execImpl('loginctl', ['enable-linger', user]);
+        steps.push(`loginctl enable-linger ${user}`);
+      } catch (err) {
+        log(`⚠ loginctl enable-linger 실패 (계속 진행): ${err?.message ?? err}`);
+      }
     }
     return {
       status: 'installed',
@@ -185,6 +198,13 @@ export async function uninstallSystemdUnit(options = {}) {
   const home = env.HOME ?? '';
   const user = env.USER ?? '';
 
+  if (!home) {
+    return {
+      status: 'skipped',
+      message: 'HOME 환경변수가 비어 있어 service 파일 경로를 결정할 수 없음',
+    };
+  }
+
   const serviceFilename = 'token-weather-bot.service';
   const servicePath = path.join(home, SYSTEMD_USER_DIR, serviceFilename);
 
@@ -207,11 +227,15 @@ export async function uninstallSystemdUnit(options = {}) {
     steps.push(`systemctl --user disable --now ${serviceFilename}`);
     fsImpl.unlinkSync(servicePath);
     steps.push(`unlink ${servicePath}`);
-    try {
-      execImpl('loginctl', ['disable-linger', user]);
-      steps.push(`loginctl disable-linger ${user}`);
-    } catch (err) {
-      log(`⚠ loginctl disable-linger 실패 (계속 진행): ${err?.message ?? err}`);
+    if (!user) {
+      log('ℹ USER 환경변수가 비어 있어 loginctl disable-linger 단계 skip');
+    } else {
+      try {
+        execImpl('loginctl', ['disable-linger', user]);
+        steps.push(`loginctl disable-linger ${user}`);
+      } catch (err) {
+        log(`⚠ loginctl disable-linger 실패 (계속 진행): ${err?.message ?? err}`);
+      }
     }
     return { status: 'installed', message: 'systemd service 제거 완료', steps };
   } catch (err) {
@@ -232,6 +256,13 @@ export async function installLaunchAgent(input, options = {}) {
   const confirmFn = options.confirmFn ?? defaultConfirmFn;
   const env = options.env ?? process.env;
   const home = input.homeDir ?? env.HOME;
+
+  if (!home) {
+    return {
+      status: 'skipped',
+      message: 'HOME 환경변수가 비어 있어 plist 경로를 결정할 수 없음 — 수동 등록 안내로 fallback',
+    };
+  }
 
   try {
     execImpl('launchctl', ['version']);
@@ -303,6 +334,13 @@ export async function uninstallLaunchAgent(options = {}) {
   const confirmFn = options.confirmFn ?? defaultConfirmFn;
   const env = options.env ?? process.env;
   const home = env.HOME ?? '';
+
+  if (!home) {
+    return {
+      status: 'skipped',
+      message: 'HOME 환경변수가 비어 있어 plist 경로를 결정할 수 없음',
+    };
+  }
 
   const serviceFilename = 'com.token-weather.bot.plist';
   const plistPath = path.join(home, LAUNCH_AGENTS_DIR, serviceFilename);
