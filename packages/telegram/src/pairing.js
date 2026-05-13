@@ -106,9 +106,12 @@ export async function runPairingBot(botToken, expectedCode, options = {}) {
     bot.on?.('message:text', async (ctx) => {
       if (settled) return;
       const text = ctx?.message?.text?.trim?.() ?? '';
-      const match = text.match(/^\/pair\s+(\S+)/);
+      // `/pair <code>` 와 `/start <code>` 둘 다 페어링 명령으로 인식 (issue #137).
+      // `/start` 는 Telegram deep link (`t.me/<bot>?start=<code>`) 클릭 시 자동
+      // 전송되는 명령이라 페어링 UX 단순화 (5 step → 2 step) 의 핵심.
+      const match = text.match(/^\/(pair|start)\s+(\S+)/);
       if (!match) return;
-      const submittedCode = match[1];
+      const submittedCode = match[2];
       if (submittedCode !== expectedCode) {
         await ctx?.reply?.('코드가 일치하지 않습니다. 다시 확인해 주세요.').catch(() => {});
         return;
@@ -138,7 +141,7 @@ export async function runPairingBot(botToken, expectedCode, options = {}) {
     Promise.resolve(bot.init?.())
       .then(() => {
         log(
-          `[token-weather/telegram] 페어링 daemon 시작 — 봇에 \`/pair ${expectedCode}\` 입력 대기 중...`,
+          `[token-weather/telegram] 페어링 daemon 시작 — \`/pair ${expectedCode}\` 입력 또는 deep link 클릭 대기 중...`,
         );
         bot.start?.({ drop_pending_updates: true })?.catch?.((err) => {
           if (settled) return;
