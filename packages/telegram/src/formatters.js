@@ -24,21 +24,32 @@ export function stripAnsi(text) {
 }
 
 /**
- * Telegram HTML 모드의 `<pre>` 블록으로 wrap. `<` `>` `&` 3 문자만 escape.
+ * Telegram HTML 모드 안전 escape — `<` `>` `&` 3 문자만 처리.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeHtml(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Telegram HTML 모드의 `<pre>` 블록으로 wrap. 짧은 단일 메시지 용도 (4096 자
+ * 한도 안 가까운 출력) — 4096 자에 근접하거나 entity expansion 영향이 큰 출력
+ * 은 `formatPreChunksForTelegram` 사용.
  *
  * @param {string} text
  * @returns {string}
  */
 export function wrapPre(text) {
-  const escaped = String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return `<pre>${escaped}</pre>`;
+  return `<pre>${escapeHtml(text)}</pre>`;
 }
 
 /**
- * Telegram 메시지 1 건의 최대 길이 (4096 자) 에 안전 마진을 두고 줄 단위로 split.
- * `<pre>` wrap 의 tag overhead 까지 감안해 기본 limit 은 4000.
- *
- * 한 줄 자체가 limit 초과면 글자 단위로 강제 분할.
+ * 줄 단위 분할 helper — **raw text 길이 기준** 으로 chunking 한다. HTML escape
+ * 후 entity expansion (`&` → `&amp;` 등) 은 고려하지 않으므로, escape 가 들어가는
+ * 시나리오 (`<pre>` wrap 등) 에서는 `formatPreChunksForTelegram` 사용 권장. 본
+ * 함수는 escape 가 없거나 영향이 작은 plain text 분할용.
  *
  * @param {string} text
  * @param {number} [limit=4000]
@@ -71,6 +82,57 @@ export function splitForTelegram(text, limit = 4000) {
     }
   }
   if (current) chunks.push(current);
+  return chunks;
+}
+
+/**
+ * raw text → HTML escape → `<pre>` wrap 까지 한 번에 처리해 Telegram 전송 가능한
+ * 메시지 배열을 반환. `splitForTelegram` 이 raw 길이만 보던 한계 (entity
+ * expansion 으로 4096 초과 가능) 를 보완 (PR #133 review).
+ *
+ * 알고리즘:
+ *   1) raw 를 줄 단위로 split.
+ *   2) 각 줄을 escapeHtml 로 변환.
+ *   3) `<pre>` + `</pre>` (11 자) 까지 포함한 message 길이가 limit 이하가 되도록
+ *      escape 된 줄을 누적 chunk 에 추가.
+ *   4) 한 줄이 단독으로 limit 초과면 escape 후 글자 단위 강제 분할.
+ *   5) 각 chunk 는 self-contained `<pre>...</pre>` 로 wrap 되어 반환.
+ *
+ * @param {string} rawText
+ * @param {number} [limit=4000] - `<pre>` 포함 message 전체 길이 한도 (Telegram
+ *   4096 마진 96).
+ * @returns {string[]} 각 element 가 `<pre>...</pre>` 형태인 message 배열.
+ */
+export function formatPreChunksForTelegram(rawText, limit = 4000) {
+  if (typeof rawText !== 'string') return [];
+  if (rawText.length === 0) return [];
+  const TAG_OPEN = '<pre>';
+  const TAG_CLOSE = '</pre>';
+  const contentLimit = limit - TAG_OPEN.length - TAG_CLOSE.length;
+  const lines = rawText.split('\n');
+  const chunks = [];
+  let current = '';
+  for (const line of lines) {
+    const escapedLine = escapeHtml(line);
+    if (escapedLine.length > contentLimit) {
+      if (current) {
+        chunks.push(`${TAG_OPEN}${current}${TAG_CLOSE}`);
+        current = '';
+      }
+      for (let i = 0; i < escapedLine.length; i += contentLimit) {
+        chunks.push(`${TAG_OPEN}${escapedLine.slice(i, i + contentLimit)}${TAG_CLOSE}`);
+      }
+      continue;
+    }
+    const next = current ? `${current}\n${escapedLine}` : escapedLine;
+    if (next.length > contentLimit) {
+      chunks.push(`${TAG_OPEN}${current}${TAG_CLOSE}`);
+      current = escapedLine;
+    } else {
+      current = next;
+    }
+  }
+  if (current) chunks.push(`${TAG_OPEN}${current}${TAG_CLOSE}`);
   return chunks;
 }
 

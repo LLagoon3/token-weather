@@ -1,7 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { stripAnsi, wrapPre, splitForTelegram, formatErrorForTelegram } from '../src/formatters.js';
+import {
+  stripAnsi,
+  wrapPre,
+  splitForTelegram,
+  formatPreChunksForTelegram,
+  formatErrorForTelegram,
+} from '../src/formatters.js';
 
 const ESC = String.fromCharCode(0x1b);
 
@@ -79,6 +85,57 @@ describe('splitForTelegram', () => {
     for (const chunk of chunks) {
       assert.ok(chunk.length <= 60, `chunk size ${chunk.length} exceeds limit 60`);
     }
+  });
+});
+
+describe('formatPreChunksForTelegram (PR #133 review)', () => {
+  it('빈 입력은 빈 배열', () => {
+    assert.deepEqual(formatPreChunksForTelegram(''), []);
+    assert.deepEqual(formatPreChunksForTelegram(null), []);
+    assert.deepEqual(formatPreChunksForTelegram(undefined), []);
+  });
+
+  it('짧은 입력은 1 chunk 로 wrap', () => {
+    assert.deepEqual(formatPreChunksForTelegram('hello'), ['<pre>hello</pre>']);
+  });
+
+  it('HTML escape 적용 — `<`, `>`, `&`', () => {
+    const out = formatPreChunksForTelegram('a <b> & c');
+    assert.deepEqual(out, ['<pre>a &lt;b&gt; &amp; c</pre>']);
+  });
+
+  it('각 chunk 가 limit 이하 (tag 포함) — entity expansion 영향 포함', () => {
+    // `&` 30 개 = 30 자 raw, escape 후 150 자. limit=80 이면 여러 chunk 로 split.
+    const input = '&'.repeat(30);
+    const chunks = formatPreChunksForTelegram(input, 80);
+    for (const chunk of chunks) {
+      assert.ok(chunk.length <= 80, `chunk length ${chunk.length} exceeds limit 80`);
+    }
+    // 각 chunk 가 self-contained <pre>...</pre>.
+    for (const chunk of chunks) {
+      assert.ok(chunk.startsWith('<pre>'));
+      assert.ok(chunk.endsWith('</pre>'));
+    }
+    // 복원하면 원본 escape 와 일치.
+    const reassembled = chunks
+      .map((c) => c.slice('<pre>'.length, c.length - '</pre>'.length))
+      .join('');
+    assert.equal(reassembled, '&amp;'.repeat(30));
+  });
+
+  it('한 줄이 limit 초과 — escape 후 글자 단위 강제 분할', () => {
+    const input = 'x'.repeat(200);
+    const chunks = formatPreChunksForTelegram(input, 100);
+    for (const chunk of chunks) {
+      assert.ok(chunk.length <= 100);
+      assert.ok(chunk.startsWith('<pre>'));
+      assert.ok(chunk.endsWith('</pre>'));
+    }
+  });
+
+  it('줄바꿈 보존 — `\\n` 으로 구분된 두 줄이 한 chunk 에 들어감', () => {
+    const out = formatPreChunksForTelegram('line one\nline two');
+    assert.deepEqual(out, ['<pre>line one\nline two</pre>']);
   });
 });
 
