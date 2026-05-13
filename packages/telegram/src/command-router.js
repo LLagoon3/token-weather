@@ -51,6 +51,24 @@ export function parseCommand(text, options) {
 }
 
 /**
+ * `text` 가 `/cmd@mention` 형식이면 mention 부분 (`@` 뒤 username) 을 반환.
+ * 명령 형식이 아니거나 mention 이 없으면 null.
+ *
+ * bot-server 가 `parseCommand` 호출 *전* 에 mention 분기 (본인이 아닌 봇 mention
+ * 은 silent ignore — group chat 충돌 방지) 에 사용 (PR #133 review).
+ *
+ * @param {string} text
+ * @returns {string | null}
+ */
+export function extractMention(text) {
+  if (typeof text !== 'string') return null;
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('/')) return null;
+  const m = trimmed.match(/^\/\S+@(\S+)/);
+  return m ? m[1] : null;
+}
+
+/**
  * dispatcher 객체의 키를 사람-읽기 친화 형태로 표시 — 미등록 명령 응답에 사용.
  * Phase 1/2 단계처럼 dispatcher 가 비어 있으면 안내 문구 반환.
  *

@@ -15,8 +15,8 @@
 
 import { createBotServer } from './bot-server.js';
 
-export { createBotServer } from './bot-server.js';
-export { parseCommand, listAvailableCommands } from './command-router.js';
+export { createBotServer, handleTextMessage } from './bot-server.js';
+export { parseCommand, extractMention, listAvailableCommands } from './command-router.js';
 export { authAllowlistMiddleware, maskUserId } from './auth-allowlist.js';
 export {
   stripAnsi,

@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createBotServer } from '../src/bot-server.js';
+import { createBotServer, handleTextMessage } from '../src/bot-server.js';
 import { startBot, stopBot } from '../src/index.js';
 
 function makeMockBot({ initFails = false, initError } = {}) {
@@ -91,6 +91,82 @@ describe('createBotServer boot validation (PR #133 review)', () => {
     await server.start();
     await server.stop();
     assert.equal(mock._stopCalled, 1);
+  });
+});
+
+function makeMockCtx(text, { username, replies = [] } = {}) {
+  return {
+    message: { text },
+    me: username ? { username } : undefined,
+    reply: async (msg) => {
+      replies.push(msg);
+    },
+    _replies: replies,
+  };
+}
+
+describe('handleTextMessage (PR #133 review)', () => {
+  it('다른 봇 mention 은 silent — ctx.reply 호출 안 됨', async () => {
+    const replies = [];
+    const ctx = makeMockCtx('/status@OtherBot', { username: 'TokenWeatherBot', replies });
+    await handleTextMessage(ctx, { dispatcher: {} });
+    assert.deepEqual(replies, []);
+  });
+
+  it('본인 mention 은 명령 처리 진행 (dispatcher 비어 있으면 placeholder reply)', async () => {
+    const replies = [];
+    const ctx = makeMockCtx('/status@TokenWeatherBot', {
+      username: 'TokenWeatherBot',
+      replies,
+    });
+    await handleTextMessage(ctx, { dispatcher: {} });
+    assert.equal(replies.length, 1);
+    assert.match(replies[0], /아직 구현되지 않은/);
+  });
+
+  it('mention 없는 명령은 통과 → placeholder reply', async () => {
+    const replies = [];
+    const ctx = makeMockCtx('/status', { username: 'TokenWeatherBot', replies });
+    await handleTextMessage(ctx, { dispatcher: {} });
+    assert.equal(replies.length, 1);
+    assert.match(replies[0], /아직 구현되지 않은/);
+  });
+
+  it('non-command 입력은 "알 수 없는 입력" reply', async () => {
+    const replies = [];
+    const ctx = makeMockCtx('hello', { username: 'TokenWeatherBot', replies });
+    await handleTextMessage(ctx, { dispatcher: {} });
+    assert.equal(replies.length, 1);
+    assert.match(replies[0], /알 수 없는 입력/);
+  });
+
+  it('dispatcher 에 등록된 명령은 handler 호출', async () => {
+    let handlerCalled = 0;
+    let receivedArgs = null;
+    const dispatcher = {
+      status: async (ctx, args) => {
+        handlerCalled += 1;
+        receivedArgs = args;
+        await ctx.reply('status response');
+      },
+    };
+    const replies = [];
+    const ctx = makeMockCtx('/status --json', { username: 'TokenWeatherBot', replies });
+    await handleTextMessage(ctx, { dispatcher });
+    assert.equal(handlerCalled, 1);
+    assert.deepEqual(receivedArgs, ['--json']);
+    assert.deepEqual(replies, ['status response']);
+  });
+
+  it('case-insensitive mention 매칭 — 본인 봇이면 silent 아님', async () => {
+    const replies = [];
+    const ctx = makeMockCtx('/status@tokenweatherbot', {
+      username: 'TokenWeatherBot',
+      replies,
+    });
+    await handleTextMessage(ctx, { dispatcher: {} });
+    assert.equal(replies.length, 1);
+    assert.match(replies[0], /아직 구현되지 않은/);
   });
 });
 

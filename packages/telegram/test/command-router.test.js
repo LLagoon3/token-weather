@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseCommand, listAvailableCommands } from '../src/command-router.js';
+import { parseCommand, extractMention, listAvailableCommands } from '../src/command-router.js';
 
 describe('parseCommand', () => {
   it('slash + cmd → { cmd, args: [] }', () => {
@@ -65,6 +65,30 @@ describe('parseCommand', () => {
     assert.equal(parseCommand(undefined), null);
     assert.equal(parseCommand(123), null);
     assert.equal(parseCommand({}), null);
+  });
+});
+
+describe('extractMention (PR #133 review)', () => {
+  it('`/cmd@bot` mention 의 username 부분 반환', () => {
+    assert.equal(extractMention('/status@TokenWeatherBot'), 'TokenWeatherBot');
+    assert.equal(extractMention('/usage@OtherBot --json'), 'OtherBot');
+  });
+
+  it('mention 없는 명령은 null', () => {
+    assert.equal(extractMention('/status'), null);
+    assert.equal(extractMention('/status --json'), null);
+  });
+
+  it('명령 형식이 아니면 null', () => {
+    assert.equal(extractMention('hello@bot'), null);
+    assert.equal(extractMention(''), null);
+    assert.equal(extractMention(null), null);
+    assert.equal(extractMention(undefined), null);
+    assert.equal(extractMention(42), null);
+  });
+
+  it('leading whitespace trim', () => {
+    assert.equal(extractMention('   /status@bot'), 'bot');
   });
 });
 

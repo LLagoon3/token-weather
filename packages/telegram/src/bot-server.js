@@ -20,7 +20,7 @@
 import { Bot, GrammyError } from 'grammy';
 
 import { authAllowlistMiddleware } from './auth-allowlist.js';
-import { parseCommand, listAvailableCommands } from './command-router.js';
+import { parseCommand, extractMention, listAvailableCommands } from './command-router.js';
 import { formatErrorForTelegram } from './formatters.js';
 
 /**
@@ -62,23 +62,7 @@ export function createBotServer(options) {
   bot.use(authAllowlistMiddleware(allowedUserIds, { logger: { log } }));
 
   bot.on('message:text', async (ctx) => {
-    // ctx.me.username — grammy 가 bot.init 후 자동 채움. group chat 에서
-    // /cmd@OtherBot 같이 다른 봇 mention 은 parseCommand 가 null 반환 → silent.
-    const parsed = parseCommand(ctx.message.text, {
-      botUsername: ctx.me?.username,
-    });
-    if (!parsed) {
-      await ctx.reply(
-        `알 수 없는 입력입니다. 사용 가능한 명령: ${listAvailableCommands(dispatcher)}`,
-      );
-      return;
-    }
-    const handler = dispatcher?.[parsed.cmd];
-    if (!handler) {
-      await ctx.reply(`아직 구현되지 않은 명령입니다: /${parsed.cmd} (Phase 3 머지 후 활성화)`);
-      return;
-    }
-    await handler(ctx, parsed.args);
+    await handleTextMessage(ctx, { dispatcher });
   });
 
   bot.catch((errCtx) => {
@@ -147,6 +131,46 @@ export function createBotServer(options) {
       started = false;
     },
   };
+}
+
+/**
+ * `message:text` 처리 핸들러 — group chat 의 다른 봇 mention 을 silent ignore
+ * 한 뒤 dispatcher 로 라우팅한다. createBotServer 가 grammy bot.on 안에서
+ * 호출하며, 단위 테스트 친화를 위해 별도 export.
+ *
+ * 책임 분리 (PR #133 review):
+ *   1) raw text 의 mention 이 본인이 아니면 silent return — "알 수 없는 입력"
+ *      reply 도 보내지 않음 (group chat 의 다른 봇 명령에 token-weather 가
+ *      응답하지 않도록).
+ *   2) 그 외는 parseCommand → dispatcher 호출. mention 분기는 parseCommand 의
+ *      botUsername 옵션과도 중복 검사이지만, bot-server 가 명시적으로 silent
+ *      vs reply 경로를 가르는 것이 의도.
+ *
+ * @param {object} ctx - grammy Context.
+ * @param {{ dispatcher?: Record<string, Function> }} options
+ * @returns {Promise<void>}
+ */
+export async function handleTextMessage(ctx, options) {
+  const text = ctx?.message?.text;
+  const myUsername = ctx?.me?.username;
+  const mention = extractMention(text);
+  if (mention && myUsername && mention.toLowerCase() !== myUsername.toLowerCase()) {
+    // 다른 봇 mention — silent (reply 도 보내지 않음).
+    return;
+  }
+  const parsed = parseCommand(text, { botUsername: myUsername });
+  if (!parsed) {
+    await ctx.reply(
+      `알 수 없는 입력입니다. 사용 가능한 명령: ${listAvailableCommands(options?.dispatcher)}`,
+    );
+    return;
+  }
+  const handler = options?.dispatcher?.[parsed.cmd];
+  if (!handler) {
+    await ctx.reply(`아직 구현되지 않은 명령입니다: /${parsed.cmd} (Phase 3 머지 후 활성화)`);
+    return;
+  }
+  await handler(ctx, parsed.args);
 }
 
 /**
