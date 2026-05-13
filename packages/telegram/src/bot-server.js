@@ -60,7 +60,11 @@ export function createBotServer(options) {
   bot.use(authAllowlistMiddleware(allowedUserIds, { logger: { log } }));
 
   bot.on('message:text', async (ctx) => {
-    const parsed = parseCommand(ctx.message.text);
+    // ctx.me.username — grammy 가 bot.init 후 자동 채움. group chat 에서
+    // /cmd@OtherBot 같이 다른 봇 mention 은 parseCommand 가 null 반환 → silent.
+    const parsed = parseCommand(ctx.message.text, {
+      botUsername: ctx.me?.username,
+    });
     if (!parsed) {
       await ctx.reply(
         `알 수 없는 입력입니다. 사용 가능한 명령: ${listAvailableCommands(dispatcher)}`,

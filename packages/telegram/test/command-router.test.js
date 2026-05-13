@@ -15,8 +15,30 @@ describe('parseCommand', () => {
     });
   });
 
-  it('group chat mention suffix /cmd@MyBot 은 제거', () => {
+  it('group chat mention suffix /cmd@MyBot 은 제거 (botUsername 미지정 — 기존 동작)', () => {
     assert.deepEqual(parseCommand('/status@TokenWeatherBot'), {
+      cmd: 'status',
+      args: [],
+    });
+  });
+
+  it('botUsername 일치 시 통과 (case-insensitive)', () => {
+    assert.deepEqual(parseCommand('/status@TokenWeatherBot', { botUsername: 'TokenWeatherBot' }), {
+      cmd: 'status',
+      args: [],
+    });
+    assert.deepEqual(parseCommand('/status@TokenWeatherBot', { botUsername: 'tokenweatherbot' }), {
+      cmd: 'status',
+      args: [],
+    });
+  });
+
+  it('다른 봇 mention 은 null (group chat 명령 충돌 방지 — PR #133 review)', () => {
+    assert.equal(parseCommand('/status@OtherBot', { botUsername: 'TokenWeatherBot' }), null);
+  });
+
+  it('mention 없는 명령은 botUsername 지정 시에도 통과', () => {
+    assert.deepEqual(parseCommand('/status', { botUsername: 'TokenWeatherBot' }), {
       cmd: 'status',
       args: [],
     });
