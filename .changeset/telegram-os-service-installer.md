@@ -67,9 +67,18 @@ PR #136 review (메시지 #796) 의 오픈클로 게이트웨이 비교에서 �
 - nvm / fnm path stale: install 완료 메시지에 "Node 버전 매니저 변경 시
   `telegram setup` 재실행 권장" 안내.
 - 기존 service 파일 충돌: hash 비교 → 다르면 confirm (default n) → 사용자 명시
-  y 시만 덮어쓰기.
-- install 중간 실패: try / catch + cleanup (작성한 파일 unlink) + status 'failed'
-  → 수동 안내 fallback.
+  y 시만 덮어쓰기. Windows 도 동일 정책 — `schtasks /Query` 사전 검사 (PR #140
+  review blocker 2).
+- 충돌 시 confirm 의 실 동작 정합 (PR #140 review blocker 1) — setup 경로에서
+  `options.confirmFn` 미주입 시 자동으로 `promptFn` 기반 adapter build, 실제
+  프롬프트로 사용자 결정 받음.
+- install 중간 실패: try / catch + **backup / restore** (PR #140 review). 기존
+  파일이 있었으면 cleanup 시 unlink 대신 restore — 사용자 파일 손실 회피.
+- HOME / USER 환경변수 누락 (PR #140 review): HOME 없으면 status 'skipped' + manual
+  fallback. USER 없으면 linger 단계만 skip + log 안내.
+- 경로 공백 / XML 특수문자 (PR #140 review): 사전 검사 (`hasUnsafePathChars`) →
+  발견 시 즉시 status 'skipped' + manual 안내. 정확한 escaping helper 는 별도
+  follow-up.
 - uninstall 의 linger 비활성화: 다른 user-level service 도 영향 가능 — 안내
   텍스트에 명시.
 
