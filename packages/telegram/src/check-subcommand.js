@@ -14,7 +14,7 @@
  */
 
 import fs from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 
 import { validateBotToken } from './pairing.js';
 
@@ -23,7 +23,9 @@ import { validateBotToken } from './pairing.js';
  * @property {typeof fetch} [fetchFn]
  * @property {(msg: string) => void} [log]
  * @property {{ statSync: Function, existsSync: Function, readFileSync: Function }} [fsImpl]
- * @property {(cmd: string) => string} [execImpl] - linger 검사용 execSync wrapper.
+ * @property {(cmd: string, args: string[]) => string} [execImpl] - linger 검사용
+ *   execFileSync wrapper. 시그니처 `(cmd, args)` — shell 문자열 조립 회피
+ *   (PR #135 review).
  * @property {NodeJS.Platform} [platform] - process.platform override (테스트 용).
  */
 
@@ -47,7 +49,7 @@ export async function runCheckSubcommand(args, deps, options = {}) {
   const fsImpl = options.fsImpl ?? fs;
   const platform = options.platform ?? process.platform;
   const fetchFn = options.fetchFn ?? fetch;
-  const execImpl = options.execImpl ?? ((cmd) => execSync(cmd).toString());
+  const execImpl = options.execImpl ?? ((cmd, args) => execFileSync(cmd, args).toString());
 
   const configPath = deps.resolveAgentConfigPath();
   const checks = [];
@@ -134,7 +136,7 @@ export async function runCheckSubcommand(args, deps, options = {}) {
   if (platform === 'linux') {
     try {
       const user = process.env.USER ?? '';
-      const out = execImpl(`loginctl show-user "${user}" --property=Linger`);
+      const out = execImpl('loginctl', ['show-user', user, '--property=Linger']);
       const linger = /Linger=yes/.test(out);
       checks.push({
         name: 'systemd linger',

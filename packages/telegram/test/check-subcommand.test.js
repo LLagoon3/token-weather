@@ -135,7 +135,12 @@ describe('runCheckSubcommand (Phase 4)', () => {
           status: 200,
           json: async () => ({ ok: true, result: { username: 'B' } }),
         }),
-        execImpl: () => 'Linger=no',
+        execImpl: (cmd, args) => {
+          // PR #135 review — execImpl 시그니처가 (cmd, args[]) 로 갱신됨을 단언.
+          assert.equal(cmd, 'loginctl');
+          assert.deepEqual(args, ['show-user', process.env.USER ?? '', '--property=Linger']);
+          return 'Linger=no';
+        },
         platform: 'linux',
       },
     );
