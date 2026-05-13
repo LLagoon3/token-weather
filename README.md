@@ -6,7 +6,7 @@
 [![Node](https://img.shields.io/node/v/%40token-weather%2Fcli.svg)](https://nodejs.org/)
 
 > **Local CLI dashboard for AI service usage and OAuth credentials.**
-> 로컬에서 여러 AI 서비스(Codex / Claude)의 사용량과 인증 상태를 한 번에 확인하는 CLI. 토큰을 외부 서버로 보내지 않습니다.
+> 로컬에서 여러 AI 서비스(Codex / Claude)의 사용량과 인증 상태를 한 번에 확인하는 CLI. **OAuth 토큰은 외부 서버로 보내지 않습니다** (옵션 `@token-weather/telegram` 활성화 시에도 봇 토큰 / OAuth 토큰은 로컬, 사용량 메타데이터만 Telegram 서버 경유 — [상세](./docs/telegram-bot.md#보안-모델)).
 
 ## Install
 
@@ -47,7 +47,7 @@ token-weather auth login claude --manual
 ## What & Why
 
 - **무엇**: AI 도구의 OAuth credential과 사용량 window를 로컬에서 통합 조회하는 CLI. Codex(OpenAI) / Claude(Anthropic) 두 provider 운영 중.
-- **왜**: 다른 대시보드들은 토큰을 외부 서버로 보내거나 별도 auth 서비스에 의존. Token Weather는 **자체 broker + 로컬 credential store**로 동작 — 토큰이 머신을 떠나지 않습니다.
+- **왜**: 다른 대시보드들은 토큰을 외부 서버로 보내거나 별도 auth 서비스에 의존. Token Weather는 **자체 broker + 로컬 credential store**로 동작 — **OAuth 토큰이 머신을 떠나지 않습니다**. 옵션 `@token-weather/telegram` 사용 시에도 token 자체는 로컬, 사용량 / 계정 label 메타데이터만 Telegram 서버 경유 ([상세](./docs/telegram-bot.md#보안-모델)).
 - **어떤 점이 다른가**:
   - **Multi-account**: 한 provider에 여러 계정 저장, 병렬 조회, label 부여
   - **자동 refresh**: 만료된 access token은 provider 호출 전 preflight refresh, auth 실패 시 1회 재시도
@@ -76,9 +76,24 @@ token-weather auth list   [provider]
 token-weather auth logout <provider> [--account]
 token-weather auth import claude                                   # Claude CLI credential 흡수
 token-weather config init                                          # 설정 파일 생성
+token-weather telegram setup    # Telegram 봇 페어링 + OS service 안내 (옵션 패키지)
+token-weather telegram start    # Telegram 봇 daemon (foreground, Ctrl+C 종료)
+token-weather telegram check    # Telegram 설정 / token / linger 진단
 ```
 
 default `auth login` 은 실제 OAuth 토큰 교환을 수행합니다. `--mock` 옵션 시 token endpoint 호출 없이 mock 계정만 저장 (테스트/실험용). `--label` 로 저장된 계정에 친화적 이름 부여 → 이후 `--account <label>` 로 참조.
+
+## Telegram 봇 (옵션)
+
+핸드폰 / 다른 데스크탑에서 `status` / `usage` / `doctor` / `auth list` 명령을 원격 호출하고 싶다면 별도 패키지 `@token-weather/telegram` 을 추가 설치합니다. token-weather 가 시스템 service 파일을 직접 만들지 않고, 사용자 동의가 필요한 명령 블록만 print 합니다 (UX 절충안).
+
+```bash
+npm install -g @token-weather/telegram   # 옵션 패키지
+token-weather telegram setup             # 봇 토큰 + 페어링 + OS service 안내
+token-weather telegram start             # daemon 실행 (또는 setup 끝의 systemd / launchd / Task Scheduler 사용)
+```
+
+상세 / 보안 모델 / OS service 수동 등록 / FAQ: [docs/telegram-bot.md](./docs/telegram-bot.md).
 
 ## JSON 출력 (자동화)
 

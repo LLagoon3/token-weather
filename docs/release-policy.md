@@ -78,6 +78,19 @@ contract는 [docs/cli-json-output.md](./cli-json-output.md)에 stable로 명시�
 - `SENSITIVE_KEYS` 확장: patch (기본적으로 토큰이 덜 노출되는 방향). consumer의 정상 사용에 영향 없음.
 - `redactSensitive` 동작 자체 변경 (어떤 키를 더 노출하는 방향): major. 단 그런 변경은 보안상 명시적 결정이 필요.
 
+### Telegram 봇 (`@token-weather/telegram`)
+
+`config.channels.telegram` 의 키 / `@token-weather/telegram` public export / `runTelegramCommand` dispatch 시그니처가 contract 단위. 5-phase plan (#126~#130) 으로 도입.
+
+- 신규 subcommand 추가 (`telegram <new>`): minor.
+- 기존 subcommand 제거 / 의미 변경: major.
+- `config.channels.telegram` 의 키 추가 (옵셔널): minor. 키 제거 / 의미 변경 / 이름 변경: major (publish 이전이면 더 자유롭게 — PR #131 / #133 review 의 `providers.telegram` → `channels.telegram` 이동, `allowedChatIds` → `allowedUserIds` rename 이 publish 전 단계라 가능했음).
+- `runTelegramCommand` 의 `deps` 매개변수 키 추가: minor (cli 가 그 키를 채워 주는 방향이면 비파괴). 기존 deps 키 제거 / 시그니처 narrow: major.
+- 봇 응답 출력 시각 변경 (`<pre>` wrap / chunk split 정책 등): patch (사용자가 평문 / JSON 의 contract 만 본다는 전제). `--json` 응답의 top-level shape 변경은 `status --json` 규약과 동일.
+- Telegram 미들웨어 정책 변경 (allowlist 의미 등): 보안 모델 영향이면 major. 예: `allowedUserIds` → `allowedChatIds` 같이 검사 대상이 user 에서 chat 으로 바뀌면 major.
+
+본 패키지는 5-phase plan 전 기간 동안 `@token-weather/cli` 와 **linked** 로 묶여 같은 minor bump 를 받았다. 안정성 평가 후 별도 bump 정책으로 분리하는 것은 후속 task — 분리 시점에 본 섹션도 함께 정정.
+
 ## 3. SCHEMA_VERSION 규약
 
 `packages/schemas/src/index.js::SCHEMA_VERSION`은 현재 `'0.5.0'` (string semver).
