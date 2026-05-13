@@ -29,25 +29,25 @@ token-weather telegram start
 
 ## 명령
 
-| 명령                                                 | 설명                                                                                                      |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 명령                                                 | 설명                                                                                                                                            |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `token-weather telegram setup`                       | 봇 토큰 입력 → `getMe` 검증 → **deep link 클릭** 또는 `/pair <code>` 수동 입력으로 페어링 → config 저장 (chmod 600) → OS service template print |
-| `token-weather telegram start`                       | long-poll daemon foreground 실행. Ctrl+C 종료                                                             |
-| `token-weather telegram check`                       | config / token / chmod / linger 상태 read-only 진단                                                       |
-| `... telegram --help`<br>`... telegram <sub> --help` | 각 명령의 안내 출력                                                                                       |
+| `token-weather telegram start`                       | long-poll daemon foreground 실행. Ctrl+C 종료                                                                                                   |
+| `token-weather telegram check`                       | config / token / chmod / linger 상태 read-only 진단                                                                                             |
+| `... telegram --help`<br>`... telegram <sub> --help` | 각 명령의 안내 출력                                                                                                                             |
 
 ## 봇이 받는 채팅 명령
 
-| Telegram 명령    | 동작 (`token-weather <cmd>` 와 동일)                     |
-| ---------------- | -------------------------------------------------------- |
-| `/status`        | 평문 status 출력 (HTML `<pre>` 블록)                     |
-| `/status --json` | `formatStatusJson` 결과 (top-level `command` = "status") |
-| `/usage`         | status alias — 평문                                      |
-| `/usage --json`  | `formatStatusJson` 결과 (top-level `command` = "usage")  |
-| `/doctor`        | `runDoctorRoot` 기본 출력. 인자 / subcommand 차단        |
-| `/auth_list`     | 모든 provider 의 저장 계정 + claude import 섹션          |
+| Telegram 명령    | 동작 (`token-weather <cmd>` 와 동일)                                    |
+| ---------------- | ----------------------------------------------------------------------- |
+| `/status`        | 평문 status 출력 (HTML `<pre>` 블록)                                    |
+| `/status --json` | `formatStatusJson` 결과 (top-level `command` = "status")                |
+| `/usage`         | status alias — 평문                                                     |
+| `/usage --json`  | `formatStatusJson` 결과 (top-level `command` = "usage")                 |
+| `/doctor`        | `runDoctorRoot` 기본 출력. 인자 / subcommand 차단                       |
+| `/auth_list`     | 모든 provider 의 저장 계정 + claude import 섹션                         |
 | `/start <code>`  | 페어링 전용 (setup 시점에만 의미). Telegram deep link 클릭 시 자동 전송 |
-| `/pair <code>`   | 페어링 전용 (setup 시점에만 의미). 수동 입력 fallback     |
+| `/pair <code>`   | 페어링 전용 (setup 시점에만 의미). 수동 입력 fallback                   |
 
 본인이 아닌 봇을 mention 한 명령 (`/status@OtherBot`) 은 silent ignore — group chat 에서 다른 봇 명령에 token-weather 가 응답하지 않습니다.
 
