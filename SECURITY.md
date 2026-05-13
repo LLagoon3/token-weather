@@ -44,8 +44,14 @@ GitHub Issue / PR / 외부 채널(Slack, 이메일 본문 등)에 access token, 
 
 ### 신뢰 경계
 
-- **로컬 only (변화 없음)**: OAuth access / refresh / id token, Telegram 봇 토큰, 페어링 코드. 모두 `~/.config/token-weather/config.json` 에 chmod 600 으로 저장. `SENSITIVE_KEYS` redaction 으로 어떤 출력에도 노출되지 않음.
-- **Telegram 서버 경유 (신규)**: 사용량 숫자 / 계정 label / email / 명령 응답 본문 / 사용자 user_id. 봇 활성화 시 README 의 "로컬 only" 약속은 **OAuth 토큰 한정** 으로 정밀화됨.
+- **로컬 only** (저장 위치 별로 분리):
+  - OAuth access / refresh / id token: `~/.config/token-weather/auth.json` 에 저장. auth store 가 mode 0600 으로 write.
+  - Telegram bot token / allowedUserIds: `~/.config/token-weather/config.json` 의 `channels.telegram` 아래에 저장. `telegram setup` 이 chmod 600 을 best-effort 로 적용.
+  - 페어링 코드: setup 중 터미널 + 1회용 pairing daemon 메모리에만 존재. config / auth store 에 저장하지 않음.
+
+  세 경로 모두 `SENSITIVE_KEYS` redaction 으로 어떤 출력에도 노출되지 않음.
+
+- **Telegram 서버 경유 (신규)**: 사용량 숫자 / 계정 label / email / 명령 응답 본문 / 사용자 user_id. 봇 활성화 시 README 의 "로컬 only" 약속은 **OAuth 토큰 + 봇 토큰 한정** 으로 정밀화됨.
 
 ### 봇 토큰 / 채널 단의 1차 방어막
 

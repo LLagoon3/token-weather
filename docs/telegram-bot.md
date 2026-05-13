@@ -99,8 +99,14 @@ schtasks /Delete /TN "TokenWeatherBot" /F
 
 ### 신뢰 경계
 
-- **로컬에 머무는 것**: OAuth access / refresh / id token. Telegram 봇 토큰. 페어링 코드. 모두 `~/.config/token-weather/config.json` (chmod 600) 에 저장. `SENSITIVE_KEYS` redaction 으로 어떤 출력 (`status --json` / Telegram 응답 / 로그) 에도 노출되지 않음.
-- **Telegram 서버 경유**: 사용량 숫자 / 계정 label / email / token 만료 시각 / 명령 응답 본문. README 의 "토큰을 외부 서버로 보내지 않습니다" 약속은 **OAuth 토큰 한정** — 봇 활성화 시 메타데이터는 Telegram 인프라를 경유합니다.
+- **로컬에 머무는 것** (세 경로로 분리):
+  - **OAuth access / refresh / id token** — `~/.config/token-weather/auth.json` 에 저장. auth store 가 mode 0600 으로 write.
+  - **Telegram bot token / allowedUserIds** — `~/.config/token-weather/config.json` 의 `channels.telegram` 아래. `telegram setup` 이 chmod 600 을 best-effort 로 적용 (Windows 등 chmod 의미 약한 OS 는 `telegram check` 의 "config 권한" 항목에서 확인 권장).
+  - **페어링 코드** — `telegram setup` 중 터미널과 1회용 pairing daemon 메모리에만 존재. config / auth store 에 저장하지 않음.
+
+  세 경로 모두 `SENSITIVE_KEYS` redaction 으로 어떤 출력 (`status --json` / Telegram 응답 / 로그) 에도 노출되지 않습니다.
+
+- **Telegram 서버 경유**: 사용량 숫자 / 계정 label / email / token 만료 시각 / 명령 응답 본문 / 사용자 user_id. README 의 "토큰을 외부 서버로 보내지 않습니다" 약속은 **OAuth 토큰 + Telegram 봇 토큰 한정** — 봇 활성화 시 메타데이터는 Telegram 인프라를 경유합니다.
 
 ### 1차 방어막
 
