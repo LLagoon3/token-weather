@@ -37,3 +37,31 @@ GitHub Issue / PR / 외부 채널(Slack, 이메일 본문 등)에 access token, 
 - `--json` 출력 회귀 테스트(가짜 토큰 주입 → JSON에 누출 없음 검증) 추가
 
 이 절차를 빠뜨리면 외부 소비자에게 그대로 노출될 수 있습니다.
+
+## Telegram 봇 통합의 위협 모델 (`@token-weather/telegram` 사용 시)
+
+옵션 패키지 `@token-weather/telegram` 을 활성화하면 token-weather 의 신뢰 경계가 확장됩니다. 활성화 전에 다음을 확인해 주세요. 상세 보안 모델은 [docs/telegram-bot.md §보안 모델](./docs/telegram-bot.md#보안-모델).
+
+### 신뢰 경계
+
+- **로컬 only (변화 없음)**: OAuth access / refresh / id token, Telegram 봇 토큰, 페어링 코드. 모두 `~/.config/token-weather/config.json` 에 chmod 600 으로 저장. `SENSITIVE_KEYS` redaction 으로 어떤 출력에도 노출되지 않음.
+- **Telegram 서버 경유 (신규)**: 사용량 숫자 / 계정 label / email / 명령 응답 본문 / 사용자 user_id. 봇 활성화 시 README 의 "로컬 only" 약속은 **OAuth 토큰 한정** 으로 정밀화됨.
+
+### 봇 토큰 / 채널 단의 1차 방어막
+
+- `channels.telegram.allowedUserIds` allowlist — 등록되지 않은 user_id 의 메시지는 silent ignore (응답 / 로그 마스킹). 봇 토큰이 누설되어도 명령 표면이 즉시 열리지 않음.
+- 단일 인스턴스 lock — 같은 봇 토큰으로 다른 daemon 이 polling 중이면 409 Conflict 감지 후 종료. 의도치 않은 두 번째 daemon 실수 회피.
+- 노출 명령 표면 축소 — `/doctor` 는 root 호출만, `/auth_list` 도 인자 차단. 원격 명령으로 부수효과 있는 호출 (token refresh-live 등) 트리거 불가.
+
+### 봇 토큰 누설 시 절차
+
+1. BotFather (`@BotFather`) 에 `/revoke` → 즉시 토큰 무효화 (또는 `/token` 으로 재발급).
+2. 로컬 `config.channels.telegram.botToken` 갱신 — `token-weather telegram setup` 재실행이 가장 안전.
+3. `token-weather telegram check` 로 `getMe API` 가 새 토큰으로 `✓` 응답하는지 확인.
+4. `~/.config/token-weather/config.json` 의 권한이 `chmod 600` 인지 확인 — `telegram check` 의 "config 권한" 항목.
+
+### 추가 신고 시나리오
+
+- 본인이 아닌 user_id 가 `allowedUserIds` 에 추가됨을 발견 → 즉시 array 에서 제거 + daemon 재시작 (`systemctl --user restart token-weather-bot.service` 또는 stop → start).
+- 봇이 본인 명령에 응답하지 않는데 다른 사용자에게는 응답함 → 봇 토큰 또는 allowlist 조작 의심. BotFather 토큰 revoke + 신고.
+- daemon 로그에 본인 user_id 가 아닌 마스킹된 id (`xxx****yy`) 가 `미허용 user_id 거부` 로 반복 등장 → 봇 토큰이 외부에 알려진 정황. 토큰 revoke 권장.
