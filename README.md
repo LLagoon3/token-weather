@@ -76,9 +76,24 @@ token-weather auth list   [provider]
 token-weather auth logout <provider> [--account]
 token-weather auth import claude                                   # Claude CLI credential 흡수
 token-weather config init                                          # 설정 파일 생성
+token-weather telegram setup    # Telegram 봇 페어링 + OS service 안내 (옵션 패키지)
+token-weather telegram start    # Telegram 봇 daemon (foreground, Ctrl+C 종료)
+token-weather telegram check    # Telegram 설정 / token / linger 진단
 ```
 
 default `auth login` 은 실제 OAuth 토큰 교환을 수행합니다. `--mock` 옵션 시 token endpoint 호출 없이 mock 계정만 저장 (테스트/실험용). `--label` 로 저장된 계정에 친화적 이름 부여 → 이후 `--account <label>` 로 참조.
+
+## Telegram 봇 (옵션)
+
+핸드폰 / 다른 데스크탑에서 `status` / `usage` / `doctor` / `auth list` 명령을 원격 호출하고 싶다면 별도 패키지 `@token-weather/telegram` 을 추가 설치합니다. token-weather 가 시스템 service 파일을 직접 만들지 않고, 사용자 동의가 필요한 명령 블록만 print 합니다 (UX 절충안).
+
+```bash
+npm install -g @token-weather/telegram   # 옵션 패키지
+token-weather telegram setup             # 봇 토큰 + 페어링 + OS service 안내
+token-weather telegram start             # daemon 실행 (또는 setup 끝의 systemd / launchd / Task Scheduler 사용)
+```
+
+상세 / 보안 모델 / OS service 수동 등록 / FAQ: [docs/telegram-bot.md](./docs/telegram-bot.md).
 
 ## JSON 출력 (자동화)
 
