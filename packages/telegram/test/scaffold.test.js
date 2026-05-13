@@ -30,4 +30,18 @@ describe('@token-weather/telegram public API (Phase 1 scaffold → Phase 3 evolu
     assert.match(lines[0], /^token-weather telegram/);
     assert.ok(lines.some((l) => l.includes('start')));
   });
+
+  it('telegram start --help 는 throw 없이 안내 출력 (PR #134 review)', async () => {
+    const orig = console.log;
+    const logs = [];
+    console.log = (...a) => logs.push(a.join(' '));
+    try {
+      await runTelegramCommand(['start', '--help'], {});
+      await runTelegramCommand(['start', '-h'], {});
+    } finally {
+      console.log = orig;
+    }
+    assert.ok(logs.some((l) => l.includes('telegram start')));
+    assert.ok(logs.some((l) => l.includes('활성화 사전 조건')));
+  });
 });

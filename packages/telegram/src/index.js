@@ -100,7 +100,32 @@ export function formatTelegramHelp() {
   ];
 }
 
-async function runStartSubcommand(_args, deps) {
+/**
+ * `token-weather telegram start --help` 출력. Pure function. (PR #134 review —
+ * subcommand 별 --help 패턴이 다른 서브명령 (auth login / status / doctor) 과
+ * 정합되도록 분리.)
+ */
+export function formatTelegramStartHelp() {
+  return [
+    'token-weather telegram start [options]',
+    '',
+    'Telegram 봇 long-poll daemon 을 foreground 로 시작합니다. Ctrl+C 로 종료.',
+    '',
+    'Options:',
+    '  -h, --help   이 도움말 출력',
+    '',
+    '활성화 사전 조건 (Phase 4 의 `telegram setup` 명령이 자동 갱신):',
+    '  - config.channels.telegram.enabled === true',
+    '  - config.channels.telegram.botToken 비어 있지 않음',
+    '  - config.channels.telegram.allowedUserIds 1 개 이상',
+  ];
+}
+
+async function runStartSubcommand(args, deps) {
+  if (Array.isArray(args) && (args.includes('--help') || args.includes('-h'))) {
+    for (const line of formatTelegramStartHelp()) console.log(line);
+    return;
+  }
   if (!deps?.resolveAgentConfigPath) {
     throw new Error('runTelegramCommand: deps.resolveAgentConfigPath 가 필요합니다.');
   }
