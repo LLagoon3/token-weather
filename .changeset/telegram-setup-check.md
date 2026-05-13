@@ -18,6 +18,8 @@ start` 만 활성화되었던 상태에서 **end-user 가 처음부터 끝까지
 - `validateBotToken(botToken, { fetchFn?, apiBase? })` — Telegram Bot API getMe
   로 token 유효성 검증. `{ ok, botInfo | error }`.
 - `generatePairingCode()` — 1회용 `TGW-XXXXXX` 코드 (0/1/I/O 제외, OCR 친화).
+  `node:crypto.randomInt` 기반 — 1회용 authorization token 성격이므로 cryptographically
+  secure RNG (PR #135 review).
 - `runPairingBot(botToken, expectedCode, { timeoutMs?, botFactory?, logger? })`
   — 페어링 전용 1회 daemon. allowlist 없이 `/pair <code>` 만 listen, ctx.from.id
   캡처 후 `{ userId, username }` resolve. 5 분 timeout, mock 주입 가능.
@@ -35,6 +37,9 @@ start` 만 활성화되었던 상태에서 **end-user 가 처음부터 끝까지
   / start / check 모두 dispatch.
 - `formatTelegramHelp` 의 Subcommands 목록에 `setup` / `check` 추가 (start 와
   동급).
+- `runTelegramSubcommand` 의 deps 에 `createDefaultConfig` 주입 추가 — setup
+  이 config 가 없을 때 default config 기반으로 시작하도록 (PR #135 review
+  blocker — setup 직후 status/usage provider disabled 회피).
 
 **UX 정책** (PR #131 / #133 의 review 정신과 정합):
 
@@ -47,10 +52,10 @@ LaunchAgents/...`) 을 직접 만들지 않음. token-weather 의 "로컬 only" 
 - 모든 외부 의존성 (fetch / readline / Bot / fs / execSync / platform) 옵션
   주입 — 단위 테스트가 외부 네트워크 / 실 파일 / 실 bot 없이 e2e 시나리오 검증.
 
-**기존 패키지 변경**:
+**기존 패키지 변경** (`@token-weather/cli`):
 
-- 없음 — Phase 3 의 `run-cli` 분기 + 8 deps 가 그대로 통과. Phase 4 의 추가
-  deps (`resolveAgentConfigPath`) 도 Phase 3 에서 이미 주입.
+- `run-cli` 의 telegram deps 에 `createDefaultConfig` 추가 (PR #135 review
+  blocker fix). Phase 3 의 8 deps 가 9 deps 로 확장.
 
 **SCHEMA_VERSION** 무변경 — status --json contract 무영향. **Migration** 없음.
 

@@ -201,7 +201,9 @@ describe('runSetupSubcommand (Phase 4)', () => {
     );
     await new Promise((r) => setImmediate(r));
     await mock.fire({
-      message: { text: `/pair ${logs.find((l) => l.includes('/pair'))?.match(/\/pair (\S+)/)?.[1]}` },
+      message: {
+        text: `/pair ${logs.find((l) => l.includes('/pair'))?.match(/\/pair (\S+)/)?.[1]}`,
+      },
       from: { id: 7 },
       reply: async () => {},
     });
