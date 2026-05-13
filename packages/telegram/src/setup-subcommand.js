@@ -39,8 +39,10 @@ const DIVIDER = '━━━━━━━━━━━━━━━━━━━━━
  * @returns {Promise<void>}
  */
 export async function runSetupSubcommand(args, deps, options = {}) {
+  const log = options.log ?? ((msg) => console.log(msg));
+  const errorLog = options.errorLog ?? ((msg) => console.error(msg));
   if (Array.isArray(args) && (args.includes('--help') || args.includes('-h'))) {
-    for (const line of formatTelegramSetupHelp()) console.log(line);
+    for (const line of formatTelegramSetupHelp()) log(line);
     return;
   }
   if (!deps?.resolveAgentConfigPath) {
@@ -49,8 +51,6 @@ export async function runSetupSubcommand(args, deps, options = {}) {
 
   const promptFn = options.promptFn ?? defaultPromptFn;
   const fetchFn = options.fetchFn ?? fetch;
-  const log = options.log ?? ((msg) => console.log(msg));
-  const errorLog = options.errorLog ?? ((msg) => console.error(msg));
   const fsImpl = options.fsImpl ?? fs;
 
   log('▶ token-weather telegram setup');

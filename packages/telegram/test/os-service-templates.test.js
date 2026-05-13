@@ -10,7 +10,8 @@ import {
 
 const INPUT = {
   nodeBinPath: '/usr/bin/node',
-  cliScriptPath: '/home/u/.nvm/versions/node/v20/lib/node_modules/@token-weather/cli/bin/token-weather.js',
+  cliScriptPath:
+    '/home/u/.nvm/versions/node/v20/lib/node_modules/@token-weather/cli/bin/token-weather.js',
   homeDir: '/Users/u',
 };
 

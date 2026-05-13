@@ -36,14 +36,14 @@ import { validateBotToken } from './pairing.js';
  * @returns {Promise<{ checks: Array<{ name: string, ok: boolean | 'warn', message: string }> }>}
  */
 export async function runCheckSubcommand(args, deps, options = {}) {
+  const log = options.log ?? ((msg) => console.log(msg));
   if (Array.isArray(args) && (args.includes('--help') || args.includes('-h'))) {
-    for (const line of formatTelegramCheckHelp()) console.log(line);
+    for (const line of formatTelegramCheckHelp()) log(line);
     return { checks: [] };
   }
   if (!deps?.resolveAgentConfigPath) {
     throw new Error('runCheckSubcommand: deps.resolveAgentConfigPath 가 필요합니다.');
   }
-  const log = options.log ?? ((msg) => console.log(msg));
   const fsImpl = options.fsImpl ?? fs;
   const platform = options.platform ?? process.platform;
   const fetchFn = options.fetchFn ?? fetch;
@@ -126,9 +126,7 @@ export async function runCheckSubcommand(args, deps, options = {}) {
     checks.push({
       name: 'getMe API',
       ok: validation.ok,
-      message: validation.ok
-        ? `@${validation.botInfo?.username ?? '(unknown)'}`
-        : validation.error,
+      message: validation.ok ? `@${validation.botInfo?.username ?? '(unknown)'}` : validation.error,
     });
   }
 

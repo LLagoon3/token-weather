@@ -15,8 +15,8 @@ import fs from 'node:fs';
 
 import { createBotServer } from './bot-server.js';
 import { buildDispatcher } from './dispatcher.js';
-import { runSetupSubcommand, formatTelegramSetupHelp } from './setup-subcommand.js';
-import { runCheckSubcommand, formatTelegramCheckHelp } from './check-subcommand.js';
+import { runSetupSubcommand } from './setup-subcommand.js';
+import { runCheckSubcommand } from './check-subcommand.js';
 
 export { createBotServer, handleTextMessage } from './bot-server.js';
 export { buildDispatcher } from './dispatcher.js';
@@ -29,11 +29,7 @@ export {
   formatPreChunksForTelegram,
   formatErrorForTelegram,
 } from './formatters.js';
-export {
-  validateBotToken,
-  generatePairingCode,
-  runPairingBot,
-} from './pairing.js';
+export { validateBotToken, generatePairingCode, runPairingBot } from './pairing.js';
 export {
   linuxSystemdUnit,
   macosLaunchAgent,
