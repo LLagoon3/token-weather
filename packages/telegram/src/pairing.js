@@ -107,9 +107,13 @@ export async function runPairingBot(botToken, expectedCode, options = {}) {
       if (settled) return;
       const text = ctx?.message?.text?.trim?.() ?? '';
       // `/pair <code>` 와 `/start <code>` 둘 다 페어링 명령으로 인식 (issue #137).
-      // `/start` 는 Telegram deep link (`t.me/<bot>?start=<code>`) 클릭 시 자동
-      // 전송되는 명령이라 페어링 UX 단순화 (5 step → 2 step) 의 핵심.
-      const match = text.match(/^\/(pair|start)\s+(\S+)/);
+      // `/start` 는 Telegram deep link (`t.me/<bot>?start=<code>`) 클릭 시
+      // 전달되는 명령이라 페어링 UX 단순화 (5 step → 2 step) 의 핵심.
+      //
+      // strict matching — payload 가 정확히 한 토큰. `/pair <code> extra` 같이
+      // trailing arg 가 붙은 입력은 거부 (PR #139 review). 페어링 코드는
+      // authorization token 성격이라 입력 검증 엄격.
+      const match = text.match(/^\/(pair|start)\s+(\S+)\s*$/);
       if (!match) return;
       const submittedCode = match[2];
       if (submittedCode !== expectedCode) {

@@ -154,6 +154,23 @@ describe('runPairingBot (Phase 4)', () => {
     assert.ok(ctx.replies.some((m) => m.includes('페어링 완료')));
   });
 
+  it('/pair <code> <extra> 같이 trailing arg 가 붙은 입력은 거부 (PR #139 review)', async () => {
+    const mock = makeMockBot();
+    const pending = runPairingBot('123:fake', 'TGW-ABC123', {
+      botFactory: () => mock,
+      logger: { log: () => {} },
+      timeoutMs: 200,
+    });
+    await new Promise((r) => setImmediate(r));
+    // trailing arg 가 붙으면 strict regex 가 fail — 핸들러는 silent ignore (return)
+    // → reply / settle 없이 timeout 까지 대기.
+    const ctx = makeCtx('/pair TGW-ABC123 extra', { from: { id: 42 } });
+    await mock._fire(ctx);
+    assert.equal(ctx.replies.length, 0, 'trailing arg 입력은 silent — reply 없음');
+    assert.equal(mock.stopped, false);
+    await assert.rejects(() => pending, /pairing timeout/);
+  });
+
   it('/start <wrong-code> 도 mismatch 응답 (대기 지속)', async () => {
     const mock = makeMockBot();
     const pending = runPairingBot('123:fake', 'TGW-ABC123', {
