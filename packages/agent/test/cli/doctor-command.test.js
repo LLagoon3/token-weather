@@ -7,6 +7,7 @@ import {
   formatDoctorHelp,
   formatDoctorCodexHelp,
   formatDoctorClaudeHelp,
+  formatDoctorReportLines,
 } from '../../src/cli/doctor-command.js';
 
 // ---------------------------------------------------------------------------
@@ -283,5 +284,35 @@ describe('formatClaudeSection — multi-account usageSnapshots', () => {
   it('shows "호출 안 함" when usageSnapshots is empty', () => {
     const lines = formatClaudeSection({ ...basicSnapshot, usageSnapshots: [] });
     assert.ok(lines.some((l) => l.includes('호출 안 함')));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatDoctorReportLines (Phase 3 issue #128) — collectDoctorReport 결과 →
+// CLI / Telegram 공유 평문 lines.
+// ---------------------------------------------------------------------------
+
+describe('formatDoctorReportLines', () => {
+  it('configPath / claude section 모두 포함', () => {
+    const lines = formatDoctorReportLines({
+      configPath: '/path/to/config.json',
+      claudeSnapshot: {
+        credentialsPath: '/x/y/.credentials.json',
+        enabled: true,
+        authSource: 'claude-cli-import',
+        usageSnapshots: [],
+      },
+    });
+    assert.ok(lines[0].includes('token-weather doctor'));
+    assert.ok(lines.some((l) => l.includes('/path/to/config.json')));
+    assert.ok(lines.some((l) => l.includes('/x/y/.credentials.json')));
+  });
+
+  it('pure — 동일 입력은 동일 출력 (CLI / Telegram 공유 contract)', () => {
+    const input = {
+      configPath: '/cfg',
+      claudeSnapshot: { credentialsPath: null, enabled: false, usageSnapshots: [] },
+    };
+    assert.deepEqual(formatDoctorReportLines(input), formatDoctorReportLines(input));
   });
 });
