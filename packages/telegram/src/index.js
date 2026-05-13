@@ -1,36 +1,62 @@
 /**
- * @token-weather/telegram — Telegram 봇 통합 패키지 진입점.
+ * @token-weather/telegram — public API.
  *
- * 5-phase plan (issue #126~#130) 의 Phase 1 시점에서는 워크스페이스 scaffold +
- * placeholder export 만 제공한다. 실제 long-poll daemon / 명령 라우터 / 핸들러는
- * Phase 2~3 (#127, #128) 에서 채워지고, 사용자 setup 흐름은 Phase 4 (#129).
+ * Phase 2 (#127) 부터 createBotServer / startBot / stopBot 가 실제 long-poll
+ * daemon 을 띄운다. `runTelegramCommand` 는 여전히 Phase 1 placeholder —
+ * Phase 3 (#128) 에서 dispatcher 를 채우고 `run-cli` 와 연결한다.
  *
- * ## 의존성 방향 (PR #131 review 지적 반영)
+ * ## 의존성 방향 (PR #131 review 정책)
  *
- * `@token-weather/cli` 가 본 패키지를 dynamic import 로 호출하므로, 본 패키지가
- * 다시 `@token-weather/cli` 를 import 하면 순환이 생긴다. 반대로 core 로직 (status
- * snapshot / formatter / config loader) 을 본 패키지가 재구현하면 CLI 와 drift
- * 발생.
- *
- * 본 패키지는 그 두 경로 모두 피하기 위해 **의존성 주입 (deps injection)** 을
- * 채택한다 — `runTelegramCommand(argv, deps)` 의 `deps` 로 CLI 측이 core 함수
- * 묶음을 그대로 넘긴다. 본 패키지는 `@token-weather/provider-adapters` 와
- * `@token-weather/schemas` 만 직접 의존하고, status / usage / doctor / auth-list
- * 같은 CLI-소유 함수는 deps 를 통해서만 접근한다.
- *
- * Phase 3 (#128) 에서 `deps` 의 정확한 shape 가 typedef 로 굳어진다. 현재는
- * Phase 3 가 채울 핵심 키만 주석으로 가이드.
+ * 본 패키지는 `@token-weather/cli` 를 import 하지 않는다. `runTelegramCommand`
+ * 의 `deps` 매개변수가 CLI 가 주입하는 core 함수 묶음 (getStatusSnapshot /
+ * formatStatusOutput / formatStatusJson / collectDoctorReport /
+ * collectAuthListData / resolveAgentConfigPath) 의 통로 — 순환 의존 회피.
  */
+
+import { createBotServer } from './bot-server.js';
+
+export { createBotServer } from './bot-server.js';
+export { parseCommand, listAvailableCommands } from './command-router.js';
+export { authAllowlistMiddleware, maskChatId } from './auth-allowlist.js';
+export { stripAnsi, wrapPre, splitForTelegram, formatErrorForTelegram } from './formatters.js';
+
+let _activeServer = null;
+
+/**
+ * Telegram 봇 daemon 을 띄운다. long-poll 루프는 fire-and-forget 으로 시작되고,
+ * lifecycle 핸들은 internal cache 에 저장된다. process 가 살아 있는 동안 daemon
+ * 이 계속 돈다고 가정해도 된다.
+ *
+ * @param {import('./bot-server.js').BotServerOptions} config
+ * @returns {Promise<import('./bot-server.js').BotServer>}
+ */
+export async function startBot(config) {
+  if (_activeServer) {
+    throw new Error(
+      'startBot: Telegram bot is already running in this process (single-instance lock).',
+    );
+  }
+  _activeServer = createBotServer(config);
+  await _activeServer.start();
+  return _activeServer;
+}
+
+/**
+ * 현재 프로세스에서 띄운 daemon 을 graceful 하게 종료한다. 미작동 상태면 noop.
+ */
+export async function stopBot() {
+  if (!_activeServer) return;
+  await _activeServer.stop();
+  _activeServer = null;
+}
 
 /**
  * `@token-weather/cli` 의 `run-cli` 가 `telegram` 서브명령에서 dynamic import 로
- * 호출하는 진입점.
+ * 호출하는 진입점. Phase 3 (#128) 에서 setup / check / start subcommand dispatch
+ * 가 채워진다.
  *
  * @param {string[]} _argv - `token-weather telegram <subcommand> ...` 의 나머지 인자.
- * @param {object} [_deps] - CLI 가 주입하는 core 함수 묶음. Phase 3 에서 다음 키들이
- *   채워진다: `getStatusSnapshot`, `formatStatusOutput`, `formatStatusJson`,
- *   `collectDoctorReport`, `collectAuthListData`, `resolveAgentConfigPath`. 본 패키지가
- *   `@token-weather/cli` 를 직접 import 하지 않도록 막아 순환 의존을 방지한다.
+ * @param {object} [_deps] - CLI 가 주입하는 core 함수 묶음.
  * @returns {Promise<void>}
  */
 export async function runTelegramCommand(_argv, _deps) {
