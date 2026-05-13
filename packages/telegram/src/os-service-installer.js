@@ -329,6 +329,7 @@ export async function uninstallLaunchAgent(options = {}) {
 
 export async function installTaskScheduler(input, options = {}) {
   const execImpl = options.execImpl ?? defaultExecImpl;
+  const confirmFn = options.confirmFn ?? defaultConfirmFn;
 
   try {
     execImpl('schtasks', ['/?']);
@@ -337,6 +338,28 @@ export async function installTaskScheduler(input, options = {}) {
       status: 'skipped',
       message: `schtasks 미감지 (${err?.message ?? '실행 실패'}) — 수동 등록 안내로 fallback`,
     };
+  }
+
+  // 기존 task 충돌 검사 — `/Query` 성공 시 동일 이름 task 존재 (PR #140 review
+  // blocker 2). systemd / launchd 와 일관된 사용자 파일 보호 정책.
+  let existing = false;
+  try {
+    execImpl('schtasks', ['/Query', '/TN', 'TokenWeatherBot']);
+    existing = true;
+  } catch {
+    // task 없음 — 정상 진행.
+  }
+  if (existing) {
+    const overwrite = await confirmFn(
+      '기존 Task Scheduler 항목 `TokenWeatherBot` 가 존재합니다. 덮어쓸까요?',
+      false,
+    );
+    if (!overwrite) {
+      return {
+        status: 'skipped',
+        message: '사용자가 덮어쓰기 거부 — 기존 TokenWeatherBot task 보존',
+      };
+    }
   }
 
   const steps = [];

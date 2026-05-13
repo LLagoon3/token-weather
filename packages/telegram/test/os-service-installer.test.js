@@ -244,6 +244,40 @@ describe('installTaskScheduler (issue #138)', () => {
     assert.equal(r.status, 'skipped');
     assert.match(r.message, /schtasks 미감지/);
   });
+
+  it('기존 task 존재 + confirm n → status skipped (PR #140 review blocker 2)', async () => {
+    // schtasks /? 와 /Query 둘 다 성공 (task 존재 의미).
+    let confirmAsked = false;
+    const r = await installTaskScheduler(INPUT, {
+      execImpl: () => '', // 모든 호출 ok — /? 통과 + /Query 통과 = 기존 task 존재.
+      confirmFn: async (_q, _default) => {
+        confirmAsked = true;
+        return false; // n.
+      },
+    });
+    assert.equal(confirmAsked, true);
+    assert.equal(r.status, 'skipped');
+    assert.match(r.message, /덮어쓰기 거부/);
+  });
+
+  it('기존 task 없음 (/Query fail) → 정상 install 진행', async () => {
+    const calls = [];
+    let queryCalled = 0;
+    const r = await installTaskScheduler(INPUT, {
+      execImpl: (cmd, args) => {
+        calls.push({ cmd, args });
+        if (cmd === 'schtasks' && args[0] === '/Query') {
+          queryCalled += 1;
+          throw new Error('task not found');
+        }
+        return '';
+      },
+    });
+    assert.equal(queryCalled, 1);
+    assert.equal(r.status, 'installed');
+    // /Create 호출 단언.
+    assert.ok(calls.some((c) => c.cmd === 'schtasks' && c.args.includes('/Create')));
+  });
 });
 
 // ─── uninstallLaunchAgent / uninstallTaskScheduler ──────────────────────────
