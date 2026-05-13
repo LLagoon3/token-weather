@@ -98,7 +98,10 @@ describe('runUninstallServiceSubcommand (issue #138)', () => {
 
 describe('formatTelegramUninstallServiceHelp', () => {
   it('첫 줄이 token-weather telegram uninstall-service', () => {
-    assert.match(formatTelegramUninstallServiceHelp()[0], /^token-weather telegram uninstall-service$/);
+    assert.match(
+      formatTelegramUninstallServiceHelp()[0],
+      /^token-weather telegram uninstall-service$/,
+    );
   });
   it('제거 대상 + 주의 단락 포함', () => {
     const text = formatTelegramUninstallServiceHelp().join('\n');

@@ -357,7 +357,8 @@ export async function installTaskScheduler(input, options = {}) {
     steps.push('schtasks /Create /TN TokenWeatherBot ...');
     return {
       status: 'installed',
-      message: 'Windows Task Scheduler 등록 완료. Node 버전 매니저 변경 시 `telegram setup` 재실행 권장.',
+      message:
+        'Windows Task Scheduler 등록 완료. Node 버전 매니저 변경 시 `telegram setup` 재실행 권장.',
       steps,
     };
   } catch (err) {

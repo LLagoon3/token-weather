@@ -14,27 +14,30 @@ npm install -g @token-weather/cli @token-weather/telegram
 #    https://core.telegram.org/bots#how-do-i-create-a-bot
 #    /newbot → 이름 + username 선택 → 토큰 복사
 
-# 3) 봇 토큰 + chat 페어링 + config 저장 + OS service 안내까지 한 명령으로
+# 3) 봇 토큰 + chat 페어링 + config 저장 + OS service 자동 등록 / 안내까지 한 명령으로
 token-weather telegram setup
-#    토큰 prompt → getMe 검증 → 출력의 deep link 클릭 (또는 /pair 수동 입력) → 봇 대화창 열림 → (필요 시 Start 버튼 클릭) → 페어링 완료
+#    토큰 prompt → getMe 검증 → 출력의 deep link 클릭 → (Start 버튼) → 페어링 완료
+#    → "자동으로 설치하시겠습니까? [Y/n]" → Enter → systemd / launchd / Task Scheduler 자동 등록
 
-# 4) (선택) OS service 등록 — setup 끝에서 안내한 블록을 복사 / 붙여넣기
-
-# 5) (선택) 진단
+# 4) (선택) 진단
 token-weather telegram check
 
-# 6) 수동 실행 (OS service 안 쓸 때)
+# 5) 수동 실행 (OS service 안 쓸 때)
 token-weather telegram start
+
+# 6) 제거 (자동 등록 해제)
+token-weather telegram uninstall-service
 ```
 
 ## 명령
 
-| 명령                                                 | 설명                                                                                                                                            |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `token-weather telegram setup`                       | 봇 토큰 입력 → `getMe` 검증 → **deep link 클릭** 또는 `/pair <code>` 수동 입력으로 페어링 → config 저장 (chmod 600) → OS service template print |
-| `token-weather telegram start`                       | long-poll daemon foreground 실행. Ctrl+C 종료                                                                                                   |
-| `token-weather telegram check`                       | config / token / chmod / linger 상태 read-only 진단                                                                                             |
-| `... telegram --help`<br>`... telegram <sub> --help` | 각 명령의 안내 출력                                                                                                                             |
+| 명령                                                 | 설명                                                                                                                                                                   |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `token-weather telegram setup`                       | 봇 토큰 입력 → `getMe` 검증 → **deep link 클릭** 또는 `/pair <code>` 수동 입력 → config 저장 (chmod 600) → **OS service 자동 등록 [Y/n]** (거부 시 수동 안내 fallback) |
+| `token-weather telegram start`                       | long-poll daemon foreground 실행. Ctrl+C 종료                                                                                                                          |
+| `token-weather telegram check`                       | config / token / chmod / linger 상태 read-only 진단                                                                                                                    |
+| `token-weather telegram uninstall-service`           | `setup` 으로 등록된 OS service 제거 (config / auth.json 은 유지)                                                                                                       |
+| `... telegram --help`<br>`... telegram <sub> --help` | 각 명령의 안내 출력                                                                                                                                                    |
 
 ## 봇이 받는 채팅 명령
 
@@ -51,9 +54,17 @@ token-weather telegram start
 
 본인이 아닌 봇을 mention 한 명령 (`/status@OtherBot`) 은 silent ignore — group chat 에서 다른 봇 명령에 token-weather 가 응답하지 않습니다.
 
-## OS service 수동 등록
+## OS service 등록
 
-`telegram setup` 끝에서 print 되는 명령 블록을 셸에 복사 / 붙여넣기 하면 부팅 후 자동 시작이 활성화됩니다. token-weather 가 시스템 파일을 직접 만들지 **않습니다** — 사용자 동의가 필요한 변경이라는 보안 도구 원칙.
+`telegram setup` 의 마지막 단계가 **`자동으로 설치하시겠습니까? [Y/n]`** 프롬프트를 표시합니다:
+
+- **Enter / y** (default): token-weather 가 직접 systemd unit / launchd plist / Task Scheduler 항목을 작성 + 활성화 (`systemctl --user enable --now` / `launchctl bootstrap` / `schtasks /Create`). Linux 는 `loginctl enable-linger` 까지 자동 (best-effort).
+- **n**: 자동 등록 건너뜀 → 아래 수동 안내 블록을 사용자가 복사 / 붙여넣기.
+- **systemd / launchctl / schtasks 미감지** (WSL / Docker container / Alpine OpenRC 등): 자동 skip + 동일한 수동 안내 출력.
+
+자동 등록을 나중에 해제하려면 `token-weather telegram uninstall-service`. 책임 범위는 service / linger 까지 (config / auth.json 은 그대로 유지).
+
+### 수동 등록 (자동 등록 거부 / skip 시)
 
 > ⚠ 아래 코드 블록은 **구조 예시** 입니다. `/path/to/node` / `/path/to/token-weather` 같은 placeholder 는 실제 환경에서 다르며, **`telegram setup` 출력의 절대 경로를 그대로 복사** 해 주세요. 경로에 공백 / 특수문자가 있는 경우 setup 출력의 정확한 quoting 을 반드시 따라야 합니다.
 

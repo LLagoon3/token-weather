@@ -130,7 +130,10 @@ describe('installSystemdUnit (issue #138)', () => {
     assert.equal(r.status, 'skipped');
     assert.match(r.message, /덮어쓰기 거부/);
     // write / mkdir 안 일어남.
-    assert.equal(mockFs.calls.some((c) => c.op === 'write'), false);
+    assert.equal(
+      mockFs.calls.some((c) => c.op === 'write'),
+      false,
+    );
   });
 
   it('linger 실패는 warning + 계속 (status 는 여전히 installed)', async () => {
@@ -199,7 +202,10 @@ describe('uninstallSystemdUnit (issue #138)', () => {
       env: { HOME: '/home/test', USER: 'test' },
     });
     assert.equal(r.status, 'skipped');
-    assert.equal(mockFs.calls.some((c) => c.op === 'unlink'), false);
+    assert.equal(
+      mockFs.calls.some((c) => c.op === 'unlink'),
+      false,
+    );
   });
 
   it('정상 uninstall — disable + unlink + linger 해제', async () => {
