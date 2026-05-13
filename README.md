@@ -6,7 +6,7 @@
 [![Node](https://img.shields.io/node/v/%40token-weather%2Fcli.svg)](https://nodejs.org/)
 
 > **Local CLI dashboard for AI service usage and OAuth credentials.**
-> 로컬에서 여러 AI 서비스(Codex / Claude)의 사용량과 인증 상태를 한 번에 확인하는 CLI. 토큰을 외부 서버로 보내지 않습니다.
+> 로컬에서 여러 AI 서비스(Codex / Claude)의 사용량과 인증 상태를 한 번에 확인하는 CLI. **OAuth 토큰은 외부 서버로 보내지 않습니다** (옵션 `@token-weather/telegram` 활성화 시에도 봇 토큰 / OAuth 토큰은 로컬, 사용량 메타데이터만 Telegram 서버 경유 — [상세](./docs/telegram-bot.md#보안-모델)).
 
 ## Install
 
@@ -47,7 +47,7 @@ token-weather auth login claude --manual
 ## What & Why
 
 - **무엇**: AI 도구의 OAuth credential과 사용량 window를 로컬에서 통합 조회하는 CLI. Codex(OpenAI) / Claude(Anthropic) 두 provider 운영 중.
-- **왜**: 다른 대시보드들은 토큰을 외부 서버로 보내거나 별도 auth 서비스에 의존. Token Weather는 **자체 broker + 로컬 credential store**로 동작 — 토큰이 머신을 떠나지 않습니다.
+- **왜**: 다른 대시보드들은 토큰을 외부 서버로 보내거나 별도 auth 서비스에 의존. Token Weather는 **자체 broker + 로컬 credential store**로 동작 — **OAuth 토큰이 머신을 떠나지 않습니다**. 옵션 `@token-weather/telegram` 사용 시에도 token 자체는 로컬, 사용량 / 계정 label 메타데이터만 Telegram 서버 경유 ([상세](./docs/telegram-bot.md#보안-모델)).
 - **어떤 점이 다른가**:
   - **Multi-account**: 한 provider에 여러 계정 저장, 병렬 조회, label 부여
   - **자동 refresh**: 만료된 access token은 provider 호출 전 preflight refresh, auth 실패 시 1회 재시도
