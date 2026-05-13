@@ -106,8 +106,9 @@ export async function runSetupSubcommand(args, deps, options = {}) {
   log('');
   log('▶ 다음 중 하나로 페어링하세요:');
   log('');
-  log('  (A) 아래 링크를 클릭하면 Telegram 앱이 자동으로 열리며 페어링됩니다:');
+  log('  (A) 아래 링크를 클릭하면 Telegram 앱이 봇 대화창으로 열립니다:');
   log(`      ${deepLink}`);
+  log('      봇을 처음 여는 경우 "Start" 버튼이 보이면 한 번 누르세요 (페어링 코드는 자동 전달).');
   log('');
   log(`  (B) Telegram 앱에서 @${validation.botInfo.username} 봇에게 다음 명령을 직접 입력:`);
   log(`      /pair ${code}`);

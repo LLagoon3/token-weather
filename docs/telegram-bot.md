@@ -16,7 +16,7 @@ npm install -g @token-weather/cli @token-weather/telegram
 
 # 3) 봇 토큰 + chat 페어링 + config 저장 + OS service 안내까지 한 명령으로
 token-weather telegram setup
-#    토큰 prompt → getMe 검증 → 출력의 deep link 클릭 (또는 /pair 수동 입력) → 자동 페어링
+#    토큰 prompt → getMe 검증 → 출력의 deep link 클릭 (또는 /pair 수동 입력) → 봇 대화창 열림 → (필요 시 Start 버튼 클릭) → 페어링 완료
 
 # 4) (선택) OS service 등록 — setup 끝에서 안내한 블록을 복사 / 붙여넣기
 
@@ -38,16 +38,16 @@ token-weather telegram start
 
 ## 봇이 받는 채팅 명령
 
-| Telegram 명령    | 동작 (`token-weather <cmd>` 와 동일)                                    |
-| ---------------- | ----------------------------------------------------------------------- |
-| `/status`        | 평문 status 출력 (HTML `<pre>` 블록)                                    |
-| `/status --json` | `formatStatusJson` 결과 (top-level `command` = "status")                |
-| `/usage`         | status alias — 평문                                                     |
-| `/usage --json`  | `formatStatusJson` 결과 (top-level `command` = "usage")                 |
-| `/doctor`        | `runDoctorRoot` 기본 출력. 인자 / subcommand 차단                       |
-| `/auth_list`     | 모든 provider 의 저장 계정 + claude import 섹션                         |
-| `/start <code>`  | 페어링 전용 (setup 시점에만 의미). Telegram deep link 클릭 시 자동 전송 |
-| `/pair <code>`   | 페어링 전용 (setup 시점에만 의미). 수동 입력 fallback                   |
+| Telegram 명령    | 동작 (`token-weather <cmd>` 와 동일)                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `/status`        | 평문 status 출력 (HTML `<pre>` 블록)                                                                                  |
+| `/status --json` | `formatStatusJson` 결과 (top-level `command` = "status")                                                              |
+| `/usage`         | status alias — 평문                                                                                                   |
+| `/usage --json`  | `formatStatusJson` 결과 (top-level `command` = "usage")                                                               |
+| `/doctor`        | `runDoctorRoot` 기본 출력. 인자 / subcommand 차단                                                                     |
+| `/auth_list`     | 모든 provider 의 저장 계정 + claude import 섹션                                                                       |
+| `/start <code>`  | 페어링 전용 (setup 시점에만 의미). Telegram deep link 클릭 → 봇 대화창 → (처음이면 Start 버튼) → `/start <code>` 전달 |
+| `/pair <code>`   | 페어링 전용 (setup 시점에만 의미). 수동 입력 fallback                                                                 |
 
 본인이 아닌 봇을 mention 한 명령 (`/status@OtherBot`) 은 silent ignore — group chat 에서 다른 봇 명령에 token-weather 가 응답하지 않습니다.
 
