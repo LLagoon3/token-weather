@@ -16,6 +16,16 @@ export const DEFAULT_AGENT_CONFIG = {
     claude: {
       enabled: true,
     },
+  },
+  /**
+   * 외부 채널 / 메시징 integration 설정. `providers` (usage 조회 대상) 와 의도적으로
+   * 분리 — PROVIDER_REGISTRY / `--provider` 필터 / `status --json providers[]` /
+   * `authSource` / `usageSnapshots` 가 모두 usage provider 의미에 묶여 있으므로,
+   * Telegram 같은 channel 은 별도 네임스페이스를 갖는다.
+   *
+   * 향후 Discord / Slack 같은 추가 channel 도 본 객체 아래에 합류.
+   */
+  channels: {
     /**
      * Telegram 봇 채널 — `@token-weather/telegram` 패키지가 daemon 으로 구동될
      * 때 본 키를 읽는다. 기본값은 opt-out (enabled: false). 활성화는

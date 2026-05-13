@@ -208,7 +208,7 @@ describe('redactSensitive — objects', () => {
 
   it('removes telegram bot token at any depth (issue #126)', () => {
     const out = redactSensitive({
-      providers: {
+      channels: {
         telegram: {
           enabled: true,
           botToken: '1234567890:ABCDEF',
@@ -219,7 +219,7 @@ describe('redactSensitive — objects', () => {
       },
     });
     assert.deepEqual(out, {
-      providers: {
+      channels: {
         telegram: {
           enabled: true,
           allowedChatIds: [42],
