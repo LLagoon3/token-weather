@@ -24,19 +24,24 @@ allowedUserIds 가 채워진 환경에서).
 
 **신규 public export** (`@token-weather/telegram`):
 
-- `createStatusHandler(deps)` / `createStatusJsonHandler(deps)` /
+- `createStatusHandler(deps)` / `createStatusJsonHandler(deps, opts?)` /
   `createUsageHandler(deps)` / `createDoctorHandler(deps)` /
   `createAuthListHandler(deps)` — 5 명령 handler factory. 각 factory 는 deps
   로 cli 의 core 함수 (getStatusSnapshot / formatStatusOutput / formatStatusJson
   / collectDoctorReport / formatDoctorReportLines / collectAuthListData /
   formatAuthListLines) 를 받아 `(ctx, args) => Promise<void>` 반환.
+  `createStatusJsonHandler` 는 `options.command` 옵션으로 JSON top-level
+  `command` 값을 받아 CLI `runStatusCommand` 의 `--json` contract 와 정합 유지
+  (`/status --json` → "status", `/usage --json` → "usage"; PR #134 review).
 - `buildDispatcher(deps) → Record<cmd, handler>` — 5 명령 dispatch 표 조립.
   `/status` `/usage` 의 `--json` 분기를 본 모듈이 책임 (핸들러 자체는 단일
   책임).
 - `runTelegramCommand(argv, deps)` 본격 구현 — Phase 1 placeholder 던지던
   상태에서 `start` 서브명령 진화. config 의 channels.telegram 검증 (enabled
   / botToken / allowedUserIds) 후 buildDispatcher + startBot 흐름.
-- `formatTelegramHelp()` — `--help` 안내 텍스트.
+- `formatTelegramHelp()` / `formatTelegramStartHelp()` — `--help` 안내 텍스트.
+  `telegram start --help` 도 자체 안내 출력 (PR #134 review — 다른 CLI subcommand
+  와 동일한 --help 패턴 유지).
 
 **CLI 통합**:
 
@@ -57,10 +62,14 @@ telegram` 을 dynamic import (`ERR_MODULE_NOT_FOUND` / `MODULE_NOT_FOUND` 시
 - `package.json` 의 `test` glob 을 `find` 기반으로 갱신 — bash `globstar` off
   환경에서 `packages/<pkg>/test/**/*.test.js` 패턴이 1단계 dir 만 매칭하던
   문제 (telegram 의 `handlers/` 하위 디렉토리 도입 시 root-level test 가 빠짐)
-  해소. 모든 depth 의 .test.js 자동 매칭, 후속 다단 확장에도 무변경.
+  해소. 모든 depth 의 .test.js 자동 매칭, 후속 다단 확장에도 무변경. (Windows
+  native shell 호환 보완은 별도 task 로 분리 — PR #134 review 참고.)
 - `handleTextMessage` 의 dispatcher 미등록 응답 메시지 — Phase 2 의 placeholder
   ("Phase 3 머지 후 활성화") 가 Phase 3 머지된 시점에 부정확 → "알 수 없는
   명령입니다: /xxx\n사용 가능한 명령: ..." 로 갱신.
+- `formatPreChunksForTelegram` 의 split — escape 후 raw slice 대신 raw character
+  단위 split (`splitRawByEscapedLength` helper) 로 갱신 — `&amp;` / `&lt;` /
+  `&gt;` entity 가 chunk 경계에서 끊기지 않도록 보호 (PR #134 review).
 
 **의존성 정책** (PR #131 review 정합):
 
