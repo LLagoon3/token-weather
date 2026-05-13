@@ -121,7 +121,7 @@ describe('handleTextMessage (PR #133 review)', () => {
     });
     await handleTextMessage(ctx, { dispatcher: {} });
     assert.equal(replies.length, 1);
-    assert.match(replies[0], /아직 구현되지 않은/);
+    assert.match(replies[0], /알 수 없는 명령/);
   });
 
   it('mention 없는 명령은 통과 → placeholder reply', async () => {
@@ -129,7 +129,7 @@ describe('handleTextMessage (PR #133 review)', () => {
     const ctx = makeMockCtx('/status', { username: 'TokenWeatherBot', replies });
     await handleTextMessage(ctx, { dispatcher: {} });
     assert.equal(replies.length, 1);
-    assert.match(replies[0], /아직 구현되지 않은/);
+    assert.match(replies[0], /알 수 없는 명령/);
   });
 
   it('non-command 입력은 "알 수 없는 입력" reply', async () => {
@@ -166,7 +166,7 @@ describe('handleTextMessage (PR #133 review)', () => {
     });
     await handleTextMessage(ctx, { dispatcher: {} });
     assert.equal(replies.length, 1);
-    assert.match(replies[0], /아직 구현되지 않은/);
+    assert.match(replies[0], /알 수 없는 명령/);
   });
 });
 
