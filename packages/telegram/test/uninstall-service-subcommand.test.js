@@ -37,7 +37,7 @@ describe('runUninstallServiceSubcommand (issue #138)', () => {
       log,
       errorLog,
       uninstaller: async () => ({
-        status: 'installed',
+        status: 'succeeded',
         message: 'systemd service 제거 완료',
         steps: ['systemctl --user disable', 'unlink ...'],
       }),

@@ -102,7 +102,7 @@ describe('installSystemdUnit (issue #138)', () => {
       execImpl: mockExec.impl,
       env: { HOME: '/home/test', USER: 'test' },
     });
-    assert.equal(r.status, 'installed');
+    assert.equal(r.status, 'succeeded');
     assert.ok(mockFs.calls.some((c) => c.op === 'mkdir'));
     assert.ok(mockFs.calls.some((c) => c.op === 'write'));
     const cmds = mockExec.calls.map((c) => `${c.cmd} ${c.args.join(' ')}`);
@@ -146,7 +146,7 @@ describe('installSystemdUnit (issue #138)', () => {
       log: (m) => logs.push(m),
       env: { HOME: '/home/test', USER: 'test' },
     });
-    assert.equal(r.status, 'installed');
+    assert.equal(r.status, 'succeeded');
     assert.ok(logs.some((l) => l.includes('loginctl enable-linger 실패')));
   });
 
@@ -199,7 +199,7 @@ describe('installSystemdUnit guard 보강 (PR #140 review 2)', () => {
       env: { HOME: '/home/test' }, // USER 부재.
       log: (m) => logs.push(m),
     });
-    assert.equal(r.status, 'installed');
+    assert.equal(r.status, 'succeeded');
     // loginctl 호출 부재.
     assert.equal(
       mockExec.calls.some((c) => c.cmd === 'loginctl'),
@@ -291,7 +291,7 @@ describe('uninstallSystemdUnit (issue #138)', () => {
       confirmFn: async () => true,
       env: { HOME: '/home/test', USER: 'test' },
     });
-    assert.equal(r.status, 'installed');
+    assert.equal(r.status, 'succeeded');
     const cmds = mockExec.calls.map((c) => `${c.cmd} ${c.args.join(' ')}`);
     assert.ok(cmds.some((c) => c.includes('systemctl --user disable --now')));
     assert.ok(cmds.some((c) => c.includes('loginctl disable-linger test')));
@@ -351,7 +351,7 @@ describe('installTaskScheduler (issue #138)', () => {
       },
     });
     assert.equal(queryCalled, 1);
-    assert.equal(r.status, 'installed');
+    assert.equal(r.status, 'succeeded');
     // /Create 호출 단언.
     assert.ok(calls.some((c) => c.cmd === 'schtasks' && c.args.includes('/Create')));
   });

@@ -219,7 +219,7 @@ export async function runSetupSubcommand(args, deps, options = {}) {
       env: options.env ?? process.env,
       platform: options.platform,
     });
-    if (result.status === 'installed') {
+    if (result.status === 'succeeded') {
       log(`✓ ${result.message}`);
       for (const step of result.steps ?? []) log(`  · ${step}`);
     } else if (result.status === 'skipped') {
