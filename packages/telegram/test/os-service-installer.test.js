@@ -172,6 +172,83 @@ describe('installSystemdUnit (issue #138)', () => {
   });
 });
 
+// ─── installSystemdUnit — review 2 follow-up: guard 보강 ────────────────────
+
+describe('installSystemdUnit guard 보강 (PR #140 review 2)', () => {
+  it('HOME 없음 → status skipped (path.join throw 회피)', async () => {
+    // INPUT.homeDir 도 비워서 input.homeDir ?? env.HOME 둘 다 falsy 만들기.
+    const r = await installSystemdUnit(
+      { nodeBinPath: '/usr/bin/node', cliScriptPath: '/cli.js' },
+      {
+        fsImpl: makeMockFs().fs,
+        execImpl: makeMockExec().impl,
+        env: {}, // HOME 부재.
+      },
+    );
+    assert.equal(r.status, 'skipped');
+    assert.match(r.message, /HOME 환경변수/);
+  });
+
+  it('USER 없음 → install 성공 + loginctl 단계만 skip + 안내 log', async () => {
+    const mockFs = makeMockFs();
+    const mockExec = makeMockExec();
+    const logs = [];
+    const r = await installSystemdUnit(INPUT, {
+      fsImpl: mockFs.fs,
+      execImpl: mockExec.impl,
+      env: { HOME: '/home/test' }, // USER 부재.
+      log: (m) => logs.push(m),
+    });
+    assert.equal(r.status, 'installed');
+    // loginctl 호출 부재.
+    assert.equal(
+      mockExec.calls.some((c) => c.cmd === 'loginctl'),
+      false,
+    );
+    assert.ok(logs.some((l) => l.includes('USER 환경변수가 비어 있어')));
+  });
+
+  it('nodeBinPath 공백 포함 → status skipped + manual fallback 안내', async () => {
+    const r = await installSystemdUnit(
+      { ...INPUT, nodeBinPath: '/path with space/node' },
+      { fsImpl: makeMockFs().fs, execImpl: makeMockExec().impl, env: { HOME: '/h', USER: 'u' } },
+    );
+    assert.equal(r.status, 'skipped');
+    assert.match(r.message, /공백 또는 특수문자/);
+  });
+
+  it('cliScriptPath XML 특수문자 포함 → status skipped', async () => {
+    const r = await installSystemdUnit(
+      { ...INPUT, cliScriptPath: '/cli/<bin>/token-weather.js' },
+      { fsImpl: makeMockFs().fs, execImpl: makeMockExec().impl, env: { HOME: '/h', USER: 'u' } },
+    );
+    assert.equal(r.status, 'skipped');
+  });
+
+  it('overwrite 동의 + daemon-reload 실패 → 기존 content 가 restore (PR #140 review 3)', async () => {
+    const servicePath = '/home/test/.config/systemd/user/token-weather-bot.service';
+    const originalContent = '[Unit]\nDescription=user-original\n';
+    const mockFs = makeMockFs({ files: new Map([[servicePath, originalContent]]) });
+    const callCounts = { systemctl: 0 };
+    const r = await installSystemdUnit(INPUT, {
+      fsImpl: mockFs.fs,
+      execImpl: (cmd) => {
+        if (cmd === 'systemctl') {
+          callCounts.systemctl += 1;
+          if (callCounts.systemctl === 1) return ''; // --version ok
+          throw new Error('daemon-reload failed'); // 그 다음 명령 fail.
+        }
+        return '';
+      },
+      confirmFn: async () => true, // 사용자가 overwrite 허용.
+      env: { HOME: '/home/test', USER: 'test' },
+    });
+    assert.equal(r.status, 'failed');
+    // restore 단언 — 파일이 원본 content 로 복원.
+    assert.equal(mockFs.files.get(servicePath), originalContent);
+  });
+});
+
 // ─── uninstallSystemdUnit ──────────────────────────────────────────────────
 
 describe('uninstallSystemdUnit (issue #138)', () => {

@@ -61,6 +61,7 @@ token-weather telegram uninstall-service
 - **Enter / y** (default): token-weather 가 직접 systemd unit / launchd plist / Task Scheduler 항목을 작성 + 활성화 (`systemctl --user enable --now` / `launchctl bootstrap` / `schtasks /Create`). Linux 는 `loginctl enable-linger` 까지 자동 (best-effort).
 - **n**: 자동 등록 건너뜀 → 아래 수동 안내 블록을 사용자가 복사 / 붙여넣기.
 - **systemd / launchctl / schtasks 미감지** (WSL / Docker container / Alpine OpenRC 등): 자동 skip + 동일한 수동 안내 출력.
+- **경로에 공백 / 특수문자 (예: Windows 의 `C:\Program Files\nodejs\node.exe`)**: 자동 skip + 수동 안내 fallback. systemd unit / launchd plist (XML) / cmd.exe quoting 의 escape 규칙과 충돌 위험을 사전 차단. Windows 표준 Node 설치 환경은 보통 이 경로에 해당 — `telegram setup` 출력의 정확한 quoting 을 사용한 수동 등록을 권장 (정확한 escaping helper 도입은 follow-up issue).
 
 자동 등록을 나중에 해제하려면 `token-weather telegram uninstall-service`. 책임 범위는 service / linger 까지 (config / auth.json 은 그대로 유지).
 
