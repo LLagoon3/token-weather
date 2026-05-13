@@ -112,7 +112,9 @@ export async function installSystemdUnit(input, options = {}) {
   const serviceDir = path.join(home, SYSTEMD_USER_DIR);
   const servicePath = path.join(serviceDir, tmpl.serviceFilename);
 
-  // 2) 기존 파일 충돌 검사.
+  // 2) 기존 파일 충돌 검사. 충돌 시 backup 으로 보존 — install 실패 시 restore
+  //    (PR #140 review). 기존 사용자 파일 손실 회피.
+  let backup = null;
   if (fsImpl.existsSync(servicePath)) {
     const existing = fsImpl.readFileSync(servicePath, 'utf8');
     if (existing.trim() !== tmpl.content.trim()) {
@@ -126,6 +128,7 @@ export async function installSystemdUnit(input, options = {}) {
           message: `사용자가 덮어쓰기 거부 — ${servicePath} 보존`,
         };
       }
+      backup = existing;
     }
   }
 
@@ -153,13 +156,16 @@ export async function installSystemdUnit(input, options = {}) {
       steps,
     };
   } catch (err) {
-    // cleanup — 작성한 파일 삭제 + disable 시도.
-    if (fsImpl.existsSync(servicePath)) {
-      try {
+    // cleanup — backup 이 있으면 restore, 없으면 새로 쓴 파일 unlink (PR #140 review).
+    try {
+      if (backup !== null) {
+        fsImpl.writeFileSync(servicePath, backup);
+        log(`ℹ install 실패 — 기존 service 파일 restore: ${servicePath}`);
+      } else if (fsImpl.existsSync(servicePath)) {
         fsImpl.unlinkSync(servicePath);
-      } catch {
-        // ignore
       }
+    } catch {
+      // ignore — restore / unlink 실패는 사용자에게 안내만.
     }
     return {
       status: 'failed',
@@ -240,6 +246,8 @@ export async function installLaunchAgent(input, options = {}) {
   const agentsDir = path.join(home, LAUNCH_AGENTS_DIR);
   const plistPath = path.join(agentsDir, tmpl.serviceFilename);
 
+  // 충돌 검사 + backup (PR #140 review — overwrite 후 실패 시 restore).
+  let backup = null;
   if (fsImpl.existsSync(plistPath)) {
     const existing = fsImpl.readFileSync(plistPath, 'utf8');
     if (existing.trim() !== tmpl.content.trim()) {
@@ -250,9 +258,11 @@ export async function installLaunchAgent(input, options = {}) {
       if (!overwrite) {
         return { status: 'skipped', message: `사용자가 덮어쓰기 거부 — ${plistPath} 보존` };
       }
+      backup = existing;
     }
   }
 
+  const log = options.log ?? ((msg) => console.log(msg));
   const steps = [];
   try {
     fsImpl.mkdirSync(agentsDir, { recursive: true });
@@ -268,12 +278,15 @@ export async function installLaunchAgent(input, options = {}) {
       steps,
     };
   } catch (err) {
-    if (fsImpl.existsSync(plistPath)) {
-      try {
+    try {
+      if (backup !== null) {
+        fsImpl.writeFileSync(plistPath, backup);
+        log(`ℹ install 실패 — 기존 plist restore: ${plistPath}`);
+      } else if (fsImpl.existsSync(plistPath)) {
         fsImpl.unlinkSync(plistPath);
-      } catch {
-        // ignore
       }
+    } catch {
+      // ignore
     }
     return {
       status: 'failed',
