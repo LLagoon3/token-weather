@@ -52,6 +52,8 @@ token-weather telegram start
 
 `telegram setup` 끝에서 print 되는 명령 블록을 셸에 복사 / 붙여넣기 하면 부팅 후 자동 시작이 활성화됩니다. token-weather 가 시스템 파일을 직접 만들지 **않습니다** — 사용자 동의가 필요한 변경이라는 보안 도구 원칙.
 
+> ⚠ 아래 코드 블록은 **구조 예시** 입니다. `/path/to/node` / `/path/to/token-weather` 같은 placeholder 는 실제 환경에서 다르며, **`telegram setup` 출력의 절대 경로를 그대로 복사** 해 주세요. 경로에 공백 / 특수문자가 있는 경우 setup 출력의 정확한 quoting 을 반드시 따라야 합니다.
+
 ### Linux (systemd `--user`, sudo 불필요)
 
 ```bash
@@ -151,4 +153,4 @@ long-poll 만 지원합니다. public HTTPS endpoint 가 필요한 webhook 은 �
 - 패키지: `@token-weather/telegram` (npm)
 - 의존성: `grammy` ^1.42
 - 보안 신고: [SECURITY.md](../SECURITY.md)
-- 전체 API: `import * as telegram from '@token-weather/telegram'` — public export 18 개 (helpers / subcommands / formatters)
+- 전체 API: `import * as telegram from '@token-weather/telegram'` — pairing helpers / OS service templates / handler factories / dispatcher / subcommand entry / formatters / help texts 가 모두 export. 정확한 목록은 [`packages/telegram/src/index.js`](../packages/telegram/src/index.js).
