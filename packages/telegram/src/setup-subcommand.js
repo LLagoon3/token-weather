@@ -198,10 +198,22 @@ export async function runSetupSubcommand(args, deps, options = {}) {
   log('');
 
   if (consent) {
+    // promptFn 기반 confirm adapter (PR #140 review blocker 1) — installer 가
+    // 기존 service 파일 충돌 같은 사용자 결정이 필요한 시점에 실제 프롬프트를
+    // 띄우도록. options.confirmFn 미주입 시 default 가 prompt 없이 boolean 만
+    // 반환하는 문제 해소.
+    const confirmFn =
+      options.confirmFn ??
+      (async (question, defaultYes) => {
+        const suffix = defaultYes ? ' [Y/n] ' : ' [y/N] ';
+        const answer = await promptFn(`${question}${suffix}`);
+        return parseYesNo(answer, Boolean(defaultYes));
+      });
+
     const result = await installer(installerInput, {
       fsImpl,
       execImpl: options.execImpl,
-      confirmFn: options.confirmFn,
+      confirmFn,
       log,
       errorLog,
       env: options.env ?? process.env,

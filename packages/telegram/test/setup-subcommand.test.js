@@ -285,6 +285,59 @@ describe('runSetupSubcommand (Phase 4)', () => {
     assert.match(out, /· mkdir/);
   });
 
+  it('installer 의 confirmFn 이 promptFn 기반 adapter — 기존 파일 충돌 시 사용자 프롬프트 동작 (PR #140 review)', async () => {
+    process.exitCode = 0;
+    const { logs, log, errorLog } = makeLogger();
+    const mockFs = makeMockFs();
+    const mock = makeMockBot();
+    let confirmQuestionAsked = null;
+    const setupPromise = runSetupSubcommand(
+      [],
+      {
+        resolveAgentConfigPath: () => '/test/config.json',
+        createDefaultConfig: () => ({ version: 1, providers: {} }),
+      },
+      {
+        promptFn: (() => {
+          let n = 0;
+          return async (question) => {
+            n += 1;
+            if (n === 1) return '123:fake'; // token
+            if (n === 2) return ''; // consent — default Y
+            // 3 번째 호출 = installer 의 confirmFn adapter 가 호출 — 충돌 시.
+            confirmQuestionAsked = question;
+            return 'n'; // 덮어쓰지 않음.
+          };
+        })(),
+        fetchFn: async () => ({
+          status: 200,
+          json: async () => ({ ok: true, result: { username: 'B' } }),
+        }),
+        botFactory: () => mock.bot,
+        fsImpl: mockFs.fs,
+        installer: async (_input, opts) => {
+          // installer 가 confirmFn 을 받고 호출. mock 으로 그 호출을 시뮬.
+          const overwrite = await opts.confirmFn('기존 service 파일과 내용이 다릅니다. 덮어쓸까요?', false);
+          return overwrite
+            ? { status: 'installed', message: 'overwrote' }
+            : { status: 'skipped', message: '사용자가 덮어쓰기 거부' };
+        },
+        log,
+        errorLog,
+      },
+    );
+    await new Promise((r) => setImmediate(r));
+    await mock.fire({
+      message: { text: `/pair ${logs.find((l) => l.includes('/pair'))?.match(/\/pair (\S+)/)?.[1]}` },
+      from: { id: 7 },
+      reply: async () => {},
+    });
+    await setupPromise;
+    assert.ok(confirmQuestionAsked, 'installer 의 confirmFn 이 promptFn 으로 질문해야 함');
+    assert.match(confirmQuestionAsked, /\[y\/N\]/, 'default false 면 [y/N] suffix');
+    assert.ok(logs.some((l) => l.includes('덮어쓰기 거부')));
+  });
+
   it('자동 등록 거부 n → installer 호출 0 + 수동 안내 출력 (issue #138)', async () => {
     process.exitCode = 0;
     const { logs, log, errorLog } = makeLogger();
