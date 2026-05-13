@@ -31,6 +31,23 @@ const DIVIDER = '━━━━━━━━━━━━━━━━━━━━━
  */
 
 /**
+ * 두 객체를 재귀적으로 merge — `override` 가 `base` 보다 우선이지만, base 의
+ * 키도 보존된다. PR #135 review — config 가 없을 때 `telegram setup` 이 default
+ * config 의 providers / sync / defaults 같은 키를 누락하면 setup 직후 status /
+ * usage 가 provider disabled 상태가 되는 문제 해소.
+ */
+function deepMerge(base, override) {
+  if (typeof base !== 'object' || base === null) return override;
+  if (typeof override !== 'object' || override === null) return override;
+  if (Array.isArray(base) || Array.isArray(override)) return override;
+  const result = { ...base };
+  for (const key of Object.keys(override)) {
+    result[key] = key in base ? deepMerge(base[key], override[key]) : override[key];
+  }
+  return result;
+}
+
+/**
  * `token-weather telegram setup` 의 dispatch 진입점.
  *
  * @param {string[]} args
@@ -106,12 +123,16 @@ export async function runSetupSubcommand(args, deps, options = {}) {
     }`,
   );
 
-  // 5) config read + 갱신 + write + chmod 600.
+  // 5) config read + default merge + 갱신 + write + chmod 600.
+  //    PR #135 review — config 가 없을 때 partial 만 생성하면 setup 직후 status /
+  //    usage 가 provider disabled 상태가 되는 문제. deps.createDefaultConfig 로
+  //    base 를 만들고 기존 config 를 deepMerge 한 뒤 channels.telegram 만 override.
   const configPath = deps.resolveAgentConfigPath();
-  let config = {};
+  const base = typeof deps.createDefaultConfig === 'function' ? deps.createDefaultConfig() : {};
+  let existing = {};
   if (fsImpl.existsSync(configPath)) {
     try {
-      config = JSON.parse(fsImpl.readFileSync(configPath, 'utf8'));
+      existing = JSON.parse(fsImpl.readFileSync(configPath, 'utf8'));
     } catch (err) {
       errorLog(`✗ 설정 파일 파싱 실패: ${configPath}`);
       errorLog(`  ${err?.message ?? err}`);
@@ -119,6 +140,7 @@ export async function runSetupSubcommand(args, deps, options = {}) {
       return;
     }
   }
+  const config = deepMerge(base, existing);
   // user_id 는 array number 또는 string — Number 변환 시도, 실패 시 원본 유지.
   const numericId = Number(pairingResult.userId);
   const storedId = Number.isFinite(numericId) ? numericId : pairingResult.userId;

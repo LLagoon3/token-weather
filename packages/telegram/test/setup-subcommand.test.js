@@ -118,7 +118,14 @@ describe('runSetupSubcommand (Phase 4)', () => {
     const mock = makeMockBot();
     const setupPromise = runSetupSubcommand(
       [],
-      { resolveAgentConfigPath: () => '/test/config.json', cliScriptPath: '/cli/bin' },
+      {
+        resolveAgentConfigPath: () => '/test/config.json',
+        cliScriptPath: '/cli/bin',
+        createDefaultConfig: () => ({
+          version: 1,
+          providers: { codex: { enabled: true }, claude: { enabled: true } },
+        }),
+      },
       {
         promptFn: async () => '123:fake',
         fetchFn: async () => ({
@@ -152,6 +159,11 @@ describe('runSetupSubcommand (Phase 4)', () => {
     assert.equal(parsed.channels.telegram.enabled, true);
     assert.equal(parsed.channels.telegram.botToken, '123:fake');
     assert.deepEqual(parsed.channels.telegram.allowedUserIds, [42]);
+    // PR #135 review — default config 기반이라 providers 도 채워짐 (setup 직후
+    // status/usage 가 disabled 가 아님).
+    assert.equal(parsed.providers.codex.enabled, true);
+    assert.equal(parsed.providers.claude.enabled, true);
+    assert.equal(parsed.version, 1);
     // chmod 600 호출됨.
     const chmods = mockFs.chmodCalls();
     assert.equal(chmods.length, 1);

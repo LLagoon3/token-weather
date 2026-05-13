@@ -20,6 +20,7 @@ import { getStatusSnapshot } from '../services/status-service.js';
 import { formatStatusOutput } from './status-formatters.js';
 import { formatStatusJson } from './status-json.js';
 import { resolveAgentConfigPath } from '../config/config-path.js';
+import { createDefaultConfig } from '../config/default-config.js';
 
 /**
  * CLI 진입점. `bin/token-weather.js`가 process.argv.slice(2)를 그대로 전달.
@@ -110,6 +111,7 @@ async function runTelegramSubcommand(argv) {
     collectAuthListData,
     formatAuthListLines,
     resolveAgentConfigPath,
+    createDefaultConfig,
   };
   await telegram.runTelegramCommand(argv, deps);
 }
