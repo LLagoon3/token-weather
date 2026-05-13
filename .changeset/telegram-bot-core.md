@@ -31,6 +31,11 @@ telegram` 명령은 Phase 3 머지 후 활성화. 다만 Phase 2 에서 공개�
 - `parseCommand(text, { botUsername }?)` — slash 명령 파싱 + mention filtering.
   `/cmd@OtherBot` 처럼 다른 봇 mention 은 null 반환 (group chat 명령 충돌
   방지, PR #133 review). botUsername 미지정 시 기존 동작.
+- `extractMention(text)` — `/cmd@mention` 의 username 부분 반환. bot-server 의
+  silent ignore 경로에서 사용 (PR #133 추가 review).
+- `handleTextMessage(ctx, { dispatcher })` — `message:text` 처리 helper.
+  다른 봇 mention 은 silent return (reply 도 보내지 않음 — group chat 의 다른
+  봇 명령에 token-weather 가 응답하지 않도록, PR #133 추가 review).
 - `listAvailableCommands(dispatcher)` — dispatcher 의 키를 `/cmd` 형식으로 정렬해
   안내 문구 직렬화.
 - `authAllowlistMiddleware(allowedUserIds, opts?)` — `ctx.from.id` 가 allowlist 에
