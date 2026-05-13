@@ -18,10 +18,10 @@ docs(telegram): docs/telegram-bot.md 신규 + README / SECURITY / release-policy
   `/usage` / `/usage --json` / `/doctor` / `/auth_list`) + OS service 수동 등록
   (systemd / launchd / Task Scheduler) + 보안 모델 + 한계 / FAQ.
   · §보안 모델 의 "로컬에 머무는 것" 을 세 저장 경로로 분리 명시:
-    OAuth → `auth.json`, Telegram bot token / allowedUserIds → `config.json`,
-    페어링 코드 → transient memory (PR #136 review blocker fix).
+  OAuth → `auth.json`, Telegram bot token / allowedUserIds → `config.json`,
+  페어링 코드 → transient memory (PR #136 review blocker fix).
   · §OS service 수동 등록 에 "코드 블록은 구조 예시, 실제 경로는 setup 출력
-    그대로 복사" 경고 (PR #136 review follow-up).
+  그대로 복사" 경고 (PR #136 review follow-up).
 - `README.md`:
   · "## 명령" 코드 블록에 telegram 3 명령 (setup / start / check) 등재.
   · 신규 "## Telegram 봇 (옵션)" 섹션 — 옵션 패키지 quick start 3 줄 + docs
