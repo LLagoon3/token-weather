@@ -13,6 +13,7 @@ import { createInterface } from 'node:readline';
 
 import { validateBotToken, generatePairingCode, runPairingBot } from './pairing.js';
 import { pickServiceTemplate } from './os-service-templates.js';
+import { installOsService, parseYesNo } from './os-service-installer.js';
 
 const DIVIDER = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
 
@@ -178,17 +179,52 @@ export async function runSetupSubcommand(args, deps, options = {}) {
     }`,
   );
 
-  // 6) OS service template print.
-  const tmpl = pickServiceTemplate({
+  // 6) OS service 자동 등록 동의 프롬프트 (issue #138) — Y default. 거부 / skip /
+  //    실패 시 수동 등록 안내 fallback.
+  const installerInput = {
     nodeBinPath: process.execPath,
     cliScriptPath: deps.cliScriptPath ?? process.argv[1] ?? '',
     homeDir: process.env.HOME,
-  });
+  };
+  const tmpl = pickServiceTemplate(installerInput);
+  const installer = options.installer ?? installOsService;
+
   log('');
   log(DIVIDER);
-  log(`부팅 후 자동 시작 (선택사항) — ${tmpl.title}:`);
+  log(`부팅 후 자동 시작 (선택사항) — ${tmpl.title}`);
   log('');
-  for (const line of tmpl.instructions) log(`  ${line}`);
+  const consentRaw = await promptFn('자동으로 설치하시겠습니까? [Y/n] ');
+  const consent = parseYesNo(consentRaw, true);
+  log('');
+
+  if (consent) {
+    const result = await installer(installerInput, {
+      fsImpl,
+      execImpl: options.execImpl,
+      confirmFn: options.confirmFn,
+      log,
+      errorLog,
+      env: options.env ?? process.env,
+      platform: options.platform,
+    });
+    if (result.status === 'installed') {
+      log(`✓ ${result.message}`);
+      for (const step of result.steps ?? []) log(`  · ${step}`);
+    } else if (result.status === 'skipped') {
+      log(`ℹ ${result.message}`);
+      log('');
+      log('수동 등록 안내:');
+      for (const line of tmpl.instructions) log(`  ${line}`);
+    } else {
+      errorLog(`✗ 자동 설치 실패: ${result.error ?? result.message}`);
+      log('');
+      log('수동 등록 안내:');
+      for (const line of tmpl.instructions) log(`  ${line}`);
+    }
+  } else {
+    log('자동 설치 건너뜀 — 수동 등록 안내:');
+    for (const line of tmpl.instructions) log(`  ${line}`);
+  }
   log('');
   log(DIVIDER);
   log('');
