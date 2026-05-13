@@ -16,15 +16,16 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --test packages/agent/test/**/*.test.js packages/provider-adapters/test/**/*.test.js packages/schemas/test/**/*.test.js",
+    "test": "node --test packages/agent/test/**/*.test.js packages/provider-adapters/test/**/*.test.js packages/schemas/test/**/*.test.js packages/telegram/test/**/*.test.js",
     "test:schemas": "node --test packages/schemas/test/**/*.test.js",
     "test:agent": "node --test packages/agent/test/**/*.test.js",
     "test:adapters": "node --test packages/provider-adapters/test/**/*.test.js",
+    "test:telegram": "node --test packages/telegram/test/**/*.test.js",
     "cli:status": "node ./packages/agent/bin/token-weather.js status",
     "cli:usage": "node ./packages/agent/bin/token-weather.js usage",
     "cli:doctor": "node ./packages/agent/bin/token-weather.js doctor",
     "cli:config:init": "node ./packages/agent/bin/token-weather.js config init",
-    "build:types": "npm -w @token-weather/schemas run build:types && npm -w @token-weather/provider-adapters run build:types && npm -w @token-weather/cli run build:types"
+    "build:types": "npm -w @token-weather/schemas run build:types && npm -w @token-weather/provider-adapters run build:types && npm -w @token-weather/cli run build:types && npm -w @token-weather/telegram run build:types"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",

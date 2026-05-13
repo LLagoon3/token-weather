@@ -1,0 +1,43 @@
+{
+  "name": "@token-weather/telegram",
+  "version": "0.4.0",
+  "description": "Token Weather Telegram 봇 통합 — 로컬 daemon 으로 status / usage / doctor 명령을 Telegram 채널에 노출",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "src",
+    "dist/types"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LLagoon3/token-weather.git",
+    "directory": "packages/telegram"
+  },
+  "homepage": "https://github.com/LLagoon3/token-weather#readme",
+  "bugs": {
+    "url": "https://github.com/LLagoon3/token-weather/issues"
+  },
+  "keywords": [
+    "token-weather",
+    "telegram",
+    "bot",
+    "daemon",
+    "remote-cli"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@token-weather/provider-adapters": "^0.4.0",
+    "@token-weather/schemas": "^0.4.0",
+    "grammy": "^1.42.0"
+  },
+  "scripts": {
+    "build:types": "tsc -p ./tsconfig.json"
+  }
+}
