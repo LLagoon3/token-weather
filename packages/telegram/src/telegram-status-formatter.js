@@ -7,9 +7,13 @@
  * 본문이 word wrap 되어 박스가 갈라지는 회귀가 있었음. 본 formatter 는 동일
  * snapshot 을 받아 모바일 폭 안에 들어가는 라인 배열을 만든다.
  *
+ * issue #146: window 라인에 10-column `compactProgressBar` 를 추가해 사용량
+ * 시각화를 복원. 박스 글리프 (`╭ │ ╰ ┌ └ ─`) 는 여전히 미사용 — bar 글리프
+ * (`█ ░`) 만 의도된 출력.
+ *
  * 디자인 가이드:
  *   - 라인 폭 목표 ≤ TELEGRAM_LINE_WIDTH (32 column)
- *   - rounded box / 50-column progress bar 미사용
+ *   - rounded box 미사용. 10-column ASCII bar 만 허용
  *   - section 라벨은 짧은 `━━ Title ━━` heavy rule (모바일 폭 안)
  *   - 긴 값 (config path / email) 은 우측-우선 truncate
  *   - useColor / ANSI 무시 — 텔레그램 `<pre>` 는 monospace, ANSI 미지원
@@ -19,7 +23,12 @@
  * 입력 snapshot 의 shape 는 cli 의 `getStatusSnapshot()` 결과와 동일.
  */
 
+import { compactProgressBar } from './telegram-progress-bar.js';
+
 export const TELEGRAM_LINE_WIDTH = 32;
+const WINDOW_LABEL_WIDTH = 9;
+const WINDOW_BAR_WIDTH = 10;
+const WINDOW_PCT_WIDTH = 4;
 
 const SECTION_RULE = '━━';
 
@@ -124,10 +133,15 @@ function formatAccountBlock(providerId, snapshot, now) {
 }
 
 function formatWindowCompact(window, now) {
-  const label = compactWindowLabel(window);
-  const pct = formatPercent(window?.usedPercent);
+  // issue #146: label  bar  pct 한 줄 + reset 들여쓴 줄.
+  // 폭: '· ' (2) + label padEnd(9) + space (1) + bar (10) + space (1) +
+  // pct padStart(4) = 27 자 ≤ TELEGRAM_LINE_WIDTH (32).
+  const labelText = truncate(compactWindowLabel(window), WINDOW_LABEL_WIDTH);
+  const label = labelText.padEnd(WINDOW_LABEL_WIDTH);
+  const bar = compactProgressBar(window?.usedPercent, WINDOW_BAR_WIDTH);
+  const pct = formatPercent(window?.usedPercent).padStart(WINDOW_PCT_WIDTH);
   const reset = compactResetTime(window?.resetAt, now);
-  return [`· ${label}: ${pct}`, `  reset ${truncate(reset, TELEGRAM_LINE_WIDTH - 8)}`];
+  return [`· ${label} ${bar} ${pct}`, `  reset ${truncate(reset, TELEGRAM_LINE_WIDTH - 8)}`];
 }
 
 function sectionHeader(title) {

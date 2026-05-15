@@ -93,23 +93,26 @@ describe('formatStatusForTelegram', () => {
     assert.ok(lines.includes('Claude disabled'));
   });
 
-  it('Codex section — 단일 계정 OK', () => {
+  it('Codex section — 단일 계정 OK (window 라인에 progress bar)', () => {
     const snapshot = makeMinimalSnapshot({ codex: makeCodexSnapshot() });
     const lines = formatStatusForTelegram(snapshot, { now: NOW });
     assert.ok(lines.includes('━━ Codex ━━'));
     assert.ok(lines.includes('me@example.com · Pro'));
     assert.ok(lines.includes('✓ OK (200)'));
-    assert.ok(lines.some((l) => l.startsWith('· primary:')));
-    assert.ok(lines.some((l) => l.startsWith('· secondary:')));
+    // issue #146: label padEnd(9) + bar (10) + pct padStart(4)
+    assert.ok(lines.some((l) => l.startsWith('· primary   ')));
+    assert.ok(lines.some((l) => l.startsWith('· secondary ')));
+    // bar 글리프 (full / shade) 가 window 라인에 포함
+    assert.ok(lines.some((l) => /^· \w.* [█░▏▎▍▌▋▊▉]{10} +\d+%$/.test(l)));
     assertAllLinesWithinWidth(lines);
   });
 
-  it('Claude section — kind 매핑 (five_hour → 5h, seven_day → 7d)', () => {
+  it('Claude section — kind 매핑 (five_hour → 5h, seven_day → 7d) + bar', () => {
     const snapshot = makeMinimalSnapshot({ claude: makeClaudeSnapshot() });
     const lines = formatStatusForTelegram(snapshot, { now: NOW });
     assert.ok(lines.includes('━━ Claude ━━'));
-    assert.ok(lines.some((l) => l.startsWith('· 5h:')));
-    assert.ok(lines.some((l) => l.startsWith('· 7d:')));
+    assert.ok(lines.some((l) => l.startsWith('· 5h        ')));
+    assert.ok(lines.some((l) => l.startsWith('· 7d        ')));
     assertAllLinesWithinWidth(lines);
   });
 
@@ -227,7 +230,7 @@ describe('formatStatusForTelegram', () => {
     );
   });
 
-  it('window 의 usedPercent 가 null → "—" 로 표시', () => {
+  it('window 의 usedPercent 가 null → bar 전체 ░ + pct "—"', () => {
     const snapshot = makeMinimalSnapshot({
       claude: {
         enabled: true,
@@ -241,7 +244,9 @@ describe('formatStatusForTelegram', () => {
       },
     });
     const lines = formatStatusForTelegram(snapshot, { now: NOW });
-    assert.ok(lines.some((l) => l.startsWith('· 5h: —')));
+    // '· 5h        ░░░░░░░░░░    —' (label padEnd(9) + space + 10× ░ + space + '   —')
+    assert.ok(lines.some((l) => l.startsWith('· 5h        ░░░░░░░░░░')));
+    assert.ok(lines.some((l) => l.endsWith('—')));
     assert.ok(lines.some((l) => l.startsWith('  reset unknown')));
   });
 
@@ -255,15 +260,28 @@ describe('formatStatusForTelegram', () => {
     assert.ok(lines.some((l) => l.startsWith('Prov filter: codex')));
   });
 
-  it('박스 글리프 (╭ │ ╰ ┌ └ ─ progress bar █ ░) 미사용 — CLI formatter 와 분리 회귀 가드', () => {
+  it('박스 글리프 (╭ │ ╰ ┌ └ ─) 미사용 — issue #144 회귀 가드 (bar 글리프는 #146 으로 의도)', () => {
     const snapshot = makeMinimalSnapshot({
       codex: makeCodexSnapshot(),
       claude: makeClaudeSnapshot(),
     });
     const lines = formatStatusForTelegram(snapshot, { now: NOW });
     const joined = lines.join('\n');
-    for (const glyph of ['╭', '│', '╰', '┌', '└', '─', '█', '░']) {
+    for (const glyph of ['╭', '│', '╰', '┌', '└', '─']) {
       assert.ok(!joined.includes(glyph), `glyph 미포함 기대: ${glyph}`);
+    }
+  });
+
+  it('issue #146: 모든 window 라인에 bar 글리프가 등장 (full block 또는 shade)', () => {
+    const snapshot = makeMinimalSnapshot({
+      codex: makeCodexSnapshot(),
+      claude: makeClaudeSnapshot(),
+    });
+    const lines = formatStatusForTelegram(snapshot, { now: NOW });
+    const windowLines = lines.filter((l) => l.startsWith('· '));
+    assert.ok(windowLines.length > 0, 'window 라인이 존재');
+    for (const l of windowLines) {
+      assert.ok(/[█░▏▎▍▌▋▊▉]/.test(l), `window 라인에 bar 글리프 기대: ${JSON.stringify(l)}`);
     }
   });
 });
