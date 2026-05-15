@@ -16,7 +16,6 @@ import { handleTextMessage } from '../src/bot-server.js';
 function makeDeps() {
   const calls = {
     snapshot: 0,
-    output: 0,
     json: 0,
     doctorReport: 0,
     doctorLines: 0,
@@ -27,11 +26,13 @@ function makeDeps() {
     deps: {
       getStatusSnapshot: async () => {
         calls.snapshot += 1;
-        return { schemaVersion: '0.5.0' };
-      },
-      formatStatusOutput: () => {
-        calls.output += 1;
-        return ['status text'];
+        return {
+          schemaVersion: '0.5.0',
+          providers: { codex: { enabled: true }, claude: { enabled: true } },
+          sync: { enabled: false },
+          accountFilter: null,
+          providerFilter: null,
+        };
       },
       formatStatusJson: () => {
         calls.json += 1;
@@ -58,6 +59,8 @@ function makeDeps() {
   };
 }
 
+const TELEGRAM_BOX_GLYPHS = ['╭', '│', '╰', '┌', '└', '█', '░'];
+
 function makeCtx(text, { username = 'TokenWeatherBot' } = {}) {
   const replies = [];
   return {
@@ -70,18 +73,28 @@ function makeCtx(text, { username = 'TokenWeatherBot' } = {}) {
   };
 }
 
-describe('router e2e — message text → dispatcher → deps + reply (Phase 3)', () => {
-  it('/status → status handler → formatStatusOutput + <pre> reply', async () => {
+describe('router e2e — message text → dispatcher → deps + reply (Phase 3 + issue #144)', () => {
+  it('/status → status handler → telegram-compact 출력 + <pre> reply', async () => {
     const { deps, calls } = makeDeps();
     const dispatcher = buildDispatcher(deps);
     const ctx = makeCtx('/status');
     await handleTextMessage(ctx, { dispatcher });
     assert.equal(calls.snapshot, 1);
-    assert.equal(calls.output, 1);
     assert.equal(calls.json, 0);
     assert.equal(ctx.replies.length, 1);
-    assert.match(ctx.replies[0].text, /<pre>status text<\/pre>/);
+    assert.match(ctx.replies[0].text, /<pre>━━ Status ━━/);
     assert.deepEqual(ctx.replies[0].options, { parse_mode: 'HTML' });
+  });
+
+  it('/status 출력에 데스크탑 박스 글리프 미포함 (issue #144 회귀 가드)', async () => {
+    const { deps } = makeDeps();
+    const dispatcher = buildDispatcher(deps);
+    const ctx = makeCtx('/status');
+    await handleTextMessage(ctx, { dispatcher });
+    const text = ctx.replies[0].text;
+    for (const glyph of TELEGRAM_BOX_GLYPHS) {
+      assert.ok(!text.includes(glyph), `glyph 미포함 기대: ${glyph}`);
+    }
   });
 
   it('/status --json → status-json handler → formatStatusJson + <pre> reply', async () => {
@@ -90,16 +103,27 @@ describe('router e2e — message text → dispatcher → deps + reply (Phase 3)'
     const ctx = makeCtx('/status --json');
     await handleTextMessage(ctx, { dispatcher });
     assert.equal(calls.json, 1);
-    assert.equal(calls.output, 0);
     assert.match(ctx.replies[0].text, /<pre>\{.*schemaVersion.*\}<\/pre>/);
   });
 
-  it('/usage → status alias (formatStatusOutput 호출)', async () => {
+  it('/usage → status alias (snapshot 1 회 + <pre> reply)', async () => {
     const { deps, calls } = makeDeps();
     const dispatcher = buildDispatcher(deps);
     const ctx = makeCtx('/usage');
     await handleTextMessage(ctx, { dispatcher });
-    assert.equal(calls.output, 1);
+    assert.equal(calls.snapshot, 1);
+    assert.match(ctx.replies[0].text, /<pre>━━ Status ━━/);
+  });
+
+  it('/usage 출력에도 데스크탑 박스 글리프 미포함 (issue #144 회귀 가드)', async () => {
+    const { deps } = makeDeps();
+    const dispatcher = buildDispatcher(deps);
+    const ctx = makeCtx('/usage');
+    await handleTextMessage(ctx, { dispatcher });
+    const text = ctx.replies[0].text;
+    for (const glyph of TELEGRAM_BOX_GLYPHS) {
+      assert.ok(!text.includes(glyph), `glyph 미포함 기대: ${glyph}`);
+    }
   });
 
   it('/doctor → collectDoctorReport + formatDoctorReportLines + reply', async () => {
