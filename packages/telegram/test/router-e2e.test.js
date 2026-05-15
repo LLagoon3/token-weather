@@ -148,6 +148,18 @@ describe('router e2e — message text → dispatcher → deps + reply (Phase 3 +
     assert.match(ctx.replies[0].text, /<pre>auth list<\/pre>/);
   });
 
+  it('/help → help handler → BOT_COMMANDS plain text reply (issue #148)', async () => {
+    const { deps } = makeDeps();
+    const dispatcher = buildDispatcher(deps);
+    const ctx = makeCtx('/help');
+    await handleTextMessage(ctx, { dispatcher });
+    assert.equal(ctx.replies.length, 1);
+    assert.match(ctx.replies[0].text, /^Token Weather 봇 명령:/);
+    assert.match(ctx.replies[0].text, /\/status/);
+    assert.match(ctx.replies[0].text, /\/help/);
+    assert.equal(ctx.replies[0].options, undefined);
+  });
+
   it('/unknown → "알 수 없는 명령" reply + dispatcher 호출 없음', async () => {
     const { deps, calls } = makeDeps();
     const dispatcher = buildDispatcher(deps);

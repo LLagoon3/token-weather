@@ -54,10 +54,24 @@ function makeCtx() {
 }
 
 describe('buildDispatcher (Phase 3 + issue #144)', () => {
-  it('5 명령 키가 정확히 노출됨 (status / usage / doctor / auth_list)', () => {
+  it('명령 키가 정확히 노출됨 (status / usage / doctor / auth_list / help — issue #148)', () => {
     const { deps } = makeDeps();
     const dispatcher = buildDispatcher(deps);
-    assert.deepEqual(Object.keys(dispatcher).sort(), ['auth_list', 'doctor', 'status', 'usage']);
+    assert.deepEqual(
+      Object.keys(dispatcher).sort(),
+      ['auth_list', 'doctor', 'help', 'status', 'usage'],
+    );
+  });
+
+  it('/help → BOT_COMMANDS 기반 plain text reply (issue #148)', async () => {
+    const { deps } = makeDeps();
+    const dispatcher = buildDispatcher(deps);
+    const ctx = makeCtx();
+    await dispatcher.help(ctx, []);
+    assert.equal(ctx.replies.length, 1);
+    assert.match(ctx.replies[0].text, /^Token Weather 봇 명령:/);
+    assert.match(ctx.replies[0].text, /\/help/);
+    assert.equal(ctx.replies[0].options, undefined, 'plain text — parse_mode 없음');
   });
 
   it('/status (no --json) → status-handler 호출 (telegram-compact 출력 + reply)', async () => {

@@ -4,11 +4,24 @@ import assert from 'node:assert/strict';
 import { createBotServer, handleTextMessage } from '../src/bot-server.js';
 import { startBot, stopBot } from '../src/index.js';
 
-function makeMockBot({ initFails = false, initError } = {}) {
+function makeMockBot({
+  initFails = false,
+  initError,
+  setMyCommandsFails = false,
+  setMyCommandsError,
+} = {}) {
   let initAttempts = 0;
   let stopCalled = 0;
+  const setMyCommandsCalls = [];
   return {
-    api: {},
+    api: {
+      setMyCommands: async (commands) => {
+        setMyCommandsCalls.push(commands);
+        if (setMyCommandsFails) {
+          throw setMyCommandsError ?? new Error('mock setMyCommands failure');
+        }
+      },
+    },
     use() {},
     on() {},
     catch() {},
@@ -25,6 +38,9 @@ function makeMockBot({ initFails = false, initError } = {}) {
     },
     get _stopCalled() {
       return stopCalled;
+    },
+    get _setMyCommandsCalls() {
+      return setMyCommandsCalls;
     },
   };
 }
@@ -91,6 +107,53 @@ describe('createBotServer boot validation (PR #133 review)', () => {
     await server.start();
     await server.stop();
     assert.equal(mock._stopCalled, 1);
+  });
+});
+
+describe('createBotServer setMyCommands 자동 등록 (issue #148)', () => {
+  it('start 성공 시 bot.api.setMyCommands(BOT_COMMANDS) 호출 1회', async () => {
+    const mock = makeMockBot();
+    const server = createBotServer({
+      botToken: '123:fake',
+      allowedUserIds: [42],
+      botFactory: () => mock,
+    });
+    await server.start();
+    assert.equal(mock._setMyCommandsCalls.length, 1, 'setMyCommands 1회 호출');
+    const payload = mock._setMyCommandsCalls[0];
+    assert.ok(Array.isArray(payload) && payload.length > 0);
+    const commandNames = payload.map((c) => c.command);
+    for (const expected of ['status', 'usage', 'doctor', 'auth_list', 'help']) {
+      assert.ok(commandNames.includes(expected), `명령 누락: ${expected}`);
+    }
+  });
+
+  it('setMyCommands 실패 시에도 start 는 resolve + errorLog 호출 (daemon 계속)', async () => {
+    const mock = makeMockBot({ setMyCommandsFails: true });
+    const errors = [];
+    const server = createBotServer({
+      botToken: '123:fake',
+      allowedUserIds: [42],
+      botFactory: () => mock,
+      logger: { error: (msg) => errors.push(msg) },
+    });
+    await server.start();
+    assert.equal(mock._setMyCommandsCalls.length, 1);
+    assert.ok(
+      errors.some((m) => m.includes('setMyCommands 실패')),
+      `errorLog 에 실패 안내 누락: ${JSON.stringify(errors)}`,
+    );
+  });
+
+  it('init 실패 시 setMyCommands 호출 없음 (boot 단계 차단)', async () => {
+    const mock = makeMockBot({ initFails: true });
+    const server = createBotServer({
+      botToken: '123:fake',
+      allowedUserIds: [42],
+      botFactory: () => mock,
+    });
+    await assert.rejects(() => server.start());
+    assert.equal(mock._setMyCommandsCalls.length, 0);
   });
 });
 
