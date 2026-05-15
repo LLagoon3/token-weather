@@ -59,6 +59,7 @@ export {
   compactResetTime,
   TELEGRAM_LINE_WIDTH,
 } from './telegram-status-formatter.js';
+export { compactProgressBar } from './telegram-progress-bar.js';
 
 let _activeServer = null;
 
