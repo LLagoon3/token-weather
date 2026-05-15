@@ -65,7 +65,9 @@ function formatCodexSection(codex, now) {
   const snapshots = codex.usageSnapshots ?? [];
   if (snapshots.length === 0) {
     if (codex.filteredOut) {
-      lines.push(`No match: ${truncate(String(codex.accountFilter ?? ''), TELEGRAM_LINE_WIDTH - 10)}`);
+      lines.push(
+        `No match: ${truncate(String(codex.accountFilter ?? ''), TELEGRAM_LINE_WIDTH - 10)}`,
+      );
     } else {
       lines.push('No Codex profile');
     }
@@ -83,7 +85,9 @@ function formatClaudeSection(claude, now) {
   const snapshots = claude.usageSnapshots ?? [];
   if (snapshots.length === 0) {
     if (claude.filteredOut) {
-      lines.push(`No match: ${truncate(String(claude.accountFilter ?? ''), TELEGRAM_LINE_WIDTH - 10)}`);
+      lines.push(
+        `No match: ${truncate(String(claude.accountFilter ?? ''), TELEGRAM_LINE_WIDTH - 10)}`,
+      );
     } else {
       lines.push('Skipped (disabled / no token)');
     }
@@ -136,13 +140,7 @@ function enabledLabel(enabled) {
 
 function accountIdentifier(account) {
   if (!account) return null;
-  return (
-    account.email ??
-    account.accountId ??
-    account.accountKey ??
-    account.profileId ??
-    null
-  );
+  return account.email ?? account.accountId ?? account.accountKey ?? account.profileId ?? null;
 }
 
 function providerLabel(providerId) {

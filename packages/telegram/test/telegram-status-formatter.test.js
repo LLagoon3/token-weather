@@ -221,7 +221,10 @@ describe('formatStatusForTelegram', () => {
     });
     const lines = formatStatusForTelegram(snapshot, { now: NOW });
     assertAllLinesWithinWidth(lines);
-    assert.ok(lines.some((l) => l.endsWith('…')), '긴 헤더가 truncate 표시(…)로 끝남');
+    assert.ok(
+      lines.some((l) => l.endsWith('…')),
+      '긴 헤더가 truncate 표시(…)로 끝남',
+    );
   });
 
   it('window 의 usedPercent 가 null → "—" 로 표시', () => {
