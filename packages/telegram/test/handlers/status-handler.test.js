@@ -44,13 +44,13 @@ describe('createStatusHandler (Phase 3 + issue #144)', () => {
     assert.deepEqual(ctx.replies[0].options, { parse_mode: 'HTML' });
   });
 
-  it('출력은 박스 글리프 없이 telegram 친화 포맷 (회귀 가드)', async () => {
+  it('출력은 박스 글리프 없이 telegram 친화 포맷 (#144 회귀 가드, bar 글리프는 #146 으로 의도)', async () => {
     const deps = { getStatusSnapshot: async () => minimalSnapshot() };
     const handler = createStatusHandler(deps);
     const ctx = makeCtx();
     await handler(ctx, []);
     const text = ctx.replies[0].text;
-    for (const glyph of ['╭', '│', '╰', '┌', '└', '█', '░']) {
+    for (const glyph of ['╭', '│', '╰', '┌', '└']) {
       assert.ok(!text.includes(glyph), `glyph 미포함 기대: ${glyph}`);
     }
   });
