@@ -60,6 +60,8 @@ export {
   TELEGRAM_LINE_WIDTH,
 } from './telegram-status-formatter.js';
 export { compactProgressBar } from './telegram-progress-bar.js';
+export { BOT_COMMANDS, formatHelpText } from './bot-commands.js';
+export { createHelpHandler } from './handlers/help-handler.js';
 
 let _activeServer = null;
 

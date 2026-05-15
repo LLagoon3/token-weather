@@ -15,6 +15,7 @@ import { createStatusJsonHandler } from './handlers/status-json-handler.js';
 import { createUsageHandler } from './handlers/usage-handler.js';
 import { createDoctorHandler } from './handlers/doctor-handler.js';
 import { createAuthListHandler } from './handlers/auth-list-handler.js';
+import { createHelpHandler } from './handlers/help-handler.js';
 
 /**
  * @typedef {object} TelegramDeps
@@ -39,6 +40,8 @@ export function buildDispatcher(deps) {
   const usageHandler = createUsageHandler(deps);
   const doctorHandler = createDoctorHandler(deps);
   const authListHandler = createAuthListHandler(deps);
+  // issue #148: /help — BOT_COMMANDS 를 plain text 로 회신. deps 인자 없음.
+  const helpHandler = createHelpHandler();
 
   return {
     status: async (ctx, args) => {
@@ -58,5 +61,6 @@ export function buildDispatcher(deps) {
     },
     doctor: doctorHandler,
     auth_list: authListHandler,
+    help: helpHandler,
   };
 }

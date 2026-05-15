@@ -22,6 +22,7 @@ import { Bot, GrammyError } from 'grammy';
 import { authAllowlistMiddleware } from './auth-allowlist.js';
 import { parseCommand, extractMention, listAvailableCommands } from './command-router.js';
 import { formatErrorForTelegram } from './formatters.js';
+import { BOT_COMMANDS } from './bot-commands.js';
 
 /**
  * @typedef {object} BotServerOptions
@@ -98,6 +99,18 @@ export function createBotServer(options) {
       } catch (err) {
         started = false;
         throw err;
+      }
+      // issue #148: 자동완성 메뉴 등록. 실패해도 daemon boot 자체는 진행 —
+      // 메뉴 등록은 critical 아님 (사용자가 명령을 직접 입력하면 동작). bot
+      // 객체의 api 는 grammy ≥1.x 에 항상 존재 — 호출 자체가 catch 안에서.
+      try {
+        await bot.api.setMyCommands(BOT_COMMANDS);
+      } catch (err) {
+        errorLog(
+          `[token-weather/telegram] setMyCommands 실패 (메뉴 미등록, daemon 계속): ${
+            err?.message ?? String(err)
+          }`,
+        );
       }
       if (!shutdownHandlersRegistered) {
         registerShutdownHandlers(bot);

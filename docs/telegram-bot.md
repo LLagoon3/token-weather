@@ -43,16 +43,27 @@ token-weather telegram uninstall-service
 
 | Telegram 명령    | 동작 (`token-weather <cmd>` 와 동일)                                                                                  |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `/status`        | 모바일 폭 친화 compact 평문 (HTML `<pre>` 블록, ≤ 32 column)                                                          |
+| `/status`        | 모바일 폭 친화 compact 평문 (HTML `<pre>` 블록, ≤ 32 column, progress bar 포함)                                       |
 | `/status --json` | `formatStatusJson` 결과 (top-level `command` = "status")                                                              |
 | `/usage`         | status alias — 모바일 친화 compact 평문                                                                               |
 | `/usage --json`  | `formatStatusJson` 결과 (top-level `command` = "usage")                                                               |
 | `/doctor`        | `runDoctorRoot` 기본 출력. 인자 / subcommand 차단                                                                     |
 | `/auth_list`     | 모든 provider 의 저장 계정 + claude import 섹션                                                                       |
+| `/help`          | 사용 가능한 명령 목록을 plain text 로 안내 (issue #148)                                                               |
 | `/start <code>`  | 페어링 전용 (setup 시점에만 의미). Telegram deep link 클릭 → 봇 대화창 → (처음이면 Start 버튼) → `/start <code>` 전달 |
 | `/pair <code>`   | 페어링 전용 (setup 시점에만 의미). 수동 입력 fallback                                                                 |
 
 본인이 아닌 봇을 mention 한 명령 (`/status@OtherBot`) 은 silent ignore — group chat 에서 다른 봇 명령에 token-weather 가 응답하지 않습니다.
+
+### 자동완성 메뉴 (issue #148)
+
+`token-weather telegram start` daemon 부팅 시 [Bot API `setMyCommands`](https://core.telegram.org/bots/api#setmycommands) 를 호출해 위 명령 목록을 봇에 등록합니다. 사용자는 텔레그램 채팅 입력창에서 `/` 만 눌러도 client (모바일 / 데스크탑) 가 자동완성 메뉴로 명령을 띄워줍니다.
+
+- 등록 source: `packages/telegram/src/bot-commands.js` 의 `BOT_COMMANDS` 배열. 새 명령을 추가할 때는 핸들러 모듈 / `buildDispatcher()` 키 / 본 배열 entry **세 곳을 함께 갱신** — dispatcher 는 본 배열에서 자동 생성되지 않습니다. dispatcher 키 집합과 `BOT_COMMANDS.command` 의 동기화는 단위 테스트가 drift 가드로 잡습니다.
+- 등록 실패 (네트워크 / 권한 등) 해도 daemon boot 자체는 계속 — 메뉴 등록은 보조 기능이고 사용자가 명령을 직접 입력하면 동일하게 동작합니다.
+- 등록은 idempotent — daemon 재시작마다 자동 갱신.
+
+수동 등록 (자동 등록을 끄거나 별도 봇 username 으로 미리 설정하고 싶을 때) 은 [@BotFather](https://t.me/BotFather) 에 `/setcommands` 명령으로도 가능합니다.
 
 ### `/status` / `/usage` 출력 예시 (issue #144, #146)
 
