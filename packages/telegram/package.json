@@ -1,6 +1,6 @@
 {
   "name": "@token-weather/telegram",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Token Weather Telegram 봇 통합 — 로컬 daemon 으로 status / usage / doctor 명령을 Telegram 채널에 노출 (Phase 1 scaffold — 실 동작은 후속 release 부터)",
   "license": "Apache-2.0",
   "type": "module",
@@ -33,8 +33,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@token-weather/provider-adapters": "^0.4.0",
-    "@token-weather/schemas": "^0.4.0",
+    "@token-weather/provider-adapters": "^0.5.0",
+    "@token-weather/schemas": "^0.5.0",
     "grammy": "^1.42.0"
   },
   "scripts": {
