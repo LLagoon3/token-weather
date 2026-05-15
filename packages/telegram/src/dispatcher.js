@@ -19,7 +19,6 @@ import { createAuthListHandler } from './handlers/auth-list-handler.js';
 /**
  * @typedef {object} TelegramDeps
  * @property {(options?: object) => Promise<object>} getStatusSnapshot
- * @property {(snapshot: object, ctx?: object) => string[]} formatStatusOutput
  * @property {(snapshot: object, meta?: object) => string} formatStatusJson
  * @property {() => Promise<object>} collectDoctorReport
  * @property {(report: object) => string[]} formatDoctorReportLines

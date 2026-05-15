@@ -1,24 +1,28 @@
 /**
- * `/status` 명령 핸들러 — 평문 (formatStatusOutput) 출력을 Telegram 으로 전송.
+ * `/status` 명령 핸들러 — Telegram 전용 compact 포맷으로 <pre> 응답.
  *
- * Phase 3 (#128). 의존성 주입 — `@token-weather/cli` 의 core 함수를 deps 로
- * 받아 사용하고, 본 패키지는 cli 를 직접 import 하지 않는다 (순환 회피 정책).
+ * Phase 3 (#128) 에서 도입, issue #144 로 CLI 의 formatStatusOutput (데스크탑
+ * 박스 / heavy rule / 50-column progress bar) 대신 본 패키지의
+ * formatStatusForTelegram 을 사용하도록 교체. 텔레그램 모바일 폭 (~30–40
+ * column) 에서 박스가 wrap 으로 깨지는 회귀 해소.
  *
- * `--json` 분기는 dispatcher 가 책임 — 본 핸들러는 단일 책임 (평문 출력).
+ * 의존성 주입은 `deps.getStatusSnapshot` 만 — 텍스트 가공은 본 패키지가
+ * 책임지므로 `formatStatusOutput` deps 의존이 제거되었음. dispatcher 의
+ * `--json` 분기는 본 핸들러 책임이 아님 (status-json-handler).
  */
 
 import { formatPreChunksForTelegram } from '../formatters.js';
+import { formatStatusForTelegram } from '../telegram-status-formatter.js';
 
 /**
  * @param {object} deps
  * @param {(options?: object) => Promise<object>} deps.getStatusSnapshot
- * @param {(snapshot: object, ctx?: object) => string[]} deps.formatStatusOutput
  * @returns {(ctx: object, args: string[]) => Promise<void>}
  */
 export function createStatusHandler(deps) {
   return async function statusHandler(ctx, _args) {
     const snapshot = await deps.getStatusSnapshot({});
-    const text = deps.formatStatusOutput(snapshot, { useColor: false }).join('\n');
+    const text = formatStatusForTelegram(snapshot).join('\n');
     const chunks = formatPreChunksForTelegram(text);
     for (const chunk of chunks) {
       await ctx.reply(chunk, { parse_mode: 'HTML' });

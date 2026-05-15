@@ -17,7 +17,6 @@ import { runAuthLogoutCommand, formatAuthLogoutHelp } from './auth-logout-comman
 import { runAuthImportCommand, formatAuthImportHelp } from './auth-import-command.js';
 
 import { getStatusSnapshot } from '../services/status-service.js';
-import { formatStatusOutput } from './status-formatters.js';
 import { formatStatusJson } from './status-json.js';
 import { resolveAgentConfigPath } from '../config/config-path.js';
 import { createDefaultConfig } from '../config/default-config.js';
@@ -104,7 +103,6 @@ async function runTelegramSubcommand(argv) {
   }
   const deps = {
     getStatusSnapshot,
-    formatStatusOutput,
     formatStatusJson,
     collectDoctorReport,
     formatDoctorReportLines,
