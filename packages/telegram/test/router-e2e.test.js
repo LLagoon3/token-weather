@@ -59,7 +59,9 @@ function makeDeps() {
   };
 }
 
-const TELEGRAM_BOX_GLYPHS = ['╭', '│', '╰', '┌', '└', '█', '░'];
+// issue #144 회귀 가드: 데스크탑 박스 글리프만 금지.
+// issue #146 으로 bar 글리프 (█ ░ ▏▎▍▌▋▊▉) 는 의도된 출력이라 제외.
+const TELEGRAM_BOX_GLYPHS = ['╭', '│', '╰', '┌', '└'];
 
 function makeCtx(text, { username = 'TokenWeatherBot' } = {}) {
   const replies = [];
