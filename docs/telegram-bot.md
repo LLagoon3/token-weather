@@ -54,9 +54,11 @@ token-weather telegram uninstall-service
 
 본인이 아닌 봇을 mention 한 명령 (`/status@OtherBot`) 은 silent ignore — group chat 에서 다른 봇 명령에 token-weather 가 응답하지 않습니다.
 
-### `/status` / `/usage` 출력 예시 (issue #144)
+### `/status` / `/usage` 출력 예시 (issue #144, #146)
 
-CLI 의 데스크탑 박스 (`╭─` / `│` / `╰─`) + 50-column heavy rule 은 모바일 폭 (~30–40 column) 에서 wrap 으로 박스가 깨지기 때문에, 텔레그램 봇은 `@token-weather/telegram` 패키지의 `formatStatusForTelegram` 으로 박스 미사용 compact 출력을 보냅니다 (라인 폭 ≤ 32 column 가이드, timezone 표기 생략):
+CLI 의 데스크탑 박스 (`╭─` / `│` / `╰─`) + 50-column heavy rule 은 모바일 폭 (~30–40 column) 에서 wrap 으로 박스가 깨지기 때문에, 텔레그램 봇은 `@token-weather/telegram` 패키지의 `formatStatusForTelegram` 으로 박스 미사용 compact 출력을 보냅니다 (라인 폭 ≤ 32 column 가이드, timezone 표기 생략).
+
+#146 으로 window 라인에 10-column ASCII progress bar (1/8 정밀도 fractional block `█▏▎▍▌▋▊▉` + light shade `░`) 가 복원되었습니다 — ANSI 컬러는 Telegram `<pre>` 가 미지원이라 적용하지 않습니다.
 
 ```
 ━━ Status ━━
@@ -67,19 +69,21 @@ Sync   disabled
 ━━ Codex ━━
 me@example.com · Pro
 ✓ OK (200)
-· primary: 38%
+· primary   ███▊░░░░░░  38%
   reset 9:42pm
-· secondary: 71%
+· secondary ███████▏░░  71%
   reset Sat 4:42am
 
 ━━ Claude ━━
 me@anthropic.example
 ✓ OK (200)
-· 5h: 19%
+· 5h        █▉░░░░░░░░  19%
   reset 3pm
-· 7d: 8%
+· 7d        ▊░░░░░░░░░   8%
   reset May 22 3am
 ```
+
+라인 폭은 `· ` (2) + label `padEnd(9)` + space + bar (10) + space + pct `padStart(4)` = **27 자** 로, 32 column 가이드 안에 들어갑니다. `usedPercent` 가 null/NaN 이면 bar 는 10× `░` 로 채우고 pct 는 `—` 로 표기합니다.
 
 CLI 평문 (`token-weather status` 데스크탑) 과 `--json` 출력 contract 는 변경 없이 유지됩니다 — 텔레그램 채널 전용 가공.
 
