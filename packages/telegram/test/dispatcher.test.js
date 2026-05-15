@@ -3,9 +3,18 @@ import assert from 'node:assert/strict';
 
 import { buildDispatcher } from '../src/dispatcher.js';
 
+function minimalStatusSnapshot() {
+  return {
+    schemaVersion: '0.5.0',
+    providers: { codex: { enabled: true }, claude: { enabled: true } },
+    sync: { enabled: false },
+    accountFilter: null,
+    providerFilter: null,
+  };
+}
+
 function makeDeps() {
   let snapshotCalls = 0;
-  let outputCalls = 0;
   let jsonCalls = 0;
   let doctorCalls = 0;
   let authListCalls = 0;
@@ -13,11 +22,7 @@ function makeDeps() {
     deps: {
       getStatusSnapshot: async () => {
         snapshotCalls += 1;
-        return { schemaVersion: '0.5.0' };
-      },
-      formatStatusOutput: () => {
-        outputCalls += 1;
-        return ['status text'];
+        return minimalStatusSnapshot();
       },
       formatStatusJson: () => {
         jsonCalls += 1;
@@ -34,7 +39,7 @@ function makeDeps() {
       },
       formatAuthListLines: () => ['auth list'],
     },
-    counts: () => ({ snapshotCalls, outputCalls, jsonCalls, doctorCalls, authListCalls }),
+    counts: () => ({ snapshotCalls, jsonCalls, doctorCalls, authListCalls }),
   };
 }
 
@@ -48,22 +53,23 @@ function makeCtx() {
   };
 }
 
-describe('buildDispatcher (Phase 3)', () => {
+describe('buildDispatcher (Phase 3 + issue #144)', () => {
   it('5 명령 키가 정확히 노출됨 (status / usage / doctor / auth_list)', () => {
     const { deps } = makeDeps();
     const dispatcher = buildDispatcher(deps);
-    // status_json 은 별도 키가 아니라 status/usage 의 --json 분기로 들어감.
     assert.deepEqual(Object.keys(dispatcher).sort(), ['auth_list', 'doctor', 'status', 'usage']);
   });
 
-  it('/status (no --json) → status-handler 호출 (formatStatusOutput 사용)', async () => {
+  it('/status (no --json) → status-handler 호출 (telegram-compact 출력 + reply)', async () => {
     const { deps, counts } = makeDeps();
     const dispatcher = buildDispatcher(deps);
     const ctx = makeCtx();
     await dispatcher.status(ctx, []);
     const c = counts();
-    assert.equal(c.outputCalls, 1);
+    assert.equal(c.snapshotCalls, 1);
     assert.equal(c.jsonCalls, 0);
+    assert.equal(ctx.replies.length, 1);
+    assert.match(ctx.replies[0].text, /<pre>━━ Status ━━/);
   });
 
   it('/status --json → status-json-handler 로 위임 (formatStatusJson 사용)', async () => {
@@ -73,14 +79,13 @@ describe('buildDispatcher (Phase 3)', () => {
     await dispatcher.status(ctx, ['--json']);
     const c = counts();
     assert.equal(c.jsonCalls, 1);
-    assert.equal(c.outputCalls, 0);
+    assert.equal(ctx.replies.length, 1);
   });
 
   it('/status --json 의 meta.command 는 "status" (PR #134 review)', async () => {
     let captured = null;
     const deps = {
       getStatusSnapshot: async () => ({}),
-      formatStatusOutput: () => [],
       formatStatusJson: (_, meta) => {
         captured = meta;
         return '{}';
@@ -100,7 +105,6 @@ describe('buildDispatcher (Phase 3)', () => {
     let captured = null;
     const deps = {
       getStatusSnapshot: async () => ({}),
-      formatStatusOutput: () => [],
       formatStatusJson: (_, meta) => {
         captured = meta;
         return '{}';
@@ -116,13 +120,15 @@ describe('buildDispatcher (Phase 3)', () => {
     assert.equal(captured.command, 'usage');
   });
 
-  it('/usage (no --json) → status alias (formatStatusOutput 사용)', async () => {
+  it('/usage (no --json) → status alias (telegram-compact 출력 + reply)', async () => {
     const { deps, counts } = makeDeps();
     const dispatcher = buildDispatcher(deps);
     const ctx = makeCtx();
     await dispatcher.usage(ctx, []);
     const c = counts();
-    assert.equal(c.outputCalls, 1);
+    assert.equal(c.snapshotCalls, 1);
+    assert.equal(ctx.replies.length, 1);
+    assert.match(ctx.replies[0].text, /<pre>━━ Status ━━/);
   });
 
   it('/usage --json 도 동일 status-json 위임', async () => {

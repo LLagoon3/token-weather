@@ -54,6 +54,11 @@ export {
   uninstallTaskScheduler,
   parseYesNo,
 } from './os-service-installer.js';
+export {
+  formatStatusForTelegram,
+  compactResetTime,
+  TELEGRAM_LINE_WIDTH,
+} from './telegram-status-formatter.js';
 
 let _activeServer = null;
 

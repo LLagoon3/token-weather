@@ -43,9 +43,9 @@ token-weather telegram uninstall-service
 
 | Telegram 명령    | 동작 (`token-weather <cmd>` 와 동일)                                                                                  |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `/status`        | 평문 status 출력 (HTML `<pre>` 블록)                                                                                  |
+| `/status`        | 모바일 폭 친화 compact 평문 (HTML `<pre>` 블록, ≤ 32 column)                                                          |
 | `/status --json` | `formatStatusJson` 결과 (top-level `command` = "status")                                                              |
-| `/usage`         | status alias — 평문                                                                                                   |
+| `/usage`         | status alias — 모바일 친화 compact 평문                                                                               |
 | `/usage --json`  | `formatStatusJson` 결과 (top-level `command` = "usage")                                                               |
 | `/doctor`        | `runDoctorRoot` 기본 출력. 인자 / subcommand 차단                                                                     |
 | `/auth_list`     | 모든 provider 의 저장 계정 + claude import 섹션                                                                       |
@@ -53,6 +53,35 @@ token-weather telegram uninstall-service
 | `/pair <code>`   | 페어링 전용 (setup 시점에만 의미). 수동 입력 fallback                                                                 |
 
 본인이 아닌 봇을 mention 한 명령 (`/status@OtherBot`) 은 silent ignore — group chat 에서 다른 봇 명령에 token-weather 가 응답하지 않습니다.
+
+### `/status` / `/usage` 출력 예시 (issue #144)
+
+CLI 의 데스크탑 박스 (`╭─` / `│` / `╰─`) + 50-column heavy rule 은 모바일 폭 (~30–40 column) 에서 wrap 으로 박스가 깨지기 때문에, 텔레그램 봇은 `@token-weather/telegram` 패키지의 `formatStatusForTelegram` 으로 박스 미사용 compact 출력을 보냅니다 (라인 폭 ≤ 32 column 가이드, timezone 표기 생략):
+
+```
+━━ Status ━━
+Codex  enabled
+Claude enabled
+Sync   disabled
+
+━━ Codex ━━
+me@example.com · Pro
+✓ OK (200)
+· primary: 38%
+  reset 9:42pm
+· secondary: 71%
+  reset Sat 4:42am
+
+━━ Claude ━━
+me@anthropic.example
+✓ OK (200)
+· 5h: 19%
+  reset 3pm
+· 7d: 8%
+  reset May 22 3am
+```
+
+CLI 평문 (`token-weather status` 데스크탑) 과 `--json` 출력 contract 는 변경 없이 유지됩니다 — 텔레그램 채널 전용 가공.
 
 ## OS service 등록
 
