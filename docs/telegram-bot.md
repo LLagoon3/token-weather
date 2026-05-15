@@ -59,7 +59,7 @@ token-weather telegram uninstall-service
 
 `token-weather telegram start` daemon 부팅 시 [Bot API `setMyCommands`](https://core.telegram.org/bots/api#setmycommands) 를 호출해 위 명령 목록을 봇에 등록합니다. 사용자는 텔레그램 채팅 입력창에서 `/` 만 눌러도 client (모바일 / 데스크탑) 가 자동완성 메뉴로 명령을 띄워줍니다.
 
-- 등록 source: `packages/telegram/src/bot-commands.js` 의 `BOT_COMMANDS` 배열. 새 명령 추가 시 이 배열만 갱신하면 메뉴 / `/help` / dispatcher 세 곳이 동기화됩니다.
+- 등록 source: `packages/telegram/src/bot-commands.js` 의 `BOT_COMMANDS` 배열. 새 명령을 추가할 때는 핸들러 모듈 / `buildDispatcher()` 키 / 본 배열 entry **세 곳을 함께 갱신** — dispatcher 는 본 배열에서 자동 생성되지 않습니다. dispatcher 키 집합과 `BOT_COMMANDS.command` 의 동기화는 단위 테스트가 drift 가드로 잡습니다.
 - 등록 실패 (네트워크 / 권한 등) 해도 daemon boot 자체는 계속 — 메뉴 등록은 보조 기능이고 사용자가 명령을 직접 입력하면 동일하게 동작합니다.
 - 등록은 idempotent — daemon 재시작마다 자동 갱신.
 
