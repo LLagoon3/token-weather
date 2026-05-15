@@ -57,10 +57,13 @@ describe('buildDispatcher (Phase 3 + issue #144)', () => {
   it('명령 키가 정확히 노출됨 (status / usage / doctor / auth_list / help — issue #148)', () => {
     const { deps } = makeDeps();
     const dispatcher = buildDispatcher(deps);
-    assert.deepEqual(
-      Object.keys(dispatcher).sort(),
-      ['auth_list', 'doctor', 'help', 'status', 'usage'],
-    );
+    assert.deepEqual(Object.keys(dispatcher).sort(), [
+      'auth_list',
+      'doctor',
+      'help',
+      'status',
+      'usage',
+    ]);
   });
 
   it('/help → BOT_COMMANDS 기반 plain text reply (issue #148)', async () => {
