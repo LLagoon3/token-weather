@@ -208,21 +208,32 @@ describe('installSystemdUnit guard 보강 (PR #140 review 2)', () => {
     assert.ok(logs.some((l) => l.includes('USER 환경변수가 비어 있어')));
   });
 
-  it('nodeBinPath 공백 포함 → status skipped + manual fallback 안내', async () => {
+  it('nodeBinPath 공백 포함 → escape helper 적용 → succeeded (issue #141)', async () => {
+    const mockFs = makeMockFs();
     const r = await installSystemdUnit(
       { ...INPUT, nodeBinPath: '/path with space/node' },
-      { fsImpl: makeMockFs().fs, execImpl: makeMockExec().impl, env: { HOME: '/h', USER: 'u' } },
+      { fsImpl: mockFs.fs, execImpl: makeMockExec().impl, env: { HOME: '/h', USER: 'u' } },
     );
-    assert.equal(r.status, 'skipped');
-    assert.match(r.message, /공백 또는 특수문자/);
+    assert.equal(r.status, 'succeeded');
+    // 작성된 service 파일에 escape 적용 확인 — "..." quote 안에 공백 경로.
+    const written = Array.from(mockFs.files.values()).find((c) =>
+      c.includes('"/path with space/node"'),
+    );
+    assert.ok(written, 'service 파일에 escape 된 nodeBin 경로 포함');
   });
 
-  it('cliScriptPath XML 특수문자 포함 → status skipped', async () => {
+  it('cliScriptPath XML 특수문자 포함 → systemd 는 XML 무관 → succeeded (issue #141)', async () => {
+    const mockFs = makeMockFs();
     const r = await installSystemdUnit(
       { ...INPUT, cliScriptPath: '/cli/<bin>/token-weather.js' },
-      { fsImpl: makeMockFs().fs, execImpl: makeMockExec().impl, env: { HOME: '/h', USER: 'u' } },
+      { fsImpl: mockFs.fs, execImpl: makeMockExec().impl, env: { HOME: '/h', USER: 'u' } },
     );
-    assert.equal(r.status, 'skipped');
+    assert.equal(r.status, 'succeeded');
+    // systemd unit 은 XML 이 아니므로 escape 변화 없음 — quote 만 적용.
+    const written = Array.from(mockFs.files.values()).find((c) =>
+      c.includes('"/cli/<bin>/token-weather.js"'),
+    );
+    assert.ok(written, 'service 파일에 quote wrap 된 cliScript 경로 포함');
   });
 
   it('overwrite 동의 + daemon-reload 실패 → 기존 content 가 restore (PR #140 review 3)', async () => {

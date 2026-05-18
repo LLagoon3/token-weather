@@ -61,19 +61,30 @@ export function escapePlistXml(text) {
 /**
  * Windows `schtasks /TR` 의 인자 quoting.
  *
- * `/TR` 는 single string 으로 program + args 받음 → 각 인자를 `"..."` 로 감싸고
- * 인자 사이는 space. path 안 `"` 는 `\\"` 로 escape (Windows 파일명에 `"` 는
- * 못 들어가지만 일관성 / defensive 차원).
+ * `/TR` 는 outer `"..."` 안에 program + args 가 들어가는 single string. 그
+ * 안에서 각 인자를 quoting 하려면 cmd.exe 의 escape 된 quote (`\"`) 를 써야
+ * 한다 — outer `"..."` 안에서 `\"` 는 literal quote 로 해석되어 schtasks 가
+ * program / args 를 정확히 split.
+ *
+ * 따라서 본 helper 는 inner-escape 된 quote 로 감싼 형태를 반환하고,
+ * 호출 측이 outer `"..."` 로 한 번 더 감싼다.
+ *
+ * 내부 `"` 는 `""` 로 escape (Windows cmd 의 quote-in-quote — Windows 파일명에
+ * `"` 는 못 들어가지만 일관성 / defensive 차원).
  *
  * @param {string} value - escape 대상 (path / argument).
- * @returns {string} double-quote 로 감싸진 escape 형태. 빈 입력 → `""`.
+ * @returns {string} `\"...\"` (escape 된 quote 로 감싸진) 형태. 빈 입력 → `\"\"`.
  *
  * @example
- *   escapeSchtasksArg('C:\\Program Files\\node.exe')
- *   // → '"C:\\Program Files\\node.exe"'
+ *   escapeSchtasksArg('/usr/bin/node')                    // → '\\"/usr/bin/node\\"'
+ *   escapeSchtasksArg('C:\\Program Files\\node.exe')      // → '\\"C:\\Program Files\\node.exe\\"'
+ *   // 호출 예: `/TR "${escapeSchtasksArg(node)} ${escapeSchtasksArg(script)} telegram start"`
+ *   //   → `/TR "\\"path1\\" \\"path2\\" telegram start"` — cmd.exe 가 outer "..."
+ *   //     를 boundary 로 받고, 안의 \\" 를 literal quote 로 해석 → schtasks 가
+ *   //     `"path1" "path2" telegram start` 를 parse 해서 token 으로 split.
  */
 export function escapeSchtasksArg(value) {
-  if (value == null || value === '') return '""';
-  const text = String(value);
-  return `"${text.replace(/"/g, '\\"')}"`;
+  if (value == null || value === '') return '\\"\\"';
+  const text = String(value).replace(/"/g, '""');
+  return `\\"${text}\\"`;
 }

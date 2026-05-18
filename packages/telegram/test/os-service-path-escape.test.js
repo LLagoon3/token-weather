@@ -63,7 +63,7 @@ describe('escapePlistXml (issue #141)', () => {
   });
 
   it('attribute escape (싱글/더블 quote) 는 적용 안 됨 — element content 만', () => {
-    assert.equal(escapePlistXml("path 'with' \"quotes\""), "path 'with' \"quotes\"");
+    assert.equal(escapePlistXml('path \'with\' "quotes"'), 'path \'with\' "quotes"');
   });
 
   it('null / undefined → 빈 문자열', () => {
@@ -77,28 +77,29 @@ describe('escapePlistXml (issue #141)', () => {
 });
 
 describe('escapeSchtasksArg (issue #141)', () => {
-  it('정상 alphanumeric 경로 — double-quote wrap', () => {
-    assert.equal(escapeSchtasksArg('C:\\nodejs\\node.exe'), '"C:\\nodejs\\node.exe"');
+  it('정상 alphanumeric 경로 — escape 된 quote (\\") 로 wrap', () => {
+    // 호출 측이 outer "..." 안에 넣으면 cmd 가 `"..."` literal quote 로 해석.
+    assert.equal(escapeSchtasksArg('C:\\nodejs\\node.exe'), '\\"C:\\nodejs\\node.exe\\"');
   });
 
   it('공백 포함 경로 — Windows 표준 Node 설치 환경', () => {
     assert.equal(
       escapeSchtasksArg('C:\\Program Files\\nodejs\\node.exe'),
-      '"C:\\Program Files\\nodejs\\node.exe"',
+      '\\"C:\\Program Files\\nodejs\\node.exe\\"',
     );
   });
 
   it('백슬래시는 그대로 (Windows path separator 보존)', () => {
-    assert.equal(escapeSchtasksArg('a\\b\\c'), '"a\\b\\c"');
+    assert.equal(escapeSchtasksArg('a\\b\\c'), '\\"a\\b\\c\\"');
   });
 
-  it('내부 double-quote escape (defensive — 실제 Windows 파일명에 " 불가하지만 일관성)', () => {
-    assert.equal(escapeSchtasksArg('a"b'), '"a\\"b"');
+  it('내부 double-quote escape ("" — cmd.exe quote-in-quote, defensive)', () => {
+    assert.equal(escapeSchtasksArg('a"b'), '\\"a""b\\"');
   });
 
-  it('빈 입력 → 빈 quote `""`', () => {
-    assert.equal(escapeSchtasksArg(''), '""');
-    assert.equal(escapeSchtasksArg(null), '""');
-    assert.equal(escapeSchtasksArg(undefined), '""');
+  it('빈 입력 → 빈 escape quote', () => {
+    assert.equal(escapeSchtasksArg(''), '\\"\\"');
+    assert.equal(escapeSchtasksArg(null), '\\"\\"');
+    assert.equal(escapeSchtasksArg(undefined), '\\"\\"');
   });
 });
