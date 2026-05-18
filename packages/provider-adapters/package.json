@@ -1,6 +1,6 @@
 {
   "name": "@token-weather/provider-adapters",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Token Weather provider별 인증/endpoint 연결 및 usage 정규화 어댑터",
   "license": "Apache-2.0",
   "type": "module",
@@ -31,7 +31,7 @@
     "codex"
   ],
   "dependencies": {
-    "@token-weather/schemas": "^0.5.0"
+    "@token-weather/schemas": "^0.6.0"
   },
   "scripts": {
     "build:types": "tsc -p ./tsconfig.json"
