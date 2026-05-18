@@ -54,6 +54,7 @@ export {
   uninstallTaskScheduler,
   parseYesNo,
 } from './os-service-installer.js';
+export { escapeSystemdArg, escapePlistXml, escapeSchtasksArg } from './os-service-path-escape.js';
 export {
   formatStatusForTelegram,
   compactResetTime,

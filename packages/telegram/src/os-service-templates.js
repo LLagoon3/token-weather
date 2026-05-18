@@ -8,7 +8,14 @@
  *
  * 본 모듈의 모든 함수는 pure — 절대 경로 / 명령 문자열만 가공한다. 파일 시스템
  * 변경 없음.
+ *
+ * issue #141: 경로에 공백 / XML 특수문자가 포함되어도 자동 등록이 통과하도록
+ * `os-service-path-escape` helper 를 통해 OS 별 정확한 quoting / escape 를 적용.
+ * 이전에는 `installer` 가 사전 검사로 skip 했으나, 본 patch 로 Windows 표준 Node
+ * 설치 환경 (`C:\Program Files\nodejs\node.exe`) 도 자동 등록 가능.
  */
+
+import { escapeSystemdArg, escapePlistXml, escapeSchtasksArg } from './os-service-path-escape.js';
 
 /**
  * @typedef {object} ServiceTemplate
@@ -36,13 +43,16 @@
  * @returns {ServiceTemplate}
  */
 export function linuxSystemdUnit({ nodeBinPath, cliScriptPath }) {
+  // issue #141: ExecStart 의 nodeBin / cliScript 경로를 systemd 의 double-quote
+  // escape 로 wrap → 공백 / 특수문자 포함 경로도 안전.
+  const execStart = `${escapeSystemdArg(nodeBinPath)} ${escapeSystemdArg(cliScriptPath)} telegram start`;
   const unitContent = [
     '[Unit]',
     'Description=Token Weather Telegram bot',
     'After=network-online.target',
     '',
     '[Service]',
-    `ExecStart=${nodeBinPath} ${cliScriptPath} telegram start`,
+    `ExecStart=${execStart}`,
     'Restart=on-failure',
     'RestartSec=5s',
     '',
@@ -77,6 +87,8 @@ export function linuxSystemdUnit({ nodeBinPath, cliScriptPath }) {
  */
 export function macosLaunchAgent({ nodeBinPath, cliScriptPath, homeDir }) {
   const home = homeDir ?? process.env.HOME ?? '~';
+  // issue #141: <string>...</string> 본문은 XML element content — `&` `<` `>` 를
+  // entity escape 해야 plist 파서가 깨지지 않음. attribute 가 아니므로 quote 는 무관.
   const plistContent = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"',
@@ -87,8 +99,8 @@ export function macosLaunchAgent({ nodeBinPath, cliScriptPath, homeDir }) {
     '  <string>com.token-weather.bot</string>',
     '  <key>ProgramArguments</key>',
     '  <array>',
-    `    <string>${nodeBinPath}</string>`,
-    `    <string>${cliScriptPath}</string>`,
+    `    <string>${escapePlistXml(nodeBinPath)}</string>`,
+    `    <string>${escapePlistXml(cliScriptPath)}</string>`,
     '    <string>telegram</string>',
     '    <string>start</string>',
     '  </array>',
@@ -97,9 +109,9 @@ export function macosLaunchAgent({ nodeBinPath, cliScriptPath, homeDir }) {
     '  <key>KeepAlive</key>',
     '  <true/>',
     '  <key>StandardOutPath</key>',
-    `  <string>${home}/Library/Logs/token-weather-bot.log</string>`,
+    `  <string>${escapePlistXml(`${home}/Library/Logs/token-weather-bot.log`)}</string>`,
     '  <key>StandardErrorPath</key>',
-    `  <string>${home}/Library/Logs/token-weather-bot-error.log</string>`,
+    `  <string>${escapePlistXml(`${home}/Library/Logs/token-weather-bot-error.log`)}</string>`,
     '</dict>',
     '</plist>',
   ].join('\n');
@@ -127,13 +139,17 @@ export function macosLaunchAgent({ nodeBinPath, cliScriptPath, homeDir }) {
  * @returns {ServiceTemplate}
  */
 export function windowsTaskScheduler({ nodeBinPath, cliScriptPath }) {
+  // issue #141: /TR 는 single string program+args 라 각 인자 path 안 `"` 를
+  // `\"` 로 escape, 그 후 `"..."` wrap. escapeSchtasksArg 가 처리.
+  const node = escapeSchtasksArg(nodeBinPath);
+  const script = escapeSchtasksArg(cliScriptPath);
   return {
     kind: 'taskscheduler',
     title: 'Windows Task Scheduler (user task, 관리자 권한 불필요)',
     instructions: [
-      // cmd.exe 의 escape 규칙 — 경로에 공백 시 따옴표 필수.
-      'schtasks /Create /TN "TokenWeatherBot" /SC ONLOGON /RL LIMITED ' +
-        `/TR "\\"${nodeBinPath}\\" \\"${cliScriptPath}\\" telegram start"`,
+      // /TR 의 outer quote 는 cmd.exe 가 받는 경계, 그 안의 escape 된 `"`
+      // 는 schtasks 가 prog/args 로 split 할 때 사용.
+      `schtasks /Create /TN "TokenWeatherBot" /SC ONLOGON /RL LIMITED /TR "${node} ${script} telegram start"`,
       'rem 종료 / 제거하려면:',
       'schtasks /End /TN "TokenWeatherBot"',
       'schtasks /Delete /TN "TokenWeatherBot" /F',

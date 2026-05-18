@@ -22,18 +22,10 @@ import { linuxSystemdUnit, macosLaunchAgent } from './os-service-templates.js';
 const SYSTEMD_USER_DIR = '.config/systemd/user';
 const LAUNCH_AGENTS_DIR = 'Library/LaunchAgents';
 
-/**
- * 자동 등록 가능 여부의 사전 검사 — 경로의 공백 / XML 특수문자 / 따옴표 등이
- * systemd unit / launchd plist / Task Scheduler 의 quoting 규칙과 충돌할 수
- * 있어, 안전을 위해 자동 등록을 skip 하고 manual fallback 으로 안내 (PR #140
- * review). 정확한 escaping helper 는 별도 follow-up.
- *
- * @param {string} p
- * @returns {boolean}
- */
-function hasUnsafePathChars(p) {
-  return /[\s<>&"'`]/.test(p);
-}
+// issue #141: 경로의 공백 / XML 특수문자 / 따옴표 등의 사전 검사 (`hasUnsafePathChars`)
+// 는 제거됨. OS 별 escape 는 os-service-templates.js 가 os-service-path-escape
+// helper 로 처리 — `C:\Program Files\nodejs\node.exe` 같은 Windows 표준 Node
+// 환경도 자동 등록 가능.
 
 /**
  * @typedef {object} InstallerInput
@@ -114,16 +106,6 @@ export async function installSystemdUnit(input, options = {}) {
       status: 'skipped',
       message:
         'HOME 환경변수가 비어 있어 service 파일 경로를 결정할 수 없음 — 수동 등록 안내로 fallback',
-    };
-  }
-
-  // 경로 안전성 사전 검사 — 공백 / 특수문자가 있으면 systemd unit 의 ExecStart=
-  // 인자 구분과 충돌. manual fallback 으로 안내 (PR #140 review).
-  if (hasUnsafePathChars(input.nodeBinPath) || hasUnsafePathChars(input.cliScriptPath)) {
-    return {
-      status: 'skipped',
-      message:
-        'node / cli 경로에 공백 또는 특수문자가 있어 자동 등록을 skip — `telegram setup` 출력의 정확한 quoting 을 사용한 수동 등록을 권장',
     };
   }
 
@@ -288,16 +270,6 @@ export async function installLaunchAgent(input, options = {}) {
     };
   }
 
-  // 경로 안전성 사전 검사 — launchd plist 는 XML 이라 `<`, `>`, `&` 등이 escape
-  // 되지 않으면 깨짐 (PR #140 review).
-  if (hasUnsafePathChars(input.nodeBinPath) || hasUnsafePathChars(input.cliScriptPath)) {
-    return {
-      status: 'skipped',
-      message:
-        'node / cli 경로에 공백 또는 특수문자가 있어 자동 등록을 skip — `telegram setup` 출력의 정확한 quoting 을 사용한 수동 등록을 권장',
-    };
-  }
-
   try {
     execImpl('launchctl', ['version']);
   } catch (err) {
@@ -415,15 +387,6 @@ export async function uninstallLaunchAgent(options = {}) {
 export async function installTaskScheduler(input, options = {}) {
   const execImpl = options.execImpl ?? defaultExecImpl;
   const confirmFn = options.confirmFn ?? defaultConfirmFn;
-
-  // 경로 안전성 사전 검사 — Windows 의 cmd.exe 따옴표 escaping (PR #140 review).
-  if (hasUnsafePathChars(input.nodeBinPath) || hasUnsafePathChars(input.cliScriptPath)) {
-    return {
-      status: 'skipped',
-      message:
-        'node / cli 경로에 공백 또는 특수문자가 있어 자동 등록을 skip — `telegram setup` 출력의 정확한 quoting 을 사용한 수동 등록을 권장',
-    };
-  }
 
   try {
     execImpl('schtasks', ['/?']);

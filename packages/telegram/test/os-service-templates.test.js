@@ -32,10 +32,22 @@ describe('linuxSystemdUnit (Phase 4)', () => {
     assert.match(text, /loginctl enable-linger/);
   });
 
-  it('ExecStart 에 nodeBinPath + cliScriptPath + "telegram start" 포함', () => {
+  it('ExecStart 에 nodeBinPath + cliScriptPath + "telegram start" 포함 (issue #141: double-quote wrap)', () => {
     const text = tmpl.instructions.join('\n');
-    assert.match(text, /ExecStart=\/usr\/bin\/node .* telegram start/);
-    assert.ok(text.includes(INPUT.cliScriptPath));
+    assert.match(text, /ExecStart="\/usr\/bin\/node" .* telegram start/);
+    assert.ok(text.includes(`"${INPUT.cliScriptPath}"`));
+  });
+
+  it('공백 포함 경로도 자동 등록 가능 — issue #141', () => {
+    const t = linuxSystemdUnit({
+      nodeBinPath: '/path with space/node',
+      cliScriptPath: '/cli with space/token-weather.js',
+    });
+    const text = t.instructions.join('\n');
+    assert.match(
+      text,
+      /ExecStart="\/path with space\/node" "\/cli with space\/token-weather\.js" telegram start/,
+    );
   });
 });
 
@@ -52,8 +64,20 @@ describe('macosLaunchAgent (Phase 4)', () => {
     assert.match(text, /com\.token-weather\.bot/);
     assert.match(text, /<key>RunAtLoad<\/key>/);
     assert.match(text, /<key>KeepAlive<\/key>/);
+    // alphanumeric 경로는 XML escape 영향 없음.
     assert.ok(text.includes(`<string>${INPUT.nodeBinPath}</string>`));
     assert.ok(text.includes(`<string>${INPUT.cliScriptPath}</string>`));
+  });
+
+  it('XML 특수문자 (& < >) 포함 경로도 자동 등록 가능 — issue #141', () => {
+    const t = macosLaunchAgent({
+      nodeBinPath: '/Users/Q&A/node',
+      cliScriptPath: '/cli/<bin>/token-weather.js',
+      homeDir: '/Users/u',
+    });
+    const text = t.instructions.join('\n');
+    assert.ok(text.includes('<string>/Users/Q&amp;A/node</string>'));
+    assert.ok(text.includes('<string>/cli/&lt;bin&gt;/token-weather.js</string>'));
   });
 
   it('log path 가 homeDir 기준', () => {
@@ -87,6 +111,17 @@ describe('windowsTaskScheduler (Phase 4)', () => {
     const text = tmpl.instructions.join('\n');
     // \\" 로 escape 되어 cmd 가 따옴표 인식.
     assert.match(text, /\\"\/usr\/bin\/node\\"/);
+  });
+
+  it('공백 포함 경로 (Windows 표준 Node 설치 환경) 도 자동 등록 가능 — issue #141', () => {
+    const t = windowsTaskScheduler({
+      nodeBinPath: 'C:\\Program Files\\nodejs\\node.exe',
+      cliScriptPath:
+        'C:\\Users\\u\\AppData\\Roaming\\npm\\node_modules\\@token-weather\\cli\\bin\\token-weather.js',
+    });
+    const text = t.instructions.join('\n');
+    // /TR "\"C:\Program Files\nodejs\node.exe\" \"...\" telegram start"
+    assert.match(text, /\/TR "\\"C:\\Program Files\\nodejs\\node\.exe\\" /);
   });
 });
 
