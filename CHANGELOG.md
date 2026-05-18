@@ -2,11 +2,41 @@
 
 본 파일은 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 포맷을 따르고, 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 사용합니다. 카테고리 정의와 bump 기준은 [docs/release-policy.md](./docs/release-policy.md) 참고.
 
-3 패키지(`@token-weather/cli` / `@token-weather/provider-adapters` / `@token-weather/schemas`)는 v0.x 동안 linked 되어 같은 version으로 release 됩니다.
+4 패키지(`@token-weather/cli` / `@token-weather/provider-adapters` / `@token-weather/schemas` / `@token-weather/telegram`)는 v0.x 동안 linked 되어 같은 version으로 release 됩니다.
 
 ## [Unreleased]
 
-이 섹션은 publish 시점에 root에서 **수동으로 큐레이트**합니다 — 3 패키지를 가로지르는 사용자-가시 변경의 high-level 요약. 패키지별 상세 release note는 [Changesets](https://github.com/changesets/changesets)가 `packages/*/CHANGELOG.md`를 자동 생성하고, 본 문서는 publish PR에서 그 내용을 참고해 채웁니다. 사용자-가시 변경이 있는 PR은 `npx changeset` 으로 changeset을 함께 commit 해주세요.
+이 섹션은 publish 시점에 root에서 **수동으로 큐레이트**합니다 — 4 패키지를 가로지르는 사용자-가시 변경의 high-level 요약. 패키지별 상세 release note는 [Changesets](https://github.com/changesets/changesets)가 `packages/*/CHANGELOG.md`를 자동 생성하고, 본 문서는 publish PR에서 그 내용을 참고해 채웁니다. 사용자-가시 변경이 있는 PR은 `npx changeset` 으로 changeset을 함께 commit 해주세요.
+
+## [0.5.0] - 2026-05-18
+
+`@token-weather/telegram` 의 본격 등장 release. 5-phase 텔레그램 봇 통합 ([#127]–[#142]) 으로 핸드폰 / 다른 데스크탑에서 `/status` / `/usage` / `/doctor` / `/auth_list` 를 원격 호출할 수 있고, 후속 모바일 UX 시리즈 ([#144], [#146], [#148]) 로 출력이 모바일 폭 친화 compact + progress bar + 자동완성 메뉴까지 갖춰짐. CLI 평문 / `status --json` contract 변경 없음, OAuth 토큰은 여전히 로컬만 (Telegram 활성 시 사용량 메타데이터만 Telegram 서버 경유 — [docs/telegram-bot.md §보안 모델](./docs/telegram-bot.md)).
+
+### Added — `@token-weather/telegram` 신규 패키지
+
+- **long-poll daemon** ([#127], [#133]) — grammy 기반 `createBotServer` / `startBot` / `stopBot`. boot 시 `bot.init()` token validation, 단일 인스턴스 lock, 409 Conflict 친절한 종료, SIGINT/SIGTERM graceful shutdown.
+- **명령 핸들러 + dispatcher** ([#128], [#134]) — `/status`, `/status --json`, `/usage`, `/usage --json`, `/doctor`, `/auth_list`. `runTelegramCommand(argv, deps)` 가 cli 의 core 함수를 deps 로 주입받아 동작 (telegram 패키지는 cli 를 직접 import 하지 않음 — PR #131 review 정책).
+- **`telegram setup`** ([#129], [#135], [#137], [#139]) — 대화형 봇 토큰 등록 + getMe 검증 + 1회용 페어링 코드 + Telegram deep link / `/pair <code>` / `/start <code>` 흐름 + config 저장 (chmod 600) + default config deep-merge.
+- **`telegram check`** ([#129]) — config / token / linger 상태 read-only 진단.
+- **`telegram start --help`** ([#134]) — 활성화 사전 조건 안내.
+- **OS service installer** ([#138], [#140]) — systemd `--user` / launchd LaunchAgent / Windows Task Scheduler 자동 등록. `setup` 마지막 단계 [Y/n] 프롬프트. 경로 공백 / XML 특수문자 / 권한 부족 시 manual fallback. `telegram uninstall-service` 로 제거 (config / auth.json 은 유지).
+- **자동완성 메뉴 + `/help`** ([#148]) — Telegram Bot API `setMyCommands` 를 boot 시 자동 등록. 사용자가 `/` 만 누르면 client 가 5 명령 자동완성 메뉴 노출. `/help` 는 동일 source (`BOT_COMMANDS`) 의 plain text 응답. drift 가드 단위 테스트.
+- **보안 / 격리** ([#133], [#127]) — `allowedUserIds` 미들웨어로 비허가 user_id silent ignore. group chat 의 다른 봇 mention (`/cmd@OtherBot`) silent ignore. raw prompt / response 미전송, 사용량 / 계정 label 메타데이터만 Telegram 서버 경유.
+
+### Changed — Telegram 출력 UX (모바일 가독성)
+
+- **`/status`, `/usage` 응답을 모바일 폭 친화 compact 출력으로 전환** ([#144]) — CLI 의 `formatStatusOutput` 은 80+ column 박스 (`╭─` / `│` / `╰─`) + 50 column heavy rule 가정이라 모바일 (~30–40 col) 에서 wrap 깨짐 회귀. 새 `formatStatusForTelegram` 이 32 column 안에 들어가는 라인, timezone 생략 reset 시각, `5h` / `7d` 짧은 window 라벨.
+- **window 라인에 10-column ASCII progress bar 복원** ([#146]) — 1/8 정밀도 fractional block (`█▏▎▍▌▋▊▉`) + light shade `░`. 새 `compactProgressBar` — CLI 의 `formatProgressBar` 사본 (ANSI 컬러 분기 제거, Telegram `<pre>` 미지원).
+
+### Changed — Internal
+
+- **OS service installer/uninstaller return shape 통일** ([#142]) — `status: 'installed'` → `'succeeded'`. PR #140 publish 전 처리 → 외부 사용자가 의존한 적 없음.
+
+### Documentation / Security
+
+- `docs/telegram-bot.md` 신규 ([#130], [#148]) — Quick start, 보안 모델, OS service 가이드 (자동 등록 + 수동 등록), FAQ. 출력 예시 mockup, 자동완성 메뉴 설명.
+- `SECURITY.md` ([#130]) — Telegram 채널 위협 모델 + bot token revoke / `/deletebot` 절차. OAuth / bot token / 페어링 코드 저장 위치 분리 명시.
+- README ([#130]) — Telegram 봇 옵션 섹션, "로컬 only" 약속을 Telegram 활성 시 메타데이터 경유로 정밀화.
 
 ## [0.4.0] - 2026-05-12
 
@@ -51,13 +81,29 @@
 - `packages/agent/test/cli/status-json.test.js` — top-level `schemaVersion` lock 회귀 가드 3 케이스 (값 일치 / 키 항상 present / 모든 출력 경로 통과). `packages/schemas/test/schema-version.test.js` (값 lock) 와 함께 SCHEMA_VERSION 한쪽만 bump 회귀 차단.
 - `packages/agent/src/cli/status-bar-helper.js` 신설 (UI) — `shouldUseColor` / `levelForPercent` / `colorize` / `formatProgressBar` / `formatResetTime` / `formatWindowLabel` pure helper.
 
-[Unreleased]: https://github.com/LLagoon3/token-weather/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/LLagoon3/token-weather/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/LLagoon3/token-weather/releases/tag/v0.5.0
 [0.4.0]: https://github.com/LLagoon3/token-weather/releases/tag/v0.4.0
 
 [#117]: https://github.com/LLagoon3/token-weather/pull/117
 [#119]: https://github.com/LLagoon3/token-weather/issues/119
 [#120]: https://github.com/LLagoon3/token-weather/issues/120
 [#121]: https://github.com/LLagoon3/token-weather/issues/121
+[#127]: https://github.com/LLagoon3/token-weather/issues/127
+[#128]: https://github.com/LLagoon3/token-weather/issues/128
+[#129]: https://github.com/LLagoon3/token-weather/issues/129
+[#130]: https://github.com/LLagoon3/token-weather/issues/130
+[#133]: https://github.com/LLagoon3/token-weather/pull/133
+[#134]: https://github.com/LLagoon3/token-weather/pull/134
+[#135]: https://github.com/LLagoon3/token-weather/pull/135
+[#137]: https://github.com/LLagoon3/token-weather/issues/137
+[#138]: https://github.com/LLagoon3/token-weather/issues/138
+[#139]: https://github.com/LLagoon3/token-weather/pull/139
+[#140]: https://github.com/LLagoon3/token-weather/pull/140
+[#142]: https://github.com/LLagoon3/token-weather/issues/142
+[#144]: https://github.com/LLagoon3/token-weather/issues/144
+[#146]: https://github.com/LLagoon3/token-weather/issues/146
+[#148]: https://github.com/LLagoon3/token-weather/issues/148
 
 ## [0.3.0] - 2026-05-11
 
