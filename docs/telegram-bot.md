@@ -105,13 +105,13 @@ CLI 평문 (`token-weather status` 데스크탑) 과 `--json` 출력 contract �
 - **Enter / y** (default): token-weather 가 직접 systemd unit / launchd plist / Task Scheduler 항목을 작성 + 활성화 (`systemctl --user enable --now` / `launchctl bootstrap` / `schtasks /Create`). Linux 는 `loginctl enable-linger` 까지 자동 (best-effort).
 - **n**: 자동 등록 건너뜀 → 아래 수동 안내 블록을 사용자가 복사 / 붙여넣기.
 - **systemd / launchctl / schtasks 미감지** (WSL / Docker container / Alpine OpenRC 등): 자동 skip + 동일한 수동 안내 출력.
-- **경로에 공백 / 특수문자 (예: Windows 의 `C:\Program Files\nodejs\node.exe`)**: 자동 skip + 수동 안내 fallback. systemd unit / launchd plist (XML) / cmd.exe quoting 의 escape 규칙과 충돌 위험을 사전 차단. Windows 표준 Node 설치 환경은 보통 이 경로에 해당 — `telegram setup` 출력의 정확한 quoting 을 사용한 수동 등록을 권장 (정확한 escaping helper 도입은 follow-up issue).
+- **경로에 공백 / 특수문자 포함** (예: Windows 의 `C:\Program Files\nodejs\node.exe`): 자동 등록 가능 (issue #141). systemd 는 `ExecStart="..."` double-quote, launchd plist 는 XML entity escape (`& < >` → `&amp; &lt; &gt;`), Windows schtasks 는 cmd `\"...\"` 로 각자 정확히 quoting. Windows 표준 Node 설치 환경 등이 그대로 자동 등록 가능.
 
 자동 등록을 나중에 해제하려면 `token-weather telegram uninstall-service`. 책임 범위는 service / linger 까지 (config / auth.json 은 그대로 유지).
 
 ### 수동 등록 (자동 등록 거부 / skip 시)
 
-> ⚠ 아래 코드 블록은 **구조 예시** 입니다. `/path/to/node` / `/path/to/token-weather` 같은 placeholder 는 실제 환경에서 다르며, **`telegram setup` 출력의 절대 경로를 그대로 복사** 해 주세요. 경로에 공백 / 특수문자가 있는 경우 setup 출력의 정확한 quoting 을 반드시 따라야 합니다.
+> ⚠ 아래 코드 블록은 **구조 예시** 입니다. `/path/to/node` / `/path/to/token-weather` 같은 placeholder 는 실제 환경에서 다르며, **`telegram setup` 출력의 절대 경로를 그대로 복사** 해 주세요. 경로에 공백 / XML 특수문자가 있어도 setup 출력에는 OS 별 정확한 escape (`"..."` / `&amp;` / `\"...\"`) 가 이미 적용되어 있으니 그대로 복사하면 됩니다 (issue #141).
 
 ### Linux (systemd `--user`, sudo 불필요)
 
