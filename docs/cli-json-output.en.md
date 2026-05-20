@@ -36,15 +36,15 @@ token-weather status --json --account work@example.com --provider claude
 }
 ```
 
-| Field            | Type                    | When absent                              | Description                                                                                                                                                                              |
-| ---------------- | ----------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `command`        | `"status"` \| `"usage"` | Always present                           | The invoked command name.                                                                                                                                                                |
-| `generatedAt`    | ISO-8601 string         | Always present                           | Time the snapshot was serialized (client-side).                                                                                                                                          |
+| Field            | Type                    | When absent                              | Description                                                                                                                                                                                     |
+| ---------------- | ----------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `command`        | `"status"` \| `"usage"` | Always present                           | The invoked command name.                                                                                                                                                                       |
+| `generatedAt`    | ISO-8601 string         | Always present                           | Time the snapshot was serialized (client-side).                                                                                                                                                 |
 | `schemaVersion`  | string semver \| null   | Always present (value may be null)       | Passed through from `packages/schemas/src/index.js::SCHEMA_VERSION` (currently `'0.5.0'`). Independent of package `version`; bump triggers in [docs/release-policy.md §3](./release-policy.md). |
-| `configPath`     | string \| null          | Always present                           | Resolved config file path.                                                                                                                                                               |
-| `accountFilter`  | string \| null          | `null` when unspecified (key not absent) | `--account <id>` input as given (case-insensitive matching is handled separately).                                                                                                       |
-| `providerFilter` | string \| null          | `null` when unspecified (key not absent) | `--provider <id>` input, lowercase-normalized.                                                                                                                                           |
-| `providers`      | array                   | Always present (`[]` possible)           | See §providers below.                                                                                                                                                                    |
+| `configPath`     | string \| null          | Always present                           | Resolved config file path.                                                                                                                                                                      |
+| `accountFilter`  | string \| null          | `null` when unspecified (key not absent) | `--account <id>` input as given (case-insensitive matching is handled separately).                                                                                                              |
+| `providerFilter` | string \| null          | `null` when unspecified (key not absent) | `--provider <id>` input, lowercase-normalized.                                                                                                                                                  |
+| `providers`      | array                   | Always present (`[]` possible)           | See §providers below.                                                                                                                                                                           |
 
 ### Field-absence policy — null vs missing key
 
@@ -85,23 +85,23 @@ If `providerFilter` is specified, only matching providers are included in the ar
 
 Since v0.5.0 (issue #120), the keysets of codex / claude provider snapshots are **identical**. External consumers can query the data on a single path without branching by provider.
 
-| Field             | Type                 | Description                                                                                                                                                  |
-| ----------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `enabled`         | boolean              | Pass-through of `config.providers.<id>.enabled`. Whether the provider is a call target.                                                                      |
-| `authSource`      | string               | One of `'agent-store'` / `'codex-cli-import'` / `'claude-cli-import'` / `'not-found'`.                                                                       |
-| `credentialsPath` | string \| null       | Set only when the auth source is `cli-import`. `null` otherwise (same policy for codex / claude).                                                            |
-| `usageSnapshots`  | Array<UsageSnapshot> | Per-account usage snapshots as a direct array. Element shape matches [usage-snapshot.schema.json](../packages/schemas/usage-snapshot.schema.json).            |
-| `accountFilter`   | string \| null       | Pass-through of `--account` (case-insensitive matching is handled separately).                                                                               |
-| `filteredOut`     | boolean              | Whether a filter was specified but no matching account was found.                                                                                            |
+| Field             | Type                 | Description                                                                                                                                        |
+| ----------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`         | boolean              | Pass-through of `config.providers.<id>.enabled`. Whether the provider is a call target.                                                            |
+| `authSource`      | string               | One of `'agent-store'` / `'codex-cli-import'` / `'claude-cli-import'` / `'not-found'`.                                                             |
+| `credentialsPath` | string \| null       | Set only when the auth source is `cli-import`. `null` otherwise (same policy for codex / claude).                                                  |
+| `usageSnapshots`  | Array<UsageSnapshot> | Per-account usage snapshots as a direct array. Element shape matches [usage-snapshot.schema.json](../packages/schemas/usage-snapshot.schema.json). |
+| `accountFilter`   | string \| null       | Pass-through of `--account` (case-insensitive matching is handled separately).                                                                     |
+| `filteredOut`     | boolean              | Whether a filter was specified but no matching account was found.                                                                                  |
 
 ### `authSource` enum values
 
-| Value                 | Meaning                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `'agent-store'`       | Found an active account in `~/.config/token-weather/auth.json` (token-weather's own store).                              |
-| `'codex-cli-import'`  | (codex only) Fallback-imported from `~/.codex/auth.json` (Codex CLI itself). `credentialsPath` is exposed alongside.     |
-| `'claude-cli-import'` | (claude only) Fallback-imported from `~/.claude/.credentials.json` (Claude CLI itself). `credentialsPath` is alongside.  |
-| `'not-found'`         | No active account found in any source. `credentialsPath` is `null`.                                                      |
+| Value                 | Meaning                                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `'agent-store'`       | Found an active account in `~/.config/token-weather/auth.json` (token-weather's own store).                             |
+| `'codex-cli-import'`  | (codex only) Fallback-imported from `~/.codex/auth.json` (Codex CLI itself). `credentialsPath` is exposed alongside.    |
+| `'claude-cli-import'` | (claude only) Fallback-imported from `~/.claude/.credentials.json` (Claude CLI itself). `credentialsPath` is alongside. |
+| `'not-found'`         | No active account found in any source. `credentialsPath` is `null`.                                                     |
 
 Changing the enum (add / remove / meaning change) is a major-bump trigger per [release-policy §1](./release-policy.md) — `SCHEMA_VERSION` bump required.
 
@@ -126,7 +126,7 @@ This redaction operates by **exact key name** (case-insensitive comparison, no r
 - Don't serialize tokens into free-form subtrees like `raw` / `meta` — or register the relevant name in SENSITIVE_KEYS.
 - A JWT-like value pattern stuck into arbitrary keys like `notes` or `description` is not redacted — the provider adapter is responsible for not copying token values into such free-form fields.
 
-This limit is a design decision: the `--json` contract is an *explicit leak blocker*, not a *value detector*. When a new identifier is found, update SENSITIVE_KEYS via a PR.
+This limit is a design decision: the `--json` contract is an _explicit leak blocker_, not a _value detector_. When a new identifier is found, update SENSITIVE_KEYS via a PR.
 
 ### The `raw` area's responsibility (provider adapter contract)
 
@@ -150,11 +150,11 @@ These responsibilities are enforced by code review + a regression guard (the red
 
 In v0.4.0 (issue #119), three aliases on the claude provider snapshot were removed. External consumers that parsed alias keys need to migrate to the official keys.
 
-| Removed alias                                          | Official key                                       | Note                                                                                                                                |
-| ------------------------------------------------------ | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `.providers[].snapshot.networkUsage` (single object)   | `.providers[].snapshot.networkUsages[]` (array)    | **Mind the element wrapper** — see below. Single-account uses `[0]`; multi-account iterates the array.                              |
-| `.providers[].snapshot.importedAccount`                | `.providers[].snapshot.selectedAccount`            | The values were identical.                                                                                                          |
-| `.providers[].snapshot.parsed`                         | `.providers[].snapshot.found`                      | Always had the same value as `found`.                                                                                               |
+| Removed alias                                        | Official key                                    | Note                                                                                                   |
+| ---------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `.providers[].snapshot.networkUsage` (single object) | `.providers[].snapshot.networkUsages[]` (array) | **Mind the element wrapper** — see below. Single-account uses `[0]`; multi-account iterates the array. |
+| `.providers[].snapshot.importedAccount`              | `.providers[].snapshot.selectedAccount`         | The values were identical.                                                                             |
+| `.providers[].snapshot.parsed`                       | `.providers[].snapshot.found`                   | Always had the same value as `found`.                                                                  |
 
 In earlier versions (v0.3.x and below), both keys were emitted in parallel for backward-compat. Since v0.4.0, only the official keys are exposed.
 
@@ -162,13 +162,13 @@ In earlier versions (v0.3.x and below), both keys were emitted in parallel for b
 
 In v0.5.0 (issue #120), the codex / claude provider snapshot key names were unified and the claude wrapper pattern was removed.
 
-| Area                  | v0.4.x and below (Codex)             | v0.4.x and below (Claude)                            | v0.5.0+ (same on both providers)                                       |
-| --------------------- | ------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------- |
-| Usage array key       | `snapshots[]`                        | `networkUsages[]`                                    | **`usageSnapshots[]`**                                                 |
-| Usage array element   | Direct `UsageSnapshot`               | `{ accountKey, account, snapshot }` wrapper          | **Direct `UsageSnapshot`** (wrapper removed)                           |
-| Active flag           | `enabled: bool`                      | `detected` / `found` (2 keys)                        | **`enabled: bool`** (single)                                           |
-| Default account       | (none)                               | `selectedAccount`                                    | (none, removed on both providers)                                      |
-| credentialsPath       | Only at `cli-import` time (not null) | Always (never null)                                  | **Only at `cli-import` time**, otherwise `null` (same policy on both)  |
+| Area                | v0.4.x and below (Codex)             | v0.4.x and below (Claude)                   | v0.5.0+ (same on both providers)                                      |
+| ------------------- | ------------------------------------ | ------------------------------------------- | --------------------------------------------------------------------- |
+| Usage array key     | `snapshots[]`                        | `networkUsages[]`                           | **`usageSnapshots[]`**                                                |
+| Usage array element | Direct `UsageSnapshot`               | `{ accountKey, account, snapshot }` wrapper | **Direct `UsageSnapshot`** (wrapper removed)                          |
+| Active flag         | `enabled: bool`                      | `detected` / `found` (2 keys)               | **`enabled: bool`** (single)                                          |
+| Default account     | (none)                               | `selectedAccount`                           | (none, removed on both providers)                                     |
+| credentialsPath     | Only at `cli-import` time (not null) | Always (never null)                         | **Only at `cli-import` time**, otherwise `null` (same policy on both) |
 
 ### Migration (v0.4.x → v0.5.0)
 
