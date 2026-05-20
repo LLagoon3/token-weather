@@ -1,5 +1,7 @@
 # Telegram 봇 통합
 
+🌐 [English](./telegram-bot.en.md) · **한국어**
+
 `@token-weather/telegram` 패키지는 token-weather 의 `status` / `usage` / `doctor` / `auth list` 명령을 Telegram 채팅으로 원격 호출하는 long-poll daemon 을 제공합니다. 로컬에서 봇을 띄우면 핸드폰 / 다른 데스크탑에서 봇에게 명령을 보내 즉시 응답을 받을 수 있습니다.
 
 > **신뢰 모델 요약**: 봇 토큰 / OAuth 토큰은 **로컬 파일에만 저장** 됩니다. 다만 사용량 / 계정 label / 명령 응답 본문은 Telegram 서버를 경유합니다. 자세한 보안 모델은 [§보안 모델](#보안-모델) 참고.

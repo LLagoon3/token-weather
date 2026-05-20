@@ -1,5 +1,7 @@
 # TypeScript 사용자용 가이드
 
+🌐 [English](./typescript-consumers.en.md) · **한국어**
+
 Token Weather 패키지는 JS+JSDoc 소스로 작성되었지만, publish 시 `tsc --emitDeclarationOnly`로 생성한 `.d.ts`가 함께 동봉됩니다. TypeScript 프로젝트에서 그대로 import하면 자동완성·타입 추론이 동작합니다.
 
 ## 사용

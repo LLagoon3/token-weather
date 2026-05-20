@@ -1,5 +1,7 @@
 # Auth CLI interface
 
+🌐 **English** · [한국어](./auth-cli.md)
+
 > Translated from [auth-cli.md](./auth-cli.md) — last sync 2026-05-20. The Korean version is the source of truth; this English version follows it. See [CONTRIBUTING.md §10](../CONTRIBUTING.md) for the i18n drift policy.
 
 This document summarizes `token-weather`'s auth-related CLI commands and operational policy.

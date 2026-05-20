@@ -1,5 +1,7 @@
 # Architecture
 
+🌐 **English** · [한국어](./architecture.md)
+
 > Translated from [architecture.md](./architecture.md) — last sync 2026-05-20. The Korean version is the source of truth; this English version follows it. See [CONTRIBUTING.md §10](../CONTRIBUTING.md) for the i18n drift policy.
 
 Detailed codebase rules live in `docs/codebase-guide.md`. This document covers only the high-level composition.

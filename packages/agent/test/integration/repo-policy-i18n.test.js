@@ -61,8 +61,16 @@ describe('repo-policy/i18n — dual 대상 파일 존재 (issue #154 §10)', () 
 
 describe('repo-policy/i18n — 양쪽 파일 상단 dual language 링크 (CONTRIBUTING §10)', () => {
   const PAIRS = [
+    // 영문 default + 한글 보존 (root)
     { en: 'README.md', ko: 'README.ko.md', enRef: 'README.md', koRef: 'README.ko.md' },
     { en: 'SECURITY.md', ko: 'SECURITY.ko.md', enRef: 'SECURITY.md', koRef: 'SECURITY.ko.md' },
+    // 한글 default + 영문 추가 (docs/*) — Codex review PR #160 P2 nit 1
+    ...EXTERNAL_DOCS.map((name) => ({
+      en: `docs/${name}.en.md`,
+      ko: `docs/${name}.md`,
+      enRef: `${name}.en.md`,
+      koRef: `${name}.md`,
+    })),
   ];
 
   for (const { en, ko, enRef, koRef } of PAIRS) {

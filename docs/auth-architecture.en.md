@@ -1,5 +1,7 @@
 # Auth architecture
 
+🌐 **English** · [한국어](./auth-architecture.md)
+
 > Translated from [auth-architecture.md](./auth-architecture.md) — last sync 2026-05-20. The Korean version is the source of truth; this English version follows it. See [CONTRIBUTING.md §10](../CONTRIBUTING.md) for the i18n drift policy.
 
 ## Goals

@@ -1,5 +1,7 @@
 # TypeScript consumers guide
 
+🌐 **English** · [한국어](./typescript-consumers.md)
+
 > Translated from [typescript-consumers.md](./typescript-consumers.md) — last sync 2026-05-20. The Korean version is the source of truth; this English version follows it. See [CONTRIBUTING.md §10](../CONTRIBUTING.md) for the i18n drift policy.
 
 Token Weather packages are written in JS + JSDoc, but `.d.ts` files generated via `tsc --emitDeclarationOnly` are shipped alongside on publish. Importing them directly into a TypeScript project gives you autocomplete and type inference out of the box.

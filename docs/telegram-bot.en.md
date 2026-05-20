@@ -1,5 +1,7 @@
 # Telegram bot integration
 
+🌐 **English** · [한국어](./telegram-bot.md)
+
 > Translated from [telegram-bot.md](./telegram-bot.md) — last sync 2026-05-20. The Korean version is the source of truth; this English version follows it. See [CONTRIBUTING.md §10](../CONTRIBUTING.md) for the i18n drift policy.
 
 The `@token-weather/telegram` package provides a long-poll daemon that exposes token-weather's `status` / `usage` / `doctor` / `auth list` commands over Telegram. Run the bot locally, and you can send commands from your phone or another desktop and get immediate responses.

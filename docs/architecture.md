@@ -1,5 +1,7 @@
 # 아키텍처
 
+🌐 [English](./architecture.en.md) · **한국어**
+
 Codebase 상세 규칙은 `docs/codebase-guide.md`. 본 문서는 고수준 구성만.
 
 ## 요약
