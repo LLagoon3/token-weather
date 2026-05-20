@@ -90,7 +90,7 @@ By default, `auth login` performs a real OAuth token exchange. With `--mock`, on
 
 ## Telegram bot (optional)
 
-If you want to invoke `status` / `usage` / `doctor` / `auth list` remotely from your phone or another desktop, install the separate `@token-weather/telegram` package. token-weather does not create system service files directly — it only prints the command blocks that require your consent (a UX compromise).
+If you want to invoke `status` / `usage` / `doctor` / `auth list` remotely from your phone or another desktop, install the separate `@token-weather/telegram` package. During `telegram setup`, token-weather asks for consent before OS service registration — if accepted, it creates and enables a user-level systemd unit / launchd plist / Task Scheduler entry (#138, #141); if declined or unsupported (no systemctl / launchctl / schtasks, missing privileges), it prints manual registration instructions instead.
 
 ```bash
 npm install -g @token-weather/telegram   # optional package

@@ -89,7 +89,7 @@ default `auth login` 은 실제 OAuth 토큰 교환을 수행합니다. `--mock`
 
 ## Telegram 봇 (옵션)
 
-핸드폰 / 다른 데스크탑에서 `status` / `usage` / `doctor` / `auth list` 명령을 원격 호출하고 싶다면 별도 패키지 `@token-weather/telegram` 을 추가 설치합니다. token-weather 가 시스템 service 파일을 직접 만들지 않고, 사용자 동의가 필요한 명령 블록만 print 합니다 (UX 절충안).
+핸드폰 / 다른 데스크탑에서 `status` / `usage` / `doctor` / `auth list` 명령을 원격 호출하고 싶다면 별도 패키지 `@token-weather/telegram` 을 추가 설치합니다. `telegram setup` 마지막 단계에서 사용자 동의 [Y/n] 시 user-level systemd unit / launchd plist / Task Scheduler 항목을 자동 작성·활성화하고 (#138, #141), 거부하거나 OS service 미감지 / 권한 부족 환경에서는 수동 등록 명령 블록을 print 합니다.
 
 ```bash
 npm install -g @token-weather/telegram   # 옵션 패키지
