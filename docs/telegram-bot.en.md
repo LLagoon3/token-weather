@@ -4,7 +4,7 @@
 
 The `@token-weather/telegram` package provides a long-poll daemon that exposes token-weather's `status` / `usage` / `doctor` / `auth list` commands over Telegram. Run the bot locally, and you can send commands from your phone or another desktop and get immediate responses.
 
-> **Trust model summary**: bot token / OAuth tokens are **stored only in local files**. Usage numbers / account labels / command response bodies do flow through Telegram servers. For the full security model see [§Security model](#보안-모델).
+> **Trust model summary**: bot token / OAuth tokens are **stored only in local files**. Usage numbers / account labels / command response bodies do flow through Telegram servers. For the full security model see [§Security model](#security-model).
 
 ## Quick start
 
@@ -71,7 +71,7 @@ Manual registration (if you want to disable auto-registration or preconfigure wi
 
 The CLI's desktop boxes (`╭─` / `│` / `╰─`) + 50-column heavy rule break under wrap at mobile widths (~30–40 columns), so the Telegram bot uses `@token-weather/telegram`'s `formatStatusForTelegram` to emit a box-less compact output (line width ≤ 32 columns guideline, timezone omitted).
 
-Issue #146 restored 10-column ASCII progress bars (1/8-precision fractional blocks `█▏▎▍▌▋▊▉` + light shade `░`) on the window lines — ANSI colors are not applied because Telegram's `<pre>` does not support them.
+Issue #146 restored 10-column Unicode block progress bars (1/8-precision fractional blocks `█▏▎▍▌▋▊▉` + light shade `░`) on the window lines — ANSI colors are not applied because Telegram's `<pre>` does not support them.
 
 ```
 ━━ Status ━━
@@ -169,7 +169,7 @@ schtasks /Delete /TN "TokenWeatherBot" /F
 
   All three paths are protected by `SENSITIVE_KEYS` redaction — they don't show up in any output (`status --json` / Telegram responses / logs).
 
-- **Goes through Telegram servers**: usage numbers / account labels / email / token expiry / command response bodies / user_id. The README's promise "tokens never leave the external server" is **scoped to OAuth tokens + Telegram bot tokens** — when the bot is active, metadata flows through Telegram infrastructure.
+- **Goes through Telegram servers**: usage numbers / account labels / email / token expiry / command response bodies / user_id. The README's promise that tokens never leave your machine is **scoped to OAuth tokens + Telegram bot tokens** — when the bot is active, metadata flows through Telegram infrastructure.
 
 ### First-line defenses
 
