@@ -166,3 +166,17 @@ npx changeset
 PR을 제출하시면 본인의 기여(코드, 문서, 설정 등)가 동일하게 Apache-2.0 조건으로 라이선스됨에 동의한 것으로 간주됩니다. 별도의 CLA / DCO 절차는 운영하지 않습니다 — Apache-2.0 §5(Submission of Contributions)에 따른 묵시적 grant를 그대로 따릅니다.
 
 다른 라이선스로 기여하고자 하는 경우, PR 본문에 명시해 주시면 별도로 검토합니다.
+
+## 10. i18n / 다국어 docs (issue #154 부터)
+
+외부 가시 docs 는 영문/한글 dual 로 유지된다. README 가 첫 적용 (Phase 2-1) — `README.md` = 영어 default, `README.ko.md` = 한글 원본. 외부 가시 `docs/*.md` 는 Phase 2-2 / 2-3 에서 `.en.md` 가 순차 추가될 예정. 내부 docs (codebase-guide / release-policy / auth-store-schema / claude-oauth-plan) 는 contributor 한국 기반이라 한글 only 유지.
+
+기본 원칙:
+
+- **source of truth**: 한글 (`README.ko.md`, `docs/X.md`). 영문은 번역본.
+- **drift 방지**: 한글 변경 시 영문 동시 갱신 의무. **같은 PR 에 양쪽 변경 포함** — 별도 PR 로 split 금지.
+- **불변 요소**: 코드 식별자 / 외부 lib name / 경로 / 명령 예시 / changeset 본문 / d.ts 시그니처 — 양쪽 동일.
+- **번역 footer**: 영문 본 상단에 `> Translated from [X.ko.md](./X.ko.md) — last sync YYYY-MM-DD` 형식.
+- **dual sync 검증**: Phase 2-4 에서 repo policy test 로 가드 (`README.ko.md` 존재 / 상호 링크 / 한글 섹션 / 양쪽 본문 길이 균형 등).
+
+본 절은 **skeleton** — Phase 2-4 에서 i18n drift 정책 / test 가드 / dual sync 운영 절차가 정식 보강된다. dual 대상 분류 / 외부 docs 영문 진행 상황은 [docs/INDEX.md](./docs/INDEX.md) + 진행 중인 i18n master issue 참고.

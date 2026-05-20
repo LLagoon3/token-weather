@@ -51,9 +51,10 @@ describe('repo-policy — security/templates 메타 파일 (PR #78)', () => {
     assert.match(body, /민감값|redact/);
   });
 
-  it('README 가 "## 보안 신고" 섹션을 가지며 SECURITY.md 링크를 포함한다', () => {
+  it('README 가 보안 신고 섹션 + SECURITY.md 링크를 포함한다 (issue #154: 영어 default)', () => {
     const body = readRepoFile('README.md');
-    assert.match(body, /## 보안 신고/);
+    // README.md = 영어 default (Phase 2-1 부터). README.ko.md 는 한글 원본.
+    assert.match(body, /## Security reporting/);
     assert.match(body, /SECURITY\.md/);
   });
 

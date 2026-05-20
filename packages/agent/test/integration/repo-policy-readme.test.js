@@ -61,16 +61,18 @@ describe('repo-policy/readme — Install + first-run', () => {
   });
 });
 
-describe('repo-policy/readme — 핵심 섹션 존재', () => {
+describe('repo-policy/readme — 핵심 섹션 존재 (issue #154: 영어 default 정합)', () => {
+  // README.md = 영어 default (Phase 2-1 부터). 한글 원본은 README.ko.md.
+  // 본 회귀 가드는 default (영어) README 의 핵심 섹션 헤더만 검증.
   const REQUIRED_SECTIONS = [
     /^# Token Weather/m,
     /^## Install/m,
     /^## What & Why/m,
-    /^## 지원 provider/m,
-    /^## 명령/m,
-    /^## JSON 출력/m,
-    /^## 보안/m,
-    /^## 라이선스/m,
+    /^## Supported providers/m,
+    /^## Commands/m,
+    /^## JSON output/m,
+    /^## Security/m,
+    /^## License/m,
     /^## Contributing/m,
   ];
 
