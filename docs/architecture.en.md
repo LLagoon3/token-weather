@@ -69,7 +69,7 @@ Each provider follows the same file-composition pattern (constants / build-autho
 - Lower priority: device code (not implemented)
 - Credential source priority: `agent-store` > `{provider}-cli-import` or `openclaw-import`
 
-Details: `docs/auth-architecture.md`, `docs/auth-cli.md`.
+Details: `docs/auth-architecture.en.md`, `docs/auth-cli.en.md`.
 
 ## Future directions
 

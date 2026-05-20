@@ -20,7 +20,7 @@ The CLI agent independently handles authentication, token storage, refresh, and 
   └─ Usage / Event Pipeline
 ```
 
-The default runtime path is the agent's own store; the OpenClaw dependency has been removed. Legacy auth-profiles can only be migrated via `auth import openclaw`.
+The default runtime path is the agent's own store; the OpenClaw dependency has been removed. The `auth import` command currently supports only `claude` — legacy OpenClaw `auth-profiles` are not absorbed by an import command. When there is no Codex account in `agent-store`, the status snapshot uses them as a read-only fallback source (`openclaw-import`) only. For the full flow, see the `## import` section in [auth-cli.en.md](./auth-cli.en.md).
 
 ## Auth flow
 
@@ -39,11 +39,12 @@ Per-provider callback paths:
 - Codex: `http://localhost:<port>/auth/callback`
 - Claude: `http://localhost:<port>/callback`
 
-### 2. Manual paste (Codex-only fallback)
+### 2. Manual paste (Codex / Claude shared fallback)
 
 - Paste the whole callback URL
 - Use `--no-open` to prevent browser auto-open
 - For remote / SSH environments with limited localhost access
+- Provider-agnostic — `login-runner`'s `runManualPasteFlow` extracts the OAuth `code` for both providers through the same path
 
 ### 3. Claude CLI credential import (Claude only)
 
@@ -108,7 +109,7 @@ The auth broker is shared; per-provider strategy is defined by the adapter:
 token-weather auth login <codex|claude> [--mock] [--port N] [--timeout SEC] [--manual] [--no-open]
 token-weather auth list
 token-weather auth logout <provider> [--account <id>]
-token-weather auth import <openclaw|claude>
+token-weather auth import claude
 token-weather doctor
 token-weather doctor codex [--refresh-live] [--account <id>]
 token-weather doctor claude [--refresh-live]
