@@ -137,9 +137,21 @@ npm run test:schemas  # schemas 패키지만
 
 ### 추가 문서
 
+빠른 entry point — [docs/INDEX.md](./docs/INDEX.md) (카테고리별).
+
+**외부 사용자용** (npm install 후 직접 참고):
+
 - [docs/architecture.md](./docs/architecture.md) — 고수준 구조 요약
 - [docs/auth-architecture.md](./docs/auth-architecture.md) — 인증 / token / source 우선순위 상세
 - [docs/auth-cli.md](./docs/auth-cli.md) — auth CLI 명령 / 정책
 - [docs/cli-json-output.md](./docs/cli-json-output.md) — `--json` stable contract + redaction 규약
 - [docs/provider-notes.md](./docs/provider-notes.md) — provider별 observed endpoint / client_id
-- [docs/codebase-guide.md](./docs/codebase-guide.md) — 기여자용 상세 가이드 (패키지 레이아웃, shared 헬퍼, 새 기능 체크리스트)
+- [docs/telegram-bot.md](./docs/telegram-bot.md) — Telegram 봇 옵션 패키지 (`@token-weather/telegram`) 가이드
+- [docs/typescript-consumers.md](./docs/typescript-consumers.md) — TypeScript 사용자용 d.ts / import 패턴
+
+**기여자 / 운영자용** (contributor 한국 기반, 한글 only 유지):
+
+- [docs/codebase-guide.md](./docs/codebase-guide.md) — 패키지 레이아웃 / shared 헬퍼 / 새 기능 체크리스트
+- [docs/release-policy.md](./docs/release-policy.md) — semver / changeset / bump 기준
+- [docs/auth-store-schema.md](./docs/auth-store-schema.md) — auth.json 저장 schema (기술 설계)
+- [docs/claude-oauth-plan.md](./docs/claude-oauth-plan.md) — Claude OAuth 구현 과거 계획 (보관용)
