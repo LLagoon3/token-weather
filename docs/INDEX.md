@@ -14,15 +14,15 @@ token-weather 의 모든 문서 entry point. 카테고리 / 사용자 타입 별
 
 운영 / 자동화 / 통합 시 사용자가 직접 보는 문서.
 
-| 문서                                                 | 한 줄 요약                                                                    |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
-| [architecture.md](./architecture.md)                 | 패키지 / 모듈 구조의 고수준 요약                                              |
-| [auth-architecture.md](./auth-architecture.md)       | 인증 / token / source 우선순위 상세 (multi-account / refresh / fallback)      |
-| [auth-cli.md](./auth-cli.md)                         | `auth login` / `auth list` / `auth logout` / `auth import` 명령 + 정책        |
-| [cli-json-output.md](./cli-json-output.md)           | `status --json` stable contract + redaction 규약 + SCHEMA_VERSION             |
-| [provider-notes.md](./provider-notes.md)             | provider 별 observed endpoint / client_id / refresh 동작                      |
-| [telegram-bot.md](./telegram-bot.md)                 | `@token-weather/telegram` 옵션 패키지 — 봇 setup / 핸들러 / OS service 가이드 |
-| [typescript-consumers.md](./typescript-consumers.md) | TypeScript 사용자용 d.ts / import 패턴 / 타입 안정성                          |
+| 문서                                                 | 한 줄 요약                                                                    | 영문                                             |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------ |
+| [architecture.md](./architecture.md)                 | 패키지 / 모듈 구조의 고수준 요약                                              | (Phase 2-3 예정)                                 |
+| [auth-architecture.md](./auth-architecture.md)       | 인증 / token / source 우선순위 상세 (multi-account / refresh / fallback)      | (Phase 2-3 예정)                                 |
+| [auth-cli.md](./auth-cli.md)                         | `auth login` / `auth list` / `auth logout` / `auth import` 명령 + 정책        | (Phase 2-3 예정)                                 |
+| [cli-json-output.md](./cli-json-output.md)           | `status --json` stable contract + redaction 규약 + SCHEMA_VERSION             | [cli-json-output.en.md](./cli-json-output.en.md) |
+| [provider-notes.md](./provider-notes.md)             | provider 별 observed endpoint / client_id / refresh 동작                      | [provider-notes.en.md](./provider-notes.en.md)   |
+| [telegram-bot.md](./telegram-bot.md)                 | `@token-weather/telegram` 옵션 패키지 — 봇 setup / 핸들러 / OS service 가이드 | [telegram-bot.en.md](./telegram-bot.en.md)       |
+| [typescript-consumers.md](./typescript-consumers.md) | TypeScript 사용자용 d.ts / import 패턴 / 타입 안정성                          | (Phase 2-3 예정)                                 |
 
 ## 기여자 / 운영자용 — contributor 한국 기반, 한글 only 유지
 
