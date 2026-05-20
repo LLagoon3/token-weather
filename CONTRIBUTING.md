@@ -167,16 +167,61 @@ PR을 제출하시면 본인의 기여(코드, 문서, 설정 등)가 동일하�
 
 다른 라이선스로 기여하고자 하는 경우, PR 본문에 명시해 주시면 별도로 검토합니다.
 
-## 10. i18n / 다국어 docs (issue #154 부터)
+## 10. i18n / 다국어 docs (issue #154)
 
-외부 가시 docs 는 영문/한글 dual 로 유지된다. README 가 첫 적용 (Phase 2-1) — `README.md` = 영어 default, `README.ko.md` = 한글 원본. 외부 가시 `docs/*.md` 는 Phase 2-2 / 2-3 에서 `.en.md` 가 순차 추가될 예정. 내부 docs (codebase-guide / release-policy / auth-store-schema / claude-oauth-plan) 는 contributor 한국 기반이라 한글 only 유지.
+외부 가시 docs 는 영문 / 한글 dual 로 유지된다. 영어가 npm registry / GitHub landing 의 default, 한글은 source of truth. 내부 docs (contributor / 운영자용) 는 contributor 한국 기반이라 한글 only 유지.
 
-기본 원칙:
+### dual 대상 파일
 
-- **source of truth**: 한글 (`README.ko.md`, `docs/X.md`). 영문은 번역본.
+**영문 default + 한글 보존** (사용자 / 기여자 진입 친화):
+
+- `README.md` (영어) + `README.ko.md` (한글)
+- `SECURITY.md` (영어) + `SECURITY.ko.md` (한글)
+
+**한글 default + 영문 추가** (`docs/X.md` + `docs/X.en.md`, 7개):
+
+- `docs/architecture.{md,en.md}`
+- `docs/auth-architecture.{md,en.md}`
+- `docs/auth-cli.{md,en.md}`
+- `docs/cli-json-output.{md,en.md}`
+- `docs/provider-notes.{md,en.md}`
+- `docs/telegram-bot.{md,en.md}`
+- `docs/typescript-consumers.{md,en.md}`
+
+**한글 only 유지** (외부 사용자 가시도 낮음 / contributor 한국 기반):
+
+- `CONTRIBUTING.md`, `CHANGELOG.md`
+- `docs/codebase-guide.md`, `docs/release-policy.md`, `docs/auth-store-schema.md`, `docs/claude-oauth-plan.md`
+- `docs/INDEX.md` (한글이 default, 외부 docs 영문 link 컬럼으로 노출)
+- `.changeset/*.md` (release-policy §3)
+- `CODE_OF_CONDUCT.md` 는 영어 표준 텍스트 — 그대로 유지
+
+### 기본 원칙
+
+- **source of truth**: 한글. 영문은 번역본 — README / SECURITY 는 영어 파일명이 `.md` 지만 의미상 한글이 원본.
 - **drift 방지**: 한글 변경 시 영문 동시 갱신 의무. **같은 PR 에 양쪽 변경 포함** — 별도 PR 로 split 금지.
-- **불변 요소**: 코드 식별자 / 외부 lib name / 경로 / 명령 예시 / changeset 본문 / d.ts 시그니처 — 양쪽 동일.
-- **번역 footer**: 영문 본 상단에 `> Translated from [X.ko.md](./X.ko.md) — last sync YYYY-MM-DD` 형식.
-- **dual sync 검증**: Phase 2-4 에서 repo policy test 로 가드 (`README.ko.md` 존재 / 상호 링크 / 한글 섹션 / 양쪽 본문 길이 균형 등).
+- **불변 요소**: 코드 식별자 / 외부 lib name / 경로 / 명령 예시 / changeset 본문 / d.ts 시그니처 / endpoint URL / scope / client_id — 양쪽 동일.
+- **번역 footer**: 영문 본 상단에 `> Translated from [X.ko.md](./X.ko.md) — last sync YYYY-MM-DD` (또는 `docs/X.md`) 형식. 한글 변경 PR 마다 sync 날짜 갱신.
+- **상호 링크**: dual 파일 둘 다 상단에 `🌐 [English](./X.md) · [한국어](./X.ko.md)` 형식 dual link (`docs/*.en.md` / `.md` 도 동일 패턴).
+- **dual sync 검증**: `packages/agent/test/integration/repo-policy-i18n.test.js` 가 영문 본 존재 / 상호 link / 번역 footer 존재 / dual 파일 정합을 검사. 한쪽만 변경한 PR 은 본 test 가 잡는다.
 
-본 절은 **skeleton** — Phase 2-4 에서 i18n drift 정책 / test 가드 / dual sync 운영 절차가 정식 보강된다. dual 대상 분류 / 외부 docs 영문 진행 상황은 [docs/INDEX.md](./docs/INDEX.md) + 진행 중인 i18n master issue 참고.
+### 번역 작업 흐름
+
+1. **한글 source 변경 PR** 작성 시 영문 본도 같은 PR 안에서 갱신.
+2. AI 번역 도구 (Claude API 등) 로 1차 draft 가능 — 코드 식별자 / 옵션 / 경로 등 불변 요소가 그대로 유지되는지 사람이 review.
+3. 영문 본의 번역 footer `last sync` 날짜를 변경 시점으로 갱신.
+4. `repo-policy-i18n.test.js` 통과 확인.
+
+### `auth import` / `manual paste` 같은 의미적 정합
+
+번역 시 한글 source 의 표현이 outdated 라면 source 도 동시 정정. self-review / 외부 review 가 양쪽 mismatch 를 발견하면, **한글 source + 영문 본 + 관련 코드 docstring** 까지 한 commit 에 갱신 (CONTRIBUTING §6 의 "외부 식별자 원문 유지" + §4 의 "1 PR 1 주제" 와 양립).
+
+### CLI / `--json` / changeset 정책 정합
+
+- CLI 평문 (`token-weather status` desktop) 의 한글 / 영어 출력은 본 §10 의 대상이 아님. 평문 출력 언어 정책은 [docs/codebase-guide.md](./docs/codebase-guide.md) 참고 (현재 영어 default — issue #116).
+- `--json` 출력은 stable contract 라 본 §10 무관 — schema bump 정책은 [docs/release-policy.md](./docs/release-policy.md) §3.
+- changeset 본문은 한 언어 (한글) 유지 — release-policy §3 정합. 사용자 가시 변경 요약이 양쪽 언어로 노출될 필요 없음.
+
+### dual 대상 / 진행 상황 추적
+
+[docs/INDEX.md](./docs/INDEX.md) 의 "외부 사용자용" 표가 카테고리별 entry point + 각 docs 의 dual 상태. 새 외부 docs 추가 시 INDEX 의 표에 행 추가하고 영문 본도 같은 PR 에 포함.
