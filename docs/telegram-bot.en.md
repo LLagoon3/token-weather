@@ -33,27 +33,27 @@ token-weather telegram uninstall-service
 
 ## Commands
 
-| Command                                              | Description                                                                                                                                                                                  |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Command                                              | Description                                                                                                                                                                                              |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `token-weather telegram setup`                       | Enter bot token → `getMe` validation → **click deep link** or type `/pair <code>` manually → save config (chmod 600) → **OS service auto-register [Y/n]** (falls back to manual instructions on decline) |
-| `token-weather telegram start`                       | Run long-poll daemon in the foreground. Ctrl+C to exit                                                                                                                                       |
-| `token-weather telegram check`                       | Read-only diagnostics of config / token / chmod / linger state                                                                                                                               |
-| `token-weather telegram uninstall-service`           | Remove the OS service registered via `setup` (config / auth.json untouched)                                                                                                                  |
-| `... telegram --help`<br>`... telegram <sub> --help` | Help text for each command                                                                                                                                                                   |
+| `token-weather telegram start`                       | Run long-poll daemon in the foreground. Ctrl+C to exit                                                                                                                                                   |
+| `token-weather telegram check`                       | Read-only diagnostics of config / token / chmod / linger state                                                                                                                                           |
+| `token-weather telegram uninstall-service`           | Remove the OS service registered via `setup` (config / auth.json untouched)                                                                                                                              |
+| `... telegram --help`<br>`... telegram <sub> --help` | Help text for each command                                                                                                                                                                               |
 
 ## Chat commands the bot receives
 
-| Telegram command | Behavior (equivalent to `token-weather <cmd>`)                                                                                            |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `/status`        | Mobile-width-friendly compact plain text (HTML `<pre>` block, ≤ 32 columns, includes progress bar)                                        |
-| `/status --json` | `formatStatusJson` result (top-level `command` = "status")                                                                                |
-| `/usage`         | Alias of status — mobile-friendly compact plain text                                                                                      |
-| `/usage --json`  | `formatStatusJson` result (top-level `command` = "usage")                                                                                 |
-| `/doctor`        | Default `runDoctorRoot` output. Arguments / subcommands blocked                                                                           |
-| `/auth_list`     | All providers' stored accounts + claude import section                                                                                    |
-| `/help`          | Plain-text list of available commands (issue #148)                                                                                        |
+| Telegram command | Behavior (equivalent to `token-weather <cmd>`)                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/status`        | Mobile-width-friendly compact plain text (HTML `<pre>` block, ≤ 32 columns, includes progress bar)                                            |
+| `/status --json` | `formatStatusJson` result (top-level `command` = "status")                                                                                    |
+| `/usage`         | Alias of status — mobile-friendly compact plain text                                                                                          |
+| `/usage --json`  | `formatStatusJson` result (top-level `command` = "usage")                                                                                     |
+| `/doctor`        | Default `runDoctorRoot` output. Arguments / subcommands blocked                                                                               |
+| `/auth_list`     | All providers' stored accounts + claude import section                                                                                        |
+| `/help`          | Plain-text list of available commands (issue #148)                                                                                            |
 | `/start <code>`  | Pairing only (meaningful only during setup). Click the Telegram deep link → bot chat → (Start button if first time) → `/start <code>` is sent |
-| `/pair <code>`   | Pairing only (meaningful only during setup). Manual input fallback                                                                        |
+| `/pair <code>`   | Pairing only (meaningful only during setup). Manual input fallback                                                                            |
 
 Commands that mention another bot (`/status@OtherBot`) are silently ignored — so in group chats, token-weather won't respond to other bots' commands.
 
