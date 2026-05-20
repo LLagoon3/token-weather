@@ -1,8 +1,8 @@
 ---
-'@token-weather/cli': minor
-'@token-weather/provider-adapters': minor
-'@token-weather/schemas': minor
-'@token-weather/telegram': minor
+'@token-weather/cli': patch
+'@token-weather/provider-adapters': patch
+'@token-weather/schemas': patch
+'@token-weather/telegram': patch
 ---
 
 docs(repo): i18n 메타 정비 마무리 — SECURITY 영어 default + CONTRIBUTING §10 정식 +
