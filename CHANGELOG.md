@@ -8,6 +8,24 @@
 
 이 섹션은 publish 시점에 root에서 **수동으로 큐레이트**합니다 — 4 패키지를 가로지르는 사용자-가시 변경의 high-level 요약. 패키지별 상세 release note는 [Changesets](https://github.com/changesets/changesets)가 `packages/*/CHANGELOG.md`를 자동 생성하고, 본 문서는 publish PR에서 그 내용을 참고해 채웁니다. 사용자-가시 변경이 있는 PR은 `npx changeset` 으로 changeset을 함께 commit 해주세요.
 
+## [0.6.0] - 2026-05-20
+
+v0.5.0 의 OS service installer (PR #140 / issue #138) follow-up. 기존 `hasUnsafePathChars` 사전 검사로 공백 / XML 특수문자 포함 경로를 자동 등록 skip + manual fallback 하던 흐름을 **OS 별 정확한 escaping helper** 로 대체. Windows 표준 Node 설치 환경 (`C:\Program Files\nodejs\node.exe`) 사용자가 `telegram setup` 의 [Y/n] 자동 등록 옵션을 비로소 활용 가능 ([#141]).
+
+### Changed — OS service installer
+
+- **경로 escaping 자동 처리** ([#141]) — systemd unit / launchd plist / Windows schtasks 각자의 quoting 규칙에 맞춰 helper 적용. `os-service-path-escape.js` 신규 모듈 (public export):
+  - `escapeSystemdArg(value)` — `ExecStart=` 의 double-quote escape (`"` `\` 만, systemd 는 direct exec 라 `$VAR` 등 expansion 없음)
+  - `escapePlistXml(text)` — launchd plist `<string>` element content 의 XML entity escape (`& < >` 만)
+  - `escapeSchtasksArg(value)` — Windows schtasks `/TR` 의 cmd `\"...\"` 형태 (outer `"..."` 안에서 escape 된 quote)
+- **`hasUnsafePathChars` 사전 검사 제거** — installer 가 모든 정상 경로를 escape 후 자동 등록 진행. 다른 skip 사유 (HOME 누락 / systemctl·launchctl·schtasks 미감지 / linger 부재 등) 는 그대로.
+
+CLI 평문 / `--json` contract 변경 없음. 기존 정상 경로 (alphanumeric) 의 자동 등록 출력 무변경 — escape 결과가 이전 hardcoded quoting 과 동일.
+
+### Documentation
+
+- `docs/telegram-bot.md` — "경로에 공백 / 특수문자" 분기를 "자동 등록 가능" 으로 갱신. OS 별 escape 방식 한 줄씩 명시.
+
 ## [0.5.0] - 2026-05-18
 
 `@token-weather/telegram` 의 본격 등장 release. 5-phase 텔레그램 봇 통합 ([#127]–[#142]) 으로 핸드폰 / 다른 데스크탑에서 `/status` / `/usage` / `/doctor` / `/auth_list` 를 원격 호출할 수 있고, 후속 모바일 UX 시리즈 ([#144], [#146], [#148]) 로 출력이 모바일 폭 친화 compact + progress bar + 자동완성 메뉴까지 갖춰짐. CLI 평문 / `status --json` contract 변경 없음, OAuth 토큰은 여전히 로컬만 (Telegram 활성 시 사용량 메타데이터만 Telegram 서버 경유 — [docs/telegram-bot.md §보안 모델](./docs/telegram-bot.md)).
@@ -81,7 +99,8 @@
 - `packages/agent/test/cli/status-json.test.js` — top-level `schemaVersion` lock 회귀 가드 3 케이스 (값 일치 / 키 항상 present / 모든 출력 경로 통과). `packages/schemas/test/schema-version.test.js` (값 lock) 와 함께 SCHEMA_VERSION 한쪽만 bump 회귀 차단.
 - `packages/agent/src/cli/status-bar-helper.js` 신설 (UI) — `shouldUseColor` / `levelForPercent` / `colorize` / `formatProgressBar` / `formatResetTime` / `formatWindowLabel` pure helper.
 
-[Unreleased]: https://github.com/LLagoon3/token-weather/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/LLagoon3/token-weather/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/LLagoon3/token-weather/releases/tag/v0.6.0
 [0.5.0]: https://github.com/LLagoon3/token-weather/releases/tag/v0.5.0
 [0.4.0]: https://github.com/LLagoon3/token-weather/releases/tag/v0.4.0
 
@@ -103,6 +122,7 @@
 [#142]: https://github.com/LLagoon3/token-weather/issues/142
 [#144]: https://github.com/LLagoon3/token-weather/issues/144
 [#146]: https://github.com/LLagoon3/token-weather/issues/146
+[#141]: https://github.com/LLagoon3/token-weather/issues/141
 [#148]: https://github.com/LLagoon3/token-weather/issues/148
 
 ## [0.3.0] - 2026-05-11
