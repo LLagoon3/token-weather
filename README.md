@@ -1,9 +1,13 @@
 # Token Weather
 
+🌐 **English** · [한국어](./README.ko.md)
+
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
 [![npm version](https://img.shields.io/npm/v/%40token-weather%2Fcli.svg)](https://www.npmjs.com/package/@token-weather/cli)
 [![CI](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/node/v/%40token-weather%2Fcli.svg)](https://nodejs.org/)
+
+> Translated from [README.ko.md](./README.ko.md) — last sync 2026-05-20. The Korean version is the source of truth; this English version follows it. See [CONTRIBUTING.md §10](./CONTRIBUTING.md) for the i18n drift policy.
 
 > **Local CLI dashboard for AI service usage and OAuth credentials.**
 > A CLI that checks usage and auth status for multiple AI services (Codex / Claude) in one place, locally. **OAuth tokens never leave your machine** (even with the optional `@token-weather/telegram` activated, the bot token and OAuth tokens stay local — only usage metadata flows through Telegram servers; see [details](./docs/telegram-bot.md#보안-모델)).

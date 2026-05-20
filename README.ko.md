@@ -1,9 +1,13 @@
 # Token Weather
 
+🌐 [English](./README.md) · **한국어**
+
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
 [![npm version](https://img.shields.io/npm/v/%40token-weather%2Fcli.svg)](https://www.npmjs.com/package/@token-weather/cli)
 [![CI](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LLagoon3/token-weather/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/node/v/%40token-weather%2Fcli.svg)](https://nodejs.org/)
+
+> 이 파일이 한글 원본입니다. 영문 번역본 ([README.md](./README.md)) 은 본 파일을 따라 갱신됩니다. i18n drift 정책은 [CONTRIBUTING.md §10](./CONTRIBUTING.md) 참고. (CONTRIBUTING.md §10 은 Phase 2-4 에서 추가될 예정.)
 
 > **Local CLI dashboard for AI service usage and OAuth credentials.**
 > 로컬에서 여러 AI 서비스(Codex / Claude)의 사용량과 인증 상태를 한 번에 확인하는 CLI. **OAuth 토큰은 외부 서버로 보내지 않습니다** (옵션 `@token-weather/telegram` 활성화 시에도 봇 토큰 / OAuth 토큰은 로컬, 사용량 메타데이터만 Telegram 서버 경유 — [상세](./docs/telegram-bot.md#보안-모델)).
