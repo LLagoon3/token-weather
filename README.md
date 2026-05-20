@@ -117,7 +117,7 @@ Shape / redaction rules / limits: [docs/cli-json-output.en.md](./docs/cli-json-o
 - raw prompts / responses / transcripts are never sent outside under any circumstance
 - observed `client_id` has been used without a feature gate since v0.2.0 (every publish is still verified by npm Trusted Publishing OIDC + SLSA provenance). Until an official client is registered, this is experimentally operated
 
-Details: [docs/auth-architecture.md](./docs/auth-architecture.md), [SECURITY.md](./SECURITY.md).
+Details: [docs/auth-architecture.en.md](./docs/auth-architecture.en.md), [SECURITY.md](./SECURITY.md).
 
 ## Security reporting
 
@@ -146,13 +146,13 @@ Quick entry point — [docs/INDEX.md](./docs/INDEX.md) (categorized).
 
 **For end users** (referred to directly after npm install):
 
-- [docs/architecture.md](./docs/architecture.md) — high-level structure summary
-- [docs/auth-architecture.md](./docs/auth-architecture.md) — auth / token / source priority details
-- [docs/auth-cli.md](./docs/auth-cli.md) — auth CLI commands / policy
+- [docs/architecture.en.md](./docs/architecture.en.md) — high-level structure summary
+- [docs/auth-architecture.en.md](./docs/auth-architecture.en.md) — auth / token / source priority details
+- [docs/auth-cli.en.md](./docs/auth-cli.en.md) — auth CLI commands / policy
 - [docs/cli-json-output.en.md](./docs/cli-json-output.en.md) — `--json` stable contract + redaction rules
 - [docs/provider-notes.en.md](./docs/provider-notes.en.md) — per-provider observed endpoint / client_id
 - [docs/telegram-bot.en.md](./docs/telegram-bot.en.md) — Telegram bot optional package (`@token-weather/telegram`) guide
-- [docs/typescript-consumers.md](./docs/typescript-consumers.md) — d.ts / import patterns for TypeScript users
+- [docs/typescript-consumers.en.md](./docs/typescript-consumers.en.md) — d.ts / import patterns for TypeScript users
 
 **For contributors / maintainers** (contributors are Korean-based — kept in Korean only):
 

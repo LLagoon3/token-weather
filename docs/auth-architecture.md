@@ -18,7 +18,7 @@ CLI agent가 외부 auth store(OpenClaw 등)에 의존하지 않고 독립적으
   └─ Usage / Event Pipeline
 ```
 
-runtime 기본 경로는 agent 자체 store이며, OpenClaw 의존은 제거되었다. 기존 auth-profiles는 `auth import openclaw`로 migration만 가능하다.
+runtime 기본 경로는 agent 자체 store 이며, OpenClaw 의존은 제거되었다. `auth import` 명령은 현재 `claude` 만 지원하고, 기존 OpenClaw auth-profiles 는 별도 import 명령으로 흡수되지 않는다 — `agent-store` 에 Codex 계정이 없을 때 status snapshot 이 read-only fallback source (`openclaw-import`) 로만 사용한다. 자세한 흐름은 [auth-cli.md](./auth-cli.md) `## import` 섹션 참고.
 
 ## 인증 흐름
 
@@ -37,11 +37,12 @@ provider별 callback path:
 - Codex: `http://localhost:<port>/auth/callback`
 - Claude: `http://localhost:<port>/callback`
 
-### 2. Manual paste (Codex 전용 fallback)
+### 2. Manual paste (Codex / Claude 공통 fallback)
 
 - callback URL 전체를 붙여넣기
-- `--no-open`으로 브라우저 자동 오픈 방지
-- localhost 접근이 제한된 원격/SSH 환경에서 사용
+- `--no-open` 으로 브라우저 자동 오픈 방지
+- localhost 접근이 제한된 원격 / SSH 환경에서 사용
+- provider 무관 — `login-runner` 의 `runManualPasteFlow` 가 양쪽 provider 의 OAuth `code` 추출을 동일 흐름으로 처리
 
 ### 3. Claude CLI credential import (Claude 전용)
 
@@ -106,7 +107,7 @@ auth broker는 공통이지만, provider별 전략은 adapter가 정의한다:
 token-weather auth login <codex|claude> [--mock] [--port N] [--timeout SEC] [--manual] [--no-open]
 token-weather auth list
 token-weather auth logout <provider> [--account <id>]
-token-weather auth import <openclaw|claude>
+token-weather auth import claude
 token-weather doctor
 token-weather doctor codex [--refresh-live] [--account <id>]
 token-weather doctor claude [--refresh-live]

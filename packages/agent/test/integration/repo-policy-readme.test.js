@@ -84,16 +84,23 @@ describe('repo-policy/readme — 핵심 섹션 존재 (issue #154: 영어 defaul
 });
 
 describe('repo-policy/readme — 외부 문서 링크 (issue #154: 영어 본 정합)', () => {
-  // README.md = 영어 default (Phase 2-1). 영어 본이 있는 외부 docs (Phase 2-2 의
-  // telegram-bot / cli-json-output / provider-notes) 는 .en.md 로, 아직 번역
-  // 안 된 docs (auth-architecture / codebase-guide 등) 는 .md (한글) 그대로.
+  // README.md = 영어 default. 외부 가시 docs 7개 모두 .en.md 로 link 됨
+  // (Phase 2-2 + 2-3). README 가 한글 본 .md 로 회귀하면 본 가드가 즉시 fail.
+  // 내부 docs (codebase-guide) 는 한글 only — 그대로 .md.
   const REQUIRED_LINKS = [
     'LICENSE',
     'SECURITY.md',
     'CODE_OF_CONDUCT.md',
     'CONTRIBUTING.md',
+    // 외부 가시 docs 7개 — 모두 .en.md
+    'docs/architecture.en.md',
+    'docs/auth-architecture.en.md',
+    'docs/auth-cli.en.md',
     'docs/cli-json-output.en.md',
-    'docs/auth-architecture.md',
+    'docs/provider-notes.en.md',
+    'docs/telegram-bot.en.md',
+    'docs/typescript-consumers.en.md',
+    // 내부 docs (contributor 한국 기반)
     'docs/codebase-guide.md',
   ];
 
