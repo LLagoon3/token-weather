@@ -10,7 +10,7 @@
 > Translated from [README.ko.md](./README.ko.md) — last sync 2026-05-20. The Korean version is the source of truth; this English version follows it. See [CONTRIBUTING.md §10](./CONTRIBUTING.md) for the i18n drift policy.
 
 > **Local CLI dashboard for AI service usage and OAuth credentials.**
-> A CLI that checks usage and auth status for multiple AI services (Codex / Claude) in one place, locally. **OAuth tokens never leave your machine** (even with the optional `@token-weather/telegram` activated, the bot token and OAuth tokens stay local — only usage metadata flows through Telegram servers; see [details](./docs/telegram-bot.md#보안-모델)).
+> A CLI that checks usage and auth status for multiple AI services (Codex / Claude) in one place, locally. **OAuth tokens never leave your machine** (even with the optional `@token-weather/telegram` activated, the bot token and OAuth tokens stay local — only usage metadata flows through Telegram servers; see [details](./docs/telegram-bot.en.md#security-model)).
 
 ## Install
 
@@ -52,11 +52,11 @@ You can record the first-minute flow of `token-weather` locally with `bash scrip
 ## What & Why
 
 - **What**: A CLI that unifies OAuth credentials and usage windows for AI tools, locally. Two providers in operation today — Codex (OpenAI) and Claude (Anthropic).
-- **Why**: Other dashboards send tokens to external servers or depend on a separate auth service. Token Weather works with **its own broker + local credential store** — **OAuth tokens never leave your machine**. Even when `@token-weather/telegram` is enabled, tokens themselves stay local; only usage and account-label metadata flows through Telegram servers ([details](./docs/telegram-bot.md#보안-모델)).
+- **Why**: Other dashboards send tokens to external servers or depend on a separate auth service. Token Weather works with **its own broker + local credential store** — **OAuth tokens never leave your machine**. Even when `@token-weather/telegram` is enabled, tokens themselves stay local; only usage and account-label metadata flows through Telegram servers ([details](./docs/telegram-bot.en.md#security-model)).
 - **How it's different**:
   - **Multi-account**: store multiple accounts per provider, query them in parallel, attach labels
   - **Automatic refresh**: expired access tokens are refreshed preflight before any provider call, with a single retry on auth failure
-  - **`status --json` stable contract**: normalized output with token redaction guaranteed — directly consumable by external dashboards / collectors ([docs/cli-json-output.md](./docs/cli-json-output.md))
+  - **`status --json` stable contract**: normalized output with token redaction guaranteed — directly consumable by external dashboards / collectors ([docs/cli-json-output.en.md](./docs/cli-json-output.en.md))
   - **Observed `client_id`**: uses the values observed from the provider binaries (not an officially registered OAuth client). Every publish of this tool itself is verified by npm Trusted Publishing OIDC + SLSA provenance, so the supply chain is independently auditable
 
 ## Supported providers
@@ -66,7 +66,7 @@ You can record the first-minute flow of `token-weather` locally with `bash scrip
 | Codex (OpenAI)     | ✓ `auth login codex`  | `wham/usage`   | ✓       | In production |
 | Claude (Anthropic) | ✓ `auth login claude` | `oauth/usage`  | ✓       | In production |
 
-For provider-specific observed endpoint / client_id details, see [docs/provider-notes.md](./docs/provider-notes.md).
+For provider-specific observed endpoint / client_id details, see [docs/provider-notes.en.md](./docs/provider-notes.en.md).
 
 ## Commands
 
@@ -98,7 +98,7 @@ token-weather telegram setup             # bot token + pairing + OS service guid
 token-weather telegram start             # run the daemon (or use the systemd / launchd / Task Scheduler entry created at the end of setup)
 ```
 
-Details / security model / manual OS service registration / FAQ: [docs/telegram-bot.md](./docs/telegram-bot.md).
+Details / security model / manual OS service registration / FAQ: [docs/telegram-bot.en.md](./docs/telegram-bot.en.md).
 
 ## JSON output (automation)
 
@@ -108,7 +108,7 @@ Details / security model / manual OS service registration / FAQ: [docs/telegram-
 token-weather status --json | jq '.providers[0]'
 ```
 
-Shape / redaction rules / limits: [docs/cli-json-output.md](./docs/cli-json-output.md).
+Shape / redaction rules / limits: [docs/cli-json-output.en.md](./docs/cli-json-output.en.md).
 
 ## Security principles
 
@@ -149,9 +149,9 @@ Quick entry point — [docs/INDEX.md](./docs/INDEX.md) (categorized).
 - [docs/architecture.md](./docs/architecture.md) — high-level structure summary
 - [docs/auth-architecture.md](./docs/auth-architecture.md) — auth / token / source priority details
 - [docs/auth-cli.md](./docs/auth-cli.md) — auth CLI commands / policy
-- [docs/cli-json-output.md](./docs/cli-json-output.md) — `--json` stable contract + redaction rules
-- [docs/provider-notes.md](./docs/provider-notes.md) — per-provider observed endpoint / client_id
-- [docs/telegram-bot.md](./docs/telegram-bot.md) — Telegram bot optional package (`@token-weather/telegram`) guide
+- [docs/cli-json-output.en.md](./docs/cli-json-output.en.md) — `--json` stable contract + redaction rules
+- [docs/provider-notes.en.md](./docs/provider-notes.en.md) — per-provider observed endpoint / client_id
+- [docs/telegram-bot.en.md](./docs/telegram-bot.en.md) — Telegram bot optional package (`@token-weather/telegram`) guide
 - [docs/typescript-consumers.md](./docs/typescript-consumers.md) — d.ts / import patterns for TypeScript users
 
 **For contributors / maintainers** (contributors are Korean-based — kept in Korean only):
