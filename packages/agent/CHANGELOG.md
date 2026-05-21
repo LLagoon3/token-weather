@@ -1,5 +1,148 @@
 # @token-weather/cli
 
+## 0.7.0
+
+### Minor Changes
+
+- 06b1300: docs(repo): 외부 가시 docs 영어 번역 — telegram-bot / cli-json-output /
+  provider-notes (issue #154 Phase 2-2).
+
+  README 영어 default 전환 (Phase 2-1) 에 이어, 외부 사용자 진입도가 가장 높은
+  3개 docs 의 영어 번역본 (.en.md) 을 추가. 영어권 사용자가 README 의 외부 docs
+  link 따라 갈 때 한 클릭으로 영어 본 접근 가능.
+
+  **변경 사항**:
+  - `docs/telegram-bot.en.md` 신규 — 봇 setup / 핸들러 / OS service 가이드 / 보안
+    모델 / FAQ
+  - `docs/cli-json-output.en.md` 신규 — `status --json` stable contract,
+    field-absence 정책, redaction 규약, v0.4.0 / v0.5.0 migration
+  - `docs/provider-notes.en.md` 신규 — provider 별 observed endpoint /
+    client_id / refresh 동작 / 알려진 limits
+  - `docs/INDEX.md` 갱신 — 외부 사용자용 표에 '영문' 컬럼 추가. Phase 2-2 의 3
+    개만 link 노출, 나머지 4 개 (architecture / auth-architecture / auth-cli /
+    typescript-consumers) 는 Phase 2-3 예정 표기
+
+  **번역 정책 정합** (CONTRIBUTING §6 + §10):
+  - 한글 source (`docs/X.md`) 가 source of truth. 영문 `.en.md` 는 번역본.
+  - 코드 식별자 / 외부 lib name / 경로 / 명령 예시 / JSON shape key / endpoint
+    URL / scope 명 — 양쪽 동일.
+  - 영문 본 상단에 번역 footer (`> Translated from ... last sync 2026-05-20`).
+
+  **Non-goal** (Phase 2-3 / 2-4 후속):
+  - `docs/auth-architecture.en.md` / `auth-cli.en.md` / `architecture.en.md` /
+    `typescript-consumers.en.md` — Phase 2-3
+  - `SECURITY.md` 영어화 — Phase 2-4
+  - CONTRIBUTING §10 의 운영 절차 보강 (test 가드 등) — Phase 2-4
+  - 내부 docs (codebase-guide / release-policy) 영어화 보류
+
+- 24ea5d6: docs(repo): 외부 가시 docs 보조 4개 영어 번역 — architecture / auth-architecture /
+  auth-cli / typescript-consumers (issue #154 Phase 2-3).
+
+  Phase 2-1 (README dual) + Phase 2-2 (외부 핵심 3개) 에 이어, 외부 가시 docs 의
+  나머지 4개를 영어 번역. 외부 사용자 진입도 모든 외부 docs 영어 본 보유 — README
+  의 영어 본 ToC link 가 7개 docs 모두 `.en.md` 를 가리킴.
+
+  **변경 사항**:
+  - `docs/architecture.en.md` 신규 (77 lines) — 고수준 구성 / CLI agent / services /
+    provider adapters / schemas / 인증 계층 / 확장 후보
+  - `docs/auth-architecture.en.md` 신규 (184 lines) — 인증 흐름 4종 / credential
+    source 우선순위 / 저장소 설계 / 보안 원칙 / 자동 refresh / Codex / Claude
+    endpoint 검증 현황 / 운영 방안
+  - `docs/auth-cli.en.md` 신규 (204 lines) — auth login / list / logout / import +
+    doctor (--dedupe / --apply / --backfill-account-id) / multi-account / port
+    conflict / 자동 refresh / 예시 시나리오
+  - `docs/typescript-consumers.en.md` 신규 (116 lines) — d.ts emission 정책 / 현재
+    d.ts 품질 / manual sanity check 절차 / 한계
+  - `docs/INDEX.md` 갱신 — 외부 사용자용 표 7행 모두 영문 본 노출
+  - `README.md` (영어) 본문 / ToC 의 link 4개 갱신: architecture / auth-architecture /
+    auth-cli / typescript-consumers → .en.md
+  - `repo-policy-readme.test.js` REQUIRED_LINKS 갱신: `docs/auth-architecture.md` →
+    `docs/auth-architecture.en.md`
+
+  **번역 정책 정합** (CONTRIBUTING §6 + §10):
+  - 명령 / 옵션 / endpoint URL / scope / client_id / 경로 / 환경변수 — 양쪽 동일
+  - 표 / 단계 흐름 / 예시 코드 — 한글 source 와 동일 구조
+  - 영문 본 상단 번역 footer + CONTRIBUTING §10 ref
+
+  **Non-goal** (Phase 2-4 마무리):
+  - SECURITY.md 영어화
+  - CONTRIBUTING §10 의 운영 절차 보강 (test 가드 / dual sync 검증)
+  - 내부 docs (codebase-guide / release-policy / auth-store-schema / claude-oauth-plan) 한글 유지
+
+- 6e48b78: docs(repo): README 영어 default 전환 — npm registry / GitHub 진입 시 영어권 사용자
+  친화 (issue #154 Phase 2-1).
+
+  기존 한글 `README.md` 를 `README.ko.md` 로 rename (git history 보존) + 영문
+  번역본을 `README.md` 위치에 신규. 양쪽 파일 상단에 dual language 링크 +
+  번역 정책 footer.
+
+  **왜 minor bump 인가**:
+  - 사용자 가시 진입 경로가 영어로 확장됨 (npm.com 의 readme 탭이 영어 표시,
+    외부 사용자 진입 시 첫 인상 변화)
+  - 코드 / CLI / `--json` contract 변경은 없음 — 새 기능 / fix 도 없음
+  - 그래도 npm publish 의 user-facing change 로 분류 (README 가 publish artifact
+    의 일부이고, 영문 default 가 search / discovery 에 직접 영향)
+  - patch 보다 minor 가 정합 — release-policy §3 의 "사용자 가시 변경" 범주
+
+  **Non-goal** (별도 후속 PR):
+  - `docs/` 하위 외부 가시 docs 영어 번역 — Phase 2-2 / 2-3
+  - SECURITY.md 영어화 — Phase 2-4
+  - CONTRIBUTING §10 i18n drift 방지 정책 — Phase 2-4
+  - 내부 docs (codebase-guide / release-policy) 영어화 — 보류 (contributor 한국 기반)
+
+  번역 정책 (CONTRIBUTING §6 정합):
+  - source of truth: 한글 (`README.ko.md`). 영어는 번역본.
+  - 코드 식별자 / 외부 lib name / 경로 / 명령 예시는 양쪽 동일.
+  - 한글 변경 시 영어 동시 갱신 의무 — CONTRIBUTING §10 (Phase 2-4 신설 예정).
+
+### Patch Changes
+
+- 9fbdff9: docs(repo): i18n 메타 정비 마무리 — SECURITY 영어 default + CONTRIBUTING §10 정식 +
+  dual sync test 가드 (issue #154 Phase 2-4).
+
+  Phase 2-1 (README dual) / 2-2 (외부 docs 3개) / 2-3 (외부 docs 4개) 에 이어
+  i18n roadmap 의 마지막 단계 — 메타 파일 정합 + drift 방어막.
+
+  **변경 사항**:
+  - `SECURITY.md` → `SECURITY.ko.md` rename + `SECURITY.md` 영어 신규 + 양쪽 dual
+    language 링크. 외부 보안 신고 (GitHub Security Advisory) 진입 시 영어 default.
+  - `CONTRIBUTING.md §10` skeleton → 정식 본:
+    - dual 대상 파일 분류 (README/SECURITY 영문 default + 외부 docs 7 영문 추가 +
+      한글 only 분류)
+    - 기본 원칙 (source of truth / drift 방지 / 불변 요소 / 번역 footer /
+      상호 링크 / dual sync 검증) 명확화
+    - 번역 작업 흐름 (AI draft + 사람 review + footer last sync 갱신)
+    - 의미적 정합 fix (source outdated 발견 시 한글 + 영문 동시 갱신)
+    - CLI 평문 / `--json` / changeset 정책 분리 ref
+  - 새 test `packages/agent/test/integration/repo-policy-i18n.test.js` (40 test):
+    - dual 대상 파일 존재 (16 파일)
+    - 상단 dual language 링크 + globe 글리프
+    - 영문 본 번역 footer + last sync 날짜
+    - README 영어 본 link 가 외부 docs 7개 모두 `.en.md`
+    - 한글 source 의 한글 헤더 (역번역 회귀 차단)
+
+  **i18n roadmap 종료** (issue #154):
+  - ✅ README dual (영문 default + .ko.md)
+  - ✅ SECURITY dual (영문 default + .ko.md)
+  - ✅ 외부 docs 7개 영문 본 추가
+  - ✅ CONTRIBUTING §10 정식 정책
+  - ✅ repo-policy-i18n test 가드 (drift 방어막)
+  - ✅ docs/INDEX.md 카테고리별 entry point
+
+  **Non-goal** (별도 후속 / Out of scope):
+  - Docusaurus / VitePress 기반 독립 docs 사이트
+  - 자동 번역 CI (AI 호출)
+  - 다른 언어 (일본어 / 중국어 등) — 영어 dual 후 별도 사이클
+  - 내부 docs (codebase-guide / release-policy / auth-store-schema /
+    claude-oauth-plan) 영어화 — contributor 한국 기반 유지
+
+- Updated dependencies [06b1300]
+- Updated dependencies [24ea5d6]
+- Updated dependencies [9fbdff9]
+- Updated dependencies [6e48b78]
+  - @token-weather/provider-adapters@0.7.0
+  - @token-weather/schemas@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes
