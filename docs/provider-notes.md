@@ -1,5 +1,7 @@
 # Provider 메모
 
+🌐 [English](./provider-notes.en.md) · **한국어**
+
 ## OpenAI Codex
 
 - Endpoint: `https://chatgpt.com/backend-api/wham/usage`

@@ -1,5 +1,7 @@
 # Auth CLI 인터페이스
 
+🌐 [English](./auth-cli.en.md) · **한국어**
+
 `token-weather`의 인증 관련 CLI 명령 집합과 운영 정책을 정리한다.
 
 ## 명령 구조

@@ -1,5 +1,7 @@
 # Provider notes
 
+🌐 **English** · [한국어](./provider-notes.md)
+
 > Translated from [provider-notes.md](./provider-notes.md) — last sync 2026-05-20. The Korean version is the source of truth; this English version follows it. See [CONTRIBUTING.md §10](../CONTRIBUTING.md) for the i18n drift policy.
 
 ## OpenAI Codex

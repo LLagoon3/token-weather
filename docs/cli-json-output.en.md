@@ -1,5 +1,7 @@
 # CLI JSON output (`--json`)
 
+🌐 **English** · [한국어](./cli-json-output.md)
+
 > Translated from [cli-json-output.md](./cli-json-output.md) — last sync 2026-05-20. The Korean version is the source of truth; this English version follows it. See [CONTRIBUTING.md §10](../CONTRIBUTING.md) for the i18n drift policy.
 
 The `status` / `usage` commands emit a single normalized JSON line to stdout when given the `--json` flag. This is a specification so that automation / dashboards / backend collectors can consume the output directly without re-parsing text formatting.

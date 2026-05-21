@@ -1,5 +1,7 @@
 # CLI JSON 출력 (`--json`)
 
+🌐 [English](./cli-json-output.en.md) · **한국어**
+
 `status` / `usage` 커맨드는 `--json` 플래그로 정규화된 JSON 한 줄을 stdout에 출력한다. 자동화 / 대시보드 / 백엔드 수집기가 텍스트 포매팅을 다시 파싱하지 않고 직접 소비할 수 있도록 한 명세다.
 
 이 문서는 출력 shape의 **stable contract**다. 변경 시 schema bump이 필요하다(현재 `schemaVersion`은 `packages/schemas`와 공유 — string semver, [docs/release-policy.md §3](./release-policy.md) 참고).
